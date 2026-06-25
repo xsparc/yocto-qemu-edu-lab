@@ -1,0 +1,12 @@
+# SPDX-License-Identifier: MIT
+
+# Yocto checkouts and build products
+poky/
+build/
+downloads/
+sstate-cache/
+
+# Editor and OS files
+*.swp
+*~
+.DS_Store

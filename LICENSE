@@ -1,0 +1,12 @@
+This repository contains files under two licenses.
+
+The project scaffolding, documentation, Yocto layer metadata, helper scripts,
+and user-space test utility are licensed under the MIT License. See
+LICENSES/MIT.txt.
+
+The example Linux kernel module source and its kernel-module build file are
+licensed under GPL-2.0-only. See LICENSES/GPL-2.0-only.txt.
+
+Individual files may carry SPDX-License-Identifier comments that state the
+applicable license for that file. When present, the file-level SPDX identifier
+takes precedence over this summary.

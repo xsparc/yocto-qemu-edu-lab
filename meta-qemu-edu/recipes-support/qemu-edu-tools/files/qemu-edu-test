@@ -1,0 +1,59 @@
+#!/bin/sh
+# SPDX-License-Identifier: MIT
+
+set -eu
+
+DRIVER_DIR=/sys/bus/pci/drivers/qemu_edu
+DEVICE=
+
+if [ ! -d "$DRIVER_DIR" ]; then
+    echo "The qemu_edu driver is not registered." >&2
+    echo "Try: modprobe qemu_edu" >&2
+    exit 1
+fi
+
+for candidate in "$DRIVER_DIR"/*:*; do
+    if [ -L "$candidate" ]; then
+        DEVICE=$candidate
+        break
+    fi
+done
+
+if [ -z "$DEVICE" ]; then
+    echo "The driver is loaded, but no EDU PCI device is bound." >&2
+    echo "Check that QEMU was started with '-device edu'." >&2
+    exit 1
+fi
+
+echo "== PCI discovery =="
+lspci -nn -d 1234:11e8 || true
+echo "sysfs device: $DEVICE"
+echo
+
+echo "== Identification register =="
+cat "$DEVICE/identification"
+echo
+
+echo "== MMIO liveness/inversion test =="
+echo 0x12345678 > "$DEVICE/liveness"
+cat "$DEVICE/liveness"
+echo
+
+echo "== Explicit interrupt test =="
+printf 'interrupts before: '
+cat "$DEVICE/irq_count"
+echo 0x400 > "$DEVICE/trigger_irq"
+printf 'interrupts after:  '
+cat "$DEVICE/irq_count"
+printf 'last IRQ status:   '
+cat "$DEVICE/last_irq_status"
+echo
+
+echo "== Asynchronous factorial + interrupt =="
+echo 5 > "$DEVICE/factorial"
+cat "$DEVICE/factorial"
+printf 'interrupts total:  '
+cat "$DEVICE/irq_count"
+echo
+
+echo "All EDU driver checks completed."
