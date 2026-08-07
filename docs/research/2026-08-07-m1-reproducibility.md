@@ -18,6 +18,12 @@ updating the lock or CI.
   and <https://docs.yoctoproject.org/6.0/dev-manual/poky-manual-setup.html>.
 - The Yocto release page identifies 6.0 Wrynose as LTS and 6.0.2 as its current
   point release. Source: <https://www.yoctoproject.org/development/releases/>.
+- Yocto 5.2 removed the vague `debug-tweaks` image feature and names its four
+  explicit replacements: `allow-empty-password`, `allow-root-login`,
+  `empty-root-password`, and `post-install-logging`. The first hosted Wrynose
+  parse exposed the obsolete alias in the generated lab configuration; M1 now
+  names the four development-only behaviors explicitly. Source:
+  <https://docs.yoctoproject.org/5.2.2/migration-guides/migration-5.2.html#debug-tweaks-removed-from-image-features>.
 - Live `git ls-remote` checks of the official release tags resolved to the three
   commits recorded in `config/sources.lock.json`. These release tags are
   annotated: the direct tag refs name tag objects, while the `^{}` peeled refs

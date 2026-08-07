@@ -30,7 +30,7 @@ f510299b8ad2b35ab74530c0d68a6fd57a49f327e9c7ada8a9c91b6e17c57838  ./docs/maintai
 ac92b912bb16e39d17fa1032bf0e5fb34a3fe4e2482cfeba6b523f700095e2f4  ./docs/maintainers/tasks.toml
 72cba1904c804f972fcc776e6c7c4d78f6a8d149839bc8cf38241df521d3c2d0  ./docs/maintenance-workflow.md
 2d2670239afbd12d27199d6c45bb2908234b67a9b7b995673781d6232aad1f56  ./docs/mapping-to-real-hardware.md
-0f5b8c9a55c2cea0fb70d196ced163f2aaa7bbb7d2bf8b554494b2d81ea412c2  ./docs/research/2026-08-07-m1-reproducibility.md
+c8f0440c7c8df8f6cae97f670575e073f90fe2672de99908606e45683722cffd  ./docs/research/2026-08-07-m1-reproducibility.md
 e74353e0045211709c74b606084e68a681fbd7af0d56d959f202703011b5dfef  ./docs/research/2026-08-07-project-direction.md
 ae60f7e30719be4b719036914b3a930d70ab2aeef23fa88816813e68c9fcab7a  ./docs/roadmap.md
 690830fc5fe8a199494791a645e928f2015fa212bd3abeb59179081eef139a21  ./docs/source-lock.md
@@ -48,13 +48,13 @@ f3a1675afb0eda9db68df712a7e10339d09a4e70b2a2f628bda5023b9719c248  ./meta-qemu-ed
 56f5c2244543224b79a2e2f4bec7c9029f58c79a006981855451dafe8f5cd02c  ./meta-qemu-edu/recipes-support/qemu-edu-tools/files/qemu-edu-test
 d2c3adf1c4fe5079e2458eb1be2054c31d1e662b364d67bf485deb9a6afd867d  ./meta-qemu-edu/recipes-support/qemu-edu-tools/qemu-edu-tools_1.0.bb
 63111a0a2370773aa5dfa20c56febcf9e0940c54a73db327c064ad9702eb95f8  ./run.sh
-20ab5d7e30330e68a3cfbb8a97dd26a35d1d9ceb85735657d1231d7c77bf8441  ./scripts/configure_build.py
+ff39cfa47ec628ded80e54dbc9f36babf2a85bd0e461766655d5b2044bc0e6f6  ./scripts/configure_build.py
 dafa7cb73c00c25bcffa073f055a7258078a0643ece01a3cb9b833354083eca3  ./scripts/source_lock.py
 a4fe377a4d1e03e70b283ee75b1fcf7a29b224e88bd9eac8275a0f64aec60eda  ./scripts/update_checksums.py
 bebdc75b4ecb489319cde4260da7e78b53811106d8c5c0a53f341e58e3cef369  ./scripts/validate_ci.py
 dde3c306b8b30e643376b3a692e3fc4a46c2cf36e797f7b1d9f2fe9736070139  ./scripts/validate_workflow.py
 d254ec5f2b1a104654a78e87254f52f487f2f4103055678a441ebd475c215392  ./setup.sh
-39d6b21fa320560bb30e24355a5d53a6f701551e0448cf7eb2650767cad8f83d  ./tests/test_configure_build.py
+c8470125bdc369de36f6ad6bd11a0915bf17a329c3afb886d5add1e20f6d239d  ./tests/test_configure_build.py
 90febb26e9651ade3abf710e260faefb62227fcb867f7fc0e56d3acac3474e41  ./tests/test_environment.py
 7b61ce129f9c73d56cfaddf78cb9b35efe23f37cf6f10daef51f1e0b6b181563  ./tests/test_source_lock.py
 417fc3c3edbecd3881ace46103073dbb93b6c6a7987ab24916545177e1a09a5b  ./tests/test_update_checksums.py

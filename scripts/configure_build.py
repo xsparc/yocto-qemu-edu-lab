@@ -70,7 +70,7 @@ DL_DIR ?= "${{TOPDIR}}/../downloads"
 SSTATE_DIR ?= "${{TOPDIR}}/../sstate-cache"
 
 # Development convenience only; remove this from a production image.
-EXTRA_IMAGE_FEATURES += "debug-tweaks"
+EXTRA_IMAGE_FEATURES += "allow-empty-password allow-root-login empty-root-password post-install-logging"
 {END}'''
     if START in text:
         before = text.split(START, 1)[0].rstrip()

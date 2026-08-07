@@ -70,6 +70,17 @@ MACHINE = "experimental"
         with self.assertRaisesRegex(MODULE.ConfigurationError, "invalid managed block"):
             MODULE.render_local_conf(f"{MODULE.END}\n{MODULE.START}\n", data)
 
+    def test_managed_local_uses_explicit_development_image_features(self) -> None:
+        rendered = MODULE.render_local_conf('CONF_VERSION = "2"\n', self.lock())
+        self.assertNotIn("debug-tweaks", rendered)
+        for feature in (
+            "allow-empty-password",
+            "allow-root-login",
+            "empty-root-password",
+            "post-install-logging",
+        ):
+            self.assertIn(feature, rendered)
+
     def test_effective_values_reject_extra_or_reordered_layers(self) -> None:
         root, _ = self.fixture()
         data = self.lock()
