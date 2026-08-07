@@ -12,7 +12,7 @@ resource-constrained, or metadata-only checks into build or runtime claims.
 |---|---|---|---|
 | Fast checks | Every PR, main push, or manual run on `ubuntu-24.04` | Lock schema, workflow/CI policy, unit tests, checksums, changed-line whitespace, ShellCheck, actionlint, REUSE | Upstream availability, BitBake parse, image build, guest runtime |
 | Yocto metadata | Relevant PR/main changes or manual run on `ubuntu-24.04` | Exact source resolution, cached offline recheck, layer order, `bitbake -p`, expanded image metadata, `yocto-check-layer` | Compiled image, QEMU boot, guest behavior, offline recipe fetches, bit-for-bit output |
-| Full build/runtime | Not yet automated | Future image build and OEQA/QEMU evidence on an adequately sized protected runner | Nothing until that lane exists and passes |
+| Full build/runtime | Local/manual on an adequately sized Linux host; no hosted runner currently configured | A completed `runtime-test.sh` run builds, boots, executes required OEQA cases, and emits version-1 evidence | Nothing until the command actually completes; metadata CI is not runtime proof |
 
 The stable fast job IDs are `repository`, `static`, and `licensing`. The metadata
 job is path-scoped and initially advisory; path-filtered checks should not be
@@ -72,6 +72,16 @@ predictably resource-starved. A future lane needs an ephemeral or protected,
 main-only Linux runner with at least 150 GB usable storage, preferably 32 GB
 RAM, no exposure to fork code, and bounded download/shared-state retention.
 M2 then adds OEQA/testimage runtime evidence.
+
+M2 provides the executable runtime path and closed evidence format, but does
+not weaken this capacity gate. The repository currently has no self-hosted or
+larger runner. Use `docs/runtime-testing.md` on a suitable local or protected
+Linux worker, including an isolated Linux container only when its namespace,
+storage, memory, and software-emulation limits are recorded with the result. If
+a future CI lane retains evidence, it may publish only the allowlisted JSON
+result with a short immutable-artifact retention period and recorded digest;
+raw build trees, shared state, downloads, and environment dumps remain
+excluded.
 
 After the first green M1 runs, maintainers should separately consider making
 the three stable fast jobs required, enabling repository-wide action SHA

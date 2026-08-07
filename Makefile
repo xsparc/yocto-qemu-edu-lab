@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: MIT
 
-.PHONY: setup inspect build run rebuild-driver clean-driver check check-source-lock check-workflow test-workflow checksums
+.PHONY: setup inspect build run runtime-test rebuild-driver clean-driver check check-source-lock check-workflow test-workflow checksums
 
 setup:
 	./setup.sh
@@ -13,6 +13,9 @@ build:
 
 run:
 	./run.sh
+
+runtime-test:
+	./runtime-test.sh
 
 rebuild-driver:
 	bash -c 'source ./environment.sh && target_text=$$(python3 "$$QEMU_EDU_ROOT/scripts/source_lock.py" --repo "$$QEMU_EDU_ROOT" get build.targets --lines) && mapfile -t targets <<<"$$target_text" && bitbake qemu-edu-driver -c compile -f && bitbake "$${targets[@]}"'

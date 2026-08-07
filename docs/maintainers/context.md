@@ -5,8 +5,8 @@ SPDX-License-Identifier: MIT
 
 # Project context
 
-- Active task: none. A001 is Done in pull request #2; A002 remains Proposed and unapproved.
-- Current branch: `milestone/m1-reproducible-setup`.
+- Active task: A002, M2 automated QEMU guest verification, is In Progress with repository-owner approval.
+- Current branch: `milestone/m2-runtime-verification`.
 - Baseline: one x86-64 Yocto 6.0 (`wrynose`) learning machine using QEMU EDU PCI device `1234:11e8`.
 - Existing runtime features: PCI discovery, BAR0 MMIO, legacy INTx, sysfs, factorial/liveness operations, and a guest smoke test.
 - Current license boundary: infrastructure and learning material are MIT; kernel module source and its module Makefile are GPL-2.0-only.
@@ -15,6 +15,7 @@ SPDX-License-Identifier: MIT
 - Full Yocto builds require Linux/WSL2 and substantial disk/time; the present Windows session can run repository-local checks and Git Bash syntax checks, while GitHub-hosted Linux validates source resolution and metadata.
 - M0 was squash-merged through pull request #1 as commit `cc72890cb2fc5258bec1fbdd8c58e2ed44458749`.
 - M1 resolves exact Yocto 6.0.2 sources, reconciles locked build configuration, and provides green fast and Linux metadata evidence through pull request #2.
-- Pull request #2 passed repository, static, licensing, source sync, setup, parse, inspection, and native layer checks at `09344b334d9ccbf74242b572ea6718adbc36830c`; it is not merged or released.
-- Next safe action: maintainer review and merge decision for pull request #2. M2 requires that merge plus separate explicit approval.
+- Pull request #2 passed repository, static, licensing, source sync, setup, parse, inspection, and native layer checks, then squash-merged as `b269b002500059ee31754b7868c0b5a250089f0a`; no release was published.
+- A002 discovery validation built the complete image and passed all 11 project OEQA cases under software QEMU; clean-revision evidence and independent final review remain before the pull request is ready.
+- Next safe action: freeze and review A002, then rerun the cached suite from the exact clean implementation revision. M3, M5, and M6 remain unapproved.
 - Public workflow state uses tool-neutral maintainer paths while preserving the same task, approval, validation, review, and handoff semantics.

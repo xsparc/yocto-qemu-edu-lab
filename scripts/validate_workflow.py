@@ -30,7 +30,10 @@ REQUIRED_FILES = (
     "docs/source-lock.md",
     "docs/ci.md",
     "docs/versioning.md",
+    "docs/guest-interface.md",
+    "docs/runtime-testing.md",
     "config/sources.lock.json",
+    "schemas/qemu-edu-runtime-evidence-v1.schema.json",
     ".github/workflows/fast-checks.yml",
     ".github/workflows/yocto-metadata.yml",
 )
@@ -160,6 +163,9 @@ def validate(root: Path) -> list[str]:
         "source_lock_policy_path",
         "ci_policy_path",
         "versioning_path",
+        "guest_interface_path",
+        "runtime_testing_path",
+        "runtime_evidence_schema_path",
     ):
         relative = config.get(key)
         if not relative or not (root / str(relative)).is_file():

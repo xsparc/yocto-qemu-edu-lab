@@ -77,7 +77,7 @@ jobs:
       - name: Static analysis
         run: |
           "$RUNNER_TEMP/m1-tools/shellcheck/shellcheck" --severity=warning \
-            setup.sh environment.sh build.sh inspect.sh run.sh
+            setup.sh environment.sh build.sh inspect.sh run.sh runtime-test.sh
           "$RUNNER_TEMP/m1-tools/actionlint/actionlint" \
             -shellcheck="$RUNNER_TEMP/m1-tools/shellcheck/shellcheck"
 

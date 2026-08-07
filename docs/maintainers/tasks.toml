@@ -101,11 +101,11 @@ review_evidence = [
   "DevOps, security, and quality review verified read-only secret-free CI, immutable tool identities, fail-closed policy tests, the bounded Ubuntu namespace exception, and hosted evidence claims; final rechecks approved with no findings.",
   "Independent diff review reproduced and closed source-tag, configuration, workflow, checksum, portability, and Yocto feature compatibility defects; the final milestone and each hosted repair were approved with no remaining findings.",
 ]
-result = "Implemented and validated through pull request #2 at https://github.com/xsparc/yocto-qemu-edu-lab/pull/2; ready for maintainer review, not merged or released."
+result = "Implemented, independently reviewed, and squash-merged through pull request #2 as commit b269b002500059ee31754b7868c0b5a250089f0a; no release was published."
 
 [[tasks]]
 id = "A002"
-status = "Proposed"
+status = "In Progress"
 milestone = "M2"
 title = "Automate QEMU guest verification"
 outcome = "Turn the existing manual smoke test into repeatable Yocto runtime evidence."
@@ -123,10 +123,14 @@ acceptance_criteria = [
 dependencies = ["A001"]
 risks = ["test", "runtime", "compatibility", "kernel"]
 validation = ["bitbake qemu-edu-image -c testimage", "project fast-check suite"]
-approval = ""
+approval = "Repository owner confirmed the M1 squash merge and explicitly requested development of the next milestone on 2026-08-08."
 reviews_required = ["quality", "architecture", "security", "independent-diff"]
 reviews_completed = []
-validation_evidence = []
+validation_evidence = [
+  "A resource-capped Debian 12 Linux container completed all 4,738 qemu-edu-image tasks against the exact Yocto 6.0.2 source lock; the initial 16-way attempt exposed and recorded a clang-native OOM rather than being mislabeled as a pass.",
+  "The discovery testimage run booted the image under software QEMU 10.2.0 and passed ping, SSH, and all 11 required qemu_edu cases in 38.215 seconds with no skips, failures, or errors.",
+  "The closed evidence collector recorded OEQA input SHA-256 1cec3db5d0935a766b766615c8eaaef329523eed6aa66e63494f9f9f38b7bde9 and correctly rejected qualification because the discovery tree was dirty; a clean-revision rerun remains required.",
+]
 review_evidence = []
 result = ""
 

@@ -7,7 +7,7 @@
 ```text
 qemu-edu-x86-64.conf
     |
-    |-- reuses qemux86-64 compiler/kernel settings
+    |-- reuses qemux86-64 compiler settings and kernel BSP metadata
     |-- appends: -device edu
     |-- requires package: qemu-edu-driver
     v
@@ -49,12 +49,14 @@ qemu-edu-test
 - The lock guarantees metadata source identity, not recipe-download
   availability, authenticated upstream origin, bit-for-bit output, or runtime
   behavior.
-- Runtime verification is a manual guest shell script, not an OEQA/testimage
-  suite.
+- M2 adds a native OEQA/testimage suite and a closed version-1 result schema.
+  A full build/runtime pass remains an evidence claim only after it executes on
+  an adequate Linux host; the manual guest script remains the teaching path.
 - The driver deliberately starts with legacy INTx and has not implemented the
   EDU DMA engine.
-- The user-facing control surface is sysfs. Its names and text are useful for
-  learning but are not yet documented as a versioned interface contract.
+- The user-facing sysfs control surface is documented as guest-interface
+  contract version 1. It remains pre-1.0 and may evolve only with an explicit
+  project-version and compatibility decision.
 - The repository has no physical-hardware target and must not imply QEMU
   validates electrical or silicon behavior.
 - Public CI has fast and Linux metadata lanes. A full image/runtime lane is not
@@ -110,6 +112,11 @@ Build metadata, test results, supported versions, and skipped checks are emitted
 as evidence. Evidence records the source revision, machine, image, test suite,
 result, and environment needed to interpret it. It never upgrades “unknown” to
 “pass.”
+
+Runtime evidence version 1 is a lossy, allowlisted projection of native OEQA
+JSON. It records exact required case statuses, durations, source-lock identity,
+project revision/dirty state, and the native task exit. Raw logs and arbitrary
+upstream fields remain diagnostic inputs rather than public schema fields.
 
 ### Boundary 5: integrations
 
