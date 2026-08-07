@@ -13,4 +13,4 @@ SPDX-License-Identifier: MIT
 - Full Yocto builds require Linux/WSL2 and substantial disk/time; the present Windows session can run only repository-local fast checks.
 - OpenSteward has not audited this repository: no absolute private fixture sidecar config exists, and the plugin cannot perform live GitHub or repository inspection.
 - M0 local validation and independent review are complete with no remaining findings; full Yocto/QEMU runtime evidence is unavailable on this Windows host.
-- GitHub publication is pending because `gh auth status` reports the active `xsparc` token is invalid; run `gh auth login -h github.com` before push/PR work.
+- Pull request #1 is open from `codex/m0-project-foundation`; GitHub reports it ready, mergeable, and in a clean merge state, with no repository checks configured yet.

@@ -54,7 +54,7 @@ review_evidence = [
   "Independent findings-first review found and reproduced a cross-platform checksum/EOL blocker; fixed by hashing staged Git blob bytes.",
   "Final independent recheck reported no blocking or non-blocking findings after Done-state review reconciliation, contributor guidance, and checksum tests were added.",
 ]
-result = "Local M0 implementation, licensing audit, validation, and independent review are complete; publication remains pending valid GitHub CLI authentication and opening the milestone pull request."
+result = "M0 implementation, licensing audit, validation, and independent review are complete; pull request #1 is open and ready for repository-owner review and merge."
 
 [[tasks]]
 id = "A001"
