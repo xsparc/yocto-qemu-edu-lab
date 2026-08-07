@@ -41,6 +41,13 @@ Hosted runner packages and images remain mutable. Metadata results therefore
 record the GitHub runner image identity and prove compatibility with that
 observed environment, not a hermetic host distribution.
 
+Ubuntu 24.04 restricts unprivileged user namespaces through AppArmor, while
+BitBake uses them to isolate tasks. The metadata job disables that one kernel
+restriction only inside its disposable GitHub-hosted VM and immediately probes
+the required namespace operation. The exception is not applied to persistent
+runners, carries no secrets or write token, and does not broaden workflow
+permissions.
+
 ## Local checks
 
 Run the dependency-free repository suite with Python 3.11 or newer:

@@ -77,6 +77,12 @@ prove branch ancestry before checkout.
   signatures, patch metadata, compatibility, and BSP-machine checks without
   compiling the full image. Source:
   <https://docs.yoctoproject.org/6.0/dev-manual/layers.html#yocto-check-layer-script>.
+- Ubuntu 24.04 restricts unprivileged user namespaces through AppArmor and
+  documents `kernel.apparmor_restrict_unprivileged_userns=0` as the system-wide
+  opt-out. The first hosted parse exposed BitBake's dependency on that facility;
+  M1 applies the opt-out only to the disposable metadata VM and verifies it with
+  `unshare`. Source:
+  <https://documentation.ubuntu.com/release-notes/24.04/#unprivileged-user-namespace-restrictions>.
 
 ## Decisions influenced
 

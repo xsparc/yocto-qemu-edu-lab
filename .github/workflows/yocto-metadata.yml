@@ -62,6 +62,10 @@ jobs:
             python3-jinja2 python3-pexpect python3-pip python3-subunit \
             python3-websockets socat texinfo unzip wget xz-utils zstd
           sudo locale-gen en_US.UTF-8
+      - name: Allow BitBake user namespaces
+        run: |
+          sudo sysctl --write kernel.apparmor_restrict_unprivileged_userns=0
+          unshare --user --map-root-user --net true
       - name: Resolve and verify locked sources
         env:
           BUILD_DIR: ${{ runner.temp }}/yocto-build
