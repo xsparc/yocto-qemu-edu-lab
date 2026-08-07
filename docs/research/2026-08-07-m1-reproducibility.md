@@ -19,8 +19,19 @@ updating the lock or CI.
 - The Yocto release page identifies 6.0 Wrynose as LTS and 6.0.2 as its current
   point release. Source: <https://www.yoctoproject.org/development/releases/>.
 - Live `git ls-remote` checks of the official release tags resolved to the three
-  commits recorded in `config/sources.lock.json`. The lock records both branch
-  and release refs but the full commit alone drives checkout.
+  commits recorded in `config/sources.lock.json`. These release tags are
+  annotated: the direct tag refs name tag objects, while the `^{}` peeled refs
+  name the commits that drive checkout. The lock records peeled commits plus
+  both branch and release refs, and online sync verifies all three identities.
+
+### Hosted correction - 2026-08-08
+
+The first metadata run correctly rejected tag-object IDs that had been copied
+from direct `ls-remote` tag lines as if they were commits. Official ref checks
+were repeated with explicit peeled tag refs for BitBake, OE-Core, and
+meta-yocto. The lock and source-lock table now record the peeled commits; the
+online verifier continues to resolve each fetched tag through `^{commit}` and
+prove branch ancestry before checkout.
 
 ## Orchestration choice
 

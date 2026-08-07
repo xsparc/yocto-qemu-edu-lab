@@ -146,8 +146,10 @@ class SourceLockTests(unittest.TestCase):
         self.git(upstream, "add", ".")
         self.git(upstream, "commit", "--quiet", "-m", "locked")
         self.git(upstream, "branch", "-M", "locked")
-        self.git(upstream, "tag", "yocto-test")
+        self.git(upstream, "tag", "--annotate", "yocto-test", "-m", "release")
         commit = self.git(upstream, "rev-parse", "HEAD")
+        tag_object = self.git(upstream, "rev-parse", "yocto-test")
+        self.assertNotEqual(commit, tag_object)
         remote = root / "remote.git"
         subprocess.run(
             ["git", "clone", "--quiet", "--bare", str(upstream), str(remote)],
@@ -193,7 +195,11 @@ class SourceLockTests(unittest.TestCase):
                 return result
             return original_git(path, *arguments, check=check)
 
+        tag_object_source = copy.deepcopy(source)
+        tag_object_source["commit"] = tag_object
         with mock.patch.object(MODULE, "git", side_effect=local_fetch):
+            with self.assertRaisesRegex(MODULE.LockError, "release ref resolves"):
+                MODULE.sync_source(root, tag_object_source, offline=False)
             result = MODULE.sync_source(root, source, offline=False)
         self.assertEqual("ready", result["state"])
         self.assertEqual(commit, result["actual_commit"])

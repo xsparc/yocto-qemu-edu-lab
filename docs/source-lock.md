@@ -9,11 +9,11 @@ SPDX-License-Identifier: MIT
 repositories and build composition used by this lab. Schema version 1 locks
 Yocto 6.0.2 as three upstream repositories:
 
-| Source | Release ref | Locked commit |
+| Source | Release ref | Locked peeled commit |
 |---|---|---|
-| BitBake | `yocto-6.0.2` | `178b39316042fd71d46e82ba6889e3b824024bb0` |
-| OpenEmbedded Core | `yocto-6.0.2` | `8ecd6056805602dc99c4cd110b04e39ae5424610` |
-| meta-yocto | `yocto-6.0.2` | `c81e26bda0cacc3e13b1fee7a98faadc449841bc` |
+| BitBake | `yocto-6.0.2` | `acfe02fa38b5da9e6a36c6cedcf91d4fcbefbfbd` |
+| OpenEmbedded Core | `yocto-6.0.2` | `5d1aa5c806c061a2994f4decb59016610f093213` |
+| meta-yocto | `yocto-6.0.2` | `24c24cef5d1523fefe43a3e3d34667b37ae551f3` |
 
 This replaces the old `poky/` combo-checkout assumption. Yocto 6.0 Poky is a
 composition of these repositories; the combo repository is not updated for

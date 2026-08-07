@@ -28,7 +28,7 @@
       "url": "https://git.openembedded.org/bitbake",
       "branch_ref": "refs/heads/2.18",
       "release_ref": "refs/tags/yocto-6.0.2",
-      "commit": "178b39316042fd71d46e82ba6889e3b824024bb0",
+      "commit": "acfe02fa38b5da9e6a36c6cedcf91d4fcbefbfbd",
       "object_format": "sha1",
       "path": "layers/bitbake",
       "required_paths": [
@@ -43,7 +43,7 @@
       "url": "https://git.openembedded.org/openembedded-core",
       "branch_ref": "refs/heads/wrynose",
       "release_ref": "refs/tags/yocto-6.0.2",
-      "commit": "8ecd6056805602dc99c4cd110b04e39ae5424610",
+      "commit": "5d1aa5c806c061a2994f4decb59016610f093213",
       "object_format": "sha1",
       "path": "layers/openembedded-core",
       "required_paths": [
@@ -58,7 +58,7 @@
       "url": "https://git.yoctoproject.org/meta-yocto",
       "branch_ref": "refs/heads/wrynose",
       "release_ref": "refs/tags/yocto-6.0.2",
-      "commit": "c81e26bda0cacc3e13b1fee7a98faadc449841bc",
+      "commit": "24c24cef5d1523fefe43a3e3d34667b37ae551f3",
       "object_format": "sha1",
       "path": "layers/meta-yocto",
       "required_paths": [

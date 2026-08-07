@@ -17,7 +17,7 @@ b05586646674bb66586812d5744fa4c52adf596ff21c954670180525f2bdf3be  ./README.md
 88bd19885296cc341bd2b0e23bd9802efb0da938fef7662a8286f6af35e18e10  ./SECURITY.md
 c2ef39e09593cca70be98a0fb0ab435b53e2eb3c3d4e812cd7d43794eafa7728  ./VERSION
 85fb02dd3ade10181db37f96a052bfe26429acef27f8451104e942b79fa064da  ./build.sh
-60e9c2a4216933ebb1a19c673cd8f87242e30a5994d364d941421935f8dd4dd9  ./config/sources.lock.json
+8b92b01e49afdce24864edcaeea2a8bf7110c638db0e3592572dccac5bb035e0  ./config/sources.lock.json
 0080f183bf203fbf38756dba62d5d5bb5fc4ee9414cdeeda7684700ddf20e911  ./docs/architecture.md
 da8e153f68ca963ed713293c79596c6a59a29ce1a3df5c57d8a02a572613fd39  ./docs/ci.md
 dc381e8922e6119c02a4d4b95df5c300b8b5e576d8f192e19e5b5f659bc58485  ./docs/licensing.md
@@ -30,10 +30,10 @@ f510299b8ad2b35ab74530c0d68a6fd57a49f327e9c7ada8a9c91b6e17c57838  ./docs/maintai
 ac92b912bb16e39d17fa1032bf0e5fb34a3fe4e2482cfeba6b523f700095e2f4  ./docs/maintainers/tasks.toml
 72cba1904c804f972fcc776e6c7c4d78f6a8d149839bc8cf38241df521d3c2d0  ./docs/maintenance-workflow.md
 2d2670239afbd12d27199d6c45bb2908234b67a9b7b995673781d6232aad1f56  ./docs/mapping-to-real-hardware.md
-59803add787cd74a2ce177e8070d642488dfa2adf32c03a496c4827ec40ac3a7  ./docs/research/2026-08-07-m1-reproducibility.md
+06d80a6c123bda972fc9bd8dca040b3201c7a5624b2e7d687c76c8bef522b19b  ./docs/research/2026-08-07-m1-reproducibility.md
 e74353e0045211709c74b606084e68a681fbd7af0d56d959f202703011b5dfef  ./docs/research/2026-08-07-project-direction.md
 ae60f7e30719be4b719036914b3a930d70ab2aeef23fa88816813e68c9fcab7a  ./docs/roadmap.md
-4037599f33ed8774aa8c4f702984b9ee62d14f4a187b1223373c87c5a4f68e7a  ./docs/source-lock.md
+690830fc5fe8a199494791a645e928f2015fa212bd3abeb59179081eef139a21  ./docs/source-lock.md
 d8397f15da7dd651ea3d9824bc2a595ccb6ff21c70c2380e977a2368272dbe6f  ./docs/versioning.md
 0d79747066a5edc3f22efdf0ff60e72cec7252b6c5f458cd466e8df6e09a4b5c  ./docs/vision.md
 8f5e67017a4861bb1e8719a3e5256f3db101735715e59730f659560b01ee788a  ./environment.sh
@@ -56,7 +56,7 @@ dde3c306b8b30e643376b3a692e3fc4a46c2cf36e797f7b1d9f2fe9736070139  ./scripts/vali
 d254ec5f2b1a104654a78e87254f52f487f2f4103055678a441ebd475c215392  ./setup.sh
 39d6b21fa320560bb30e24355a5d53a6f701551e0448cf7eb2650767cad8f83d  ./tests/test_configure_build.py
 90febb26e9651ade3abf710e260faefb62227fcb867f7fc0e56d3acac3474e41  ./tests/test_environment.py
-04e1a798c0edfbd509dbf8d87fc60409747b3ad2afe8f9d52d6364b678a4c559  ./tests/test_source_lock.py
+7b61ce129f9c73d56cfaddf78cb9b35efe23f37cf6f10daef51f1e0b6b181563  ./tests/test_source_lock.py
 417fc3c3edbecd3881ace46103073dbb93b6c6a7987ab24916545177e1a09a5b  ./tests/test_update_checksums.py
 f705aab7617083d4933cf5439a70fe1104b5e3e1e3a23bd9b80af7d2380d6ba1  ./tests/test_validate_ci.py
 82404bb9289f0161f2c5b79fc4b7dbddc3d44f7aa45952194a4b8542c51d7f2a  ./tests/test_validate_workflow.py
