@@ -30,7 +30,7 @@ Rollback: revert the M0 PR; it does not change guest runtime behavior.
 Outcome: a pull request can prove source identity and catch inexpensive failures
 before a full Yocto build.
 
-Candidate scope:
+Delivered scope:
 
 - lock the official split BitBake, OE-Core, and meta-yocto repositories after
   comparing a project format, kas, and upstream `bitbake-setup`;
@@ -42,9 +42,10 @@ Candidate scope:
 - document why a full build/runtime lane needs a larger protected runner;
 - define project SemVer and Yocto-series compatibility policy.
 
-Acceptance gate: a clean supported Linux environment resolves the same inputs,
-fast checks are documented and green, and unavailable full-build evidence is
-reported honestly.
+Acceptance evidence: pull request #2 resolves the declared inputs on a clean
+Linux runner, passes documented fast checks and native metadata/layer checks,
+and reports unavailable full-build/runtime evidence honestly. Merge and release
+remain separate maintainer decisions.
 
 Rollback: revert M1 scripts and workflows without deleting `layers/`, `poky/`,
 downloads, shared state, or build output. The former Poky combo path is not kept

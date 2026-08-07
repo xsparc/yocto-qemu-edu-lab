@@ -79,3 +79,16 @@ SPDX-License-Identifier: MIT
 - Reason: Source-lock and command contracts need a compatibility vocabulary
   before integrations consume them, without implying that the unvalidated
   runtime curriculum has already been released.
+
+## D-009: Bound the BitBake namespace exception to disposable metadata CI
+
+- Status: Accepted on 2026-08-08 for M1.
+- Decision: On Ubuntu 24.04, disable the AppArmor unprivileged-user-namespace
+  restriction only inside the disposable GitHub-hosted metadata VM and verify
+  the combined user/network namespace operation before running BitBake. Do not
+  apply this exception to persistent runners or production hosts by default.
+- Reason: BitBake requires namespaces for task isolation, while Ubuntu 24.04
+  enables a conflicting mitigation. The public PR job has read-only permission,
+  no secrets or persisted credentials, no artifacts, and no durable host state.
+- Revisit when: the runner image or BitBake behavior changes, or metadata moves
+  to a persistent runner with a narrower AppArmor profile.
