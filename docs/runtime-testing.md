@@ -36,8 +36,9 @@ build/evidence/qemu-edu-runtime-v1.json
 ```
 
 Set `BUILD_DIR` to relocate build products or `EVIDENCE_OUTPUT` to choose a
-different evidence filename. Both paths remain local; generated build and
-evidence output is ignored by Git.
+different evidence filename. The default `build/` output is ignored by Git.
+Custom paths are caller-owned. Prefer locations outside the repository or
+covered by ignore rules; otherwise generated files may appear in Git status.
 
 ## Required cases
 

@@ -83,6 +83,17 @@ before designing A002.
 - BusyBox `ash` returned failed sysfs writes without diagnostic prose. A small
   guest helper now reports numeric Linux errno, allowing the suite to assert
   `ERANGE`, `EINVAL`, and `ETIMEDOUT` without locale or shell coupling.
+- The final clean-revision run verified the effective locked distro, machine,
+  and ordered layers before building. Commit `6479681` completed all 4,738
+  image tasks, booted software QEMU 10.2.0, and passed ping, SSH, and all 11
+  project cases in 38.263 seconds with no skips, failures, or errors.
+- The version-1 evidence recorded `dirty=false`, native OEQA SHA-256
+  `47427d97b0e687a50c5583525921fe1eaa5709024ebf9615119d47f7941ba623`,
+  and evidence SHA-256
+  `433ad3f360bf1ef719157c0fb07c08ab85ef0f4587853f12235c4a4603ba44d4`.
+  Independent review recomputed both hashes and validated `--require-pass`.
+  This is an unsigned local report, not hosted provenance or physical-hardware
+  validation.
 
 ## Decisions influenced
 
