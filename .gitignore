@@ -6,6 +6,10 @@ build/
 downloads/
 sstate-cache/
 
+# Repository-local Python validation caches
+__pycache__/
+*.py[cod]
+
 # Editor and OS files
 *.swp
 *~

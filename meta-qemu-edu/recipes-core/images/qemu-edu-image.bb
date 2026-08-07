@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+
 SUMMARY = "Minimal console image for the QEMU EDU driver lab"
 LICENSE = "MIT"
 

@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: MIT
+# The recipe metadata is MIT; LICENSE below describes the packaged module source.
+
 SUMMARY = "Learning driver for QEMU's EDU PCI device"
 DESCRIPTION = "Out-of-tree PCI driver demonstrating discovery, BAR mapping, MMIO, legacy interrupts, sysfs, and Yocto module packaging."
 LICENSE = "GPL-2.0-only"

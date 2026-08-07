@@ -1,0 +1,169 @@
+#!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 Yocto QEMU EDU learning project contributors
+# SPDX-License-Identifier: MIT
+"""Validate the repository's small, dependency-free agent workflow."""
+
+from __future__ import annotations
+
+import argparse
+import re
+import sys
+import tomllib
+from pathlib import Path
+from typing import Any
+
+
+REQUIRED_FILES = (
+    "AGENTS.md",
+    ".agents/README.md",
+    ".agents/config.toml",
+    ".agents/intake.md",
+    ".agents/tasks.toml",
+    ".agents/ledger.md",
+    ".agents/memory.md",
+    ".agents/decisions.md",
+    "docs/vision.md",
+    "docs/architecture.md",
+    "docs/roadmap.md",
+    "docs/agentic-implementation-plan.md",
+    "docs/licensing.md",
+)
+
+
+def load_toml(path: Path) -> dict[str, Any]:
+    with path.open("rb") as handle:
+        return tomllib.load(handle)
+
+
+def validate(root: Path) -> list[str]:
+    errors: list[str] = []
+    for relative in REQUIRED_FILES:
+        if not (root / relative).is_file():
+            errors.append(f"missing required file: {relative}")
+
+    config_path = root / ".agents/config.toml"
+    tasks_path = root / ".agents/tasks.toml"
+    ledger_path = root / ".agents/ledger.md"
+    if not config_path.is_file() or not tasks_path.is_file():
+        return errors
+
+    try:
+        config = load_toml(config_path)
+        task_state = load_toml(tasks_path)
+    except (OSError, tomllib.TOMLDecodeError) as exc:
+        errors.append(f"invalid workflow TOML: {exc}")
+        return errors
+
+    workflow = config.get("workflow", {})
+    statuses = workflow.get("statuses", [])
+    if not isinstance(statuses, list) or not statuses:
+        errors.append("workflow.statuses must be a non-empty list")
+        statuses = []
+
+    prefix = config.get("task_id_prefix", "A")
+    if task_state.get("task_id_prefix") != prefix:
+        errors.append("task_id_prefix differs between config.toml and tasks.toml")
+
+    tasks = task_state.get("tasks", [])
+    if not isinstance(tasks, list):
+        errors.append("tasks must be an array of tables")
+        return errors
+
+    ids: set[str] = set()
+    active = 0
+    task_by_id: dict[str, dict[str, Any]] = {}
+    for task in tasks:
+        if not isinstance(task, dict):
+            errors.append("each task must be a TOML table")
+            continue
+        task_id = str(task.get("id", ""))
+        status = str(task.get("status", ""))
+        task_by_id[task_id] = task
+        if not re.fullmatch(re.escape(str(prefix)) + r"\d{3,}", task_id):
+            errors.append(f"invalid task id: {task_id or '<empty>'}")
+        if task_id in ids:
+            errors.append(f"duplicate task id: {task_id}")
+        ids.add(task_id)
+        if status not in statuses:
+            errors.append(f"{task_id} has invalid status: {status}")
+        if status == "In Progress":
+            active += 1
+        if status in {"Ready", "In Progress", "Done"} and workflow.get(
+            "ready_requires_user_approval", True
+        ) and not str(task.get("approval", "")).strip():
+            errors.append(f"{task_id} is executable without approval evidence")
+        for field in ("milestone", "title", "outcome", "scope", "acceptance_criteria", "validation"):
+            value = task.get(field)
+            if value in (None, "", []):
+                errors.append(f"{task_id} has no {field}")
+        if status == "Done":
+            if not str(task.get("result", "")).strip():
+                errors.append(f"{task_id} is Done without a result")
+            if workflow.get("done_requires_validation_evidence", True) and not task.get(
+                "validation_evidence"
+            ):
+                errors.append(f"{task_id} is Done without validation evidence")
+            if workflow.get("done_requires_review_evidence", True) and not task.get(
+                "review_evidence"
+            ):
+                errors.append(f"{task_id} is Done without review evidence")
+            required_reviews = set(task.get("reviews_required", []))
+            completed_reviews = set(task.get("reviews_completed", []))
+            missing_reviews = sorted(required_reviews - completed_reviews)
+            if missing_reviews:
+                errors.append(
+                    f"{task_id} is Done without completed reviews: "
+                    + ", ".join(missing_reviews)
+                )
+
+    if active > int(workflow.get("max_in_progress", 1)):
+        errors.append(f"{active} tasks are In Progress")
+
+    for task_id, task in task_by_id.items():
+        for dependency in task.get("dependencies", []):
+            if dependency == task_id:
+                errors.append(f"{task_id} depends on itself")
+            elif dependency not in task_by_id:
+                errors.append(f"{task_id} has unknown dependency: {dependency}")
+        if task.get("status") in {"Ready", "In Progress", "Done"}:
+            for dependency in task.get("dependencies", []):
+                if dependency not in task_by_id:
+                    continue
+                if task_by_id[dependency].get("status") != "Done":
+                    errors.append(
+                        f"{task_id} is executable before dependency {dependency} is Done"
+                    )
+
+    if ledger_path.is_file():
+        ledger = ledger_path.read_text(encoding="utf-8")
+        for task_id in ids:
+            task = task_by_id[task_id]
+            milestone = re.escape(str(task.get("milestone", "")))
+            status = re.escape(str(task.get("status", "")))
+            pattern = rf"(?m)^\| {re.escape(task_id)} \| {milestone} \| {status} \|"
+            if not re.search(pattern, ledger):
+                errors.append(f"ledger is missing {task_id}")
+
+    for key in ("design_path", "vision_path", "roadmap_path", "agent_plan_path", "license_policy_path"):
+        relative = config.get(key)
+        if not relative or not (root / str(relative)).is_file():
+            errors.append(f"configured path is missing: {key}={relative!r}")
+
+    return errors
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--repo", default=".", help="repository root")
+    args = parser.parse_args()
+    errors = validate(Path(args.repo).resolve())
+    if errors:
+        for error in errors:
+            print(f"workflow: FAIL: {error}", file=sys.stderr)
+        return 1
+    print("workflow: PASS")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

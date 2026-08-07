@@ -1,0 +1,12 @@
+# SPDX-FileCopyrightText: 2026 Yocto QEMU EDU learning project contributors
+# SPDX-License-Identifier: MIT
+
+* text=auto
+
+*.bb text eol=lf
+*.bbappend text eol=lf
+*.c text eol=lf
+*.conf text eol=lf
+*.py text eol=lf
+*.sh text eol=lf
+Makefile text eol=lf

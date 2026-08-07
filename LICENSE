@@ -10,3 +10,7 @@ licensed under GPL-2.0-only. See LICENSES/GPL-2.0-only.txt.
 Individual files may carry SPDX-License-Identifier comments that state the
 applicable license for that file. When present, the file-level SPDX identifier
 takes precedence over this summary.
+
+REUSE.toml supplies machine-readable fallback copyright and license information
+for covered files. See docs/licensing.md for the contribution and provenance
+policy.
