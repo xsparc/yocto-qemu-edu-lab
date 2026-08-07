@@ -27,7 +27,16 @@ class WorkflowValidationTests(unittest.TestCase):
         shutil.copytree(
             ROOT,
             destination,
-            ignore=shutil.ignore_patterns(".git", "__pycache__", "*.pyc"),
+            ignore=shutil.ignore_patterns(
+                ".git",
+                "__pycache__",
+                "*.pyc",
+                "build",
+                "downloads",
+                "layers",
+                "poky",
+                "sstate-cache",
+            ),
         )
         return destination
 

@@ -38,6 +38,11 @@
 
 #define EDU_OPERATION_TIMEOUT_MS    2000
 
+static bool force_factorial_timeout;
+module_param(force_factorial_timeout, bool, 0400);
+MODULE_PARM_DESC(force_factorial_timeout,
+		 "suppress factorial IRQ requests to exercise timeout handling");
+
 struct qemu_edu {
 	struct pci_dev *pdev;
 	void __iomem *bar0;
@@ -179,7 +184,10 @@ static ssize_t factorial_store(struct device *dev,
 	iowrite32(0, edu->bar0 + EDU_REG_STATUS);
 	qemu_edu_ack_pending_irqs(edu);
 	reinit_completion(&edu->factorial_done);
-	iowrite32(EDU_STATUS_IRQ_FACTORIAL, edu->bar0 + EDU_REG_STATUS);
+	if (force_factorial_timeout)
+		iowrite32(0, edu->bar0 + EDU_REG_STATUS);
+	else
+		iowrite32(EDU_STATUS_IRQ_FACTORIAL, edu->bar0 + EDU_REG_STATUS);
 	iowrite32(value, edu->bar0 + EDU_REG_FACTORIAL);
 
 	waited = wait_for_completion_interruptible_timeout(

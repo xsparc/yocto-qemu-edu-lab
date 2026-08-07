@@ -101,11 +101,11 @@ review_evidence = [
   "DevOps, security, and quality review verified read-only secret-free CI, immutable tool identities, fail-closed policy tests, the bounded Ubuntu namespace exception, and hosted evidence claims; final rechecks approved with no findings.",
   "Independent diff review reproduced and closed source-tag, configuration, workflow, checksum, portability, and Yocto feature compatibility defects; the final milestone and each hosted repair were approved with no remaining findings.",
 ]
-result = "Implemented and validated through pull request #2 at https://github.com/xsparc/yocto-qemu-edu-lab/pull/2; ready for maintainer review, not merged or released."
+result = "Implemented, independently reviewed, and squash-merged through pull request #2 as commit b269b002500059ee31754b7868c0b5a250089f0a; no release was published."
 
 [[tasks]]
 id = "A002"
-status = "Proposed"
+status = "Done"
 milestone = "M2"
 title = "Automate QEMU guest verification"
 outcome = "Turn the existing manual smoke test into repeatable Yocto runtime evidence."
@@ -123,12 +123,23 @@ acceptance_criteria = [
 dependencies = ["A001"]
 risks = ["test", "runtime", "compatibility", "kernel"]
 validation = ["bitbake qemu-edu-image -c testimage", "project fast-check suite"]
-approval = ""
+approval = "Repository owner confirmed the M1 squash merge and explicitly requested development of the next milestone on 2026-08-08."
 reviews_required = ["quality", "architecture", "security", "independent-diff"]
-reviews_completed = []
-validation_evidence = []
-review_evidence = []
-result = ""
+reviews_completed = ["quality", "architecture", "security", "independent-diff"]
+validation_evidence = [
+  "A resource-capped Debian 12 Linux container completed all 4,738 qemu-edu-image tasks against the exact Yocto 6.0.2 source lock; the initial 16-way attempt exposed and recorded a clang-native OOM rather than being mislabeled as a pass.",
+  "The discovery testimage run booted the image under software QEMU 10.2.0 and passed ping, SSH, and all 11 required qemu_edu cases in 38.215 seconds with no skips, failures, or errors.",
+  "The closed evidence collector recorded OEQA input SHA-256 1cec3db5d0935a766b766615c8eaaef329523eed6aa66e63494f9f9f38b7bde9 and correctly rejected qualification because the discovery tree was dirty.",
+  "The clean commit 64796817412a4b582723165f0413be6edf3891c1 passed effective locked-build verification, a 953-recipe parse, all 4,738 image tasks, QEMU boot, ping and SSH, and all 11 project cases in 38.263 seconds with no skips, failures, or errors.",
+  "Version-1 evidence validated with project dirty=false and testimage exit 0; evidence SHA-256 is 433ad3f360bf1ef719157c0fb07c08ab85ef0f4587853f12235c4a4603ba44d4, native OEQA SHA-256 is 47427d97b0e687a50c5583525921fe1eaa5709024ebf9615119d47f7941ba623, and source-lock SHA-256 is 8b92b01e49afdce24864edcaeea2a8bf7110c638db0e3592572dccac5bb035e0.",
+  "The complete Linux suite passed 68/68 tests; source-lock, workflow, CI-policy, checksum, Bash syntax, staged whitespace, and REUSE 3.3 checks passed, with REUSE covering 66/66 files.",
+]
+review_evidence = [
+  "Architecture review verified the guest contract, exact QEMU identity, kernel BSP selection, bounded timeout injection and recovery, PCI removal restoration, version decision, locked build composition, and conservative evidence semantics; final review reported no P0-P2 findings.",
+  "Quality, security, DevOps, and licensing review found evidence-integrity and validator-parity defects; the runtime preflight, exact types, conservative negative-path claims, and executable shell regressions were added, and final re-review reported no P0-P2 findings with REUSE 66/66.",
+  "Independent final diff review recomputed the evidence, native OEQA, and source-lock hashes, validated the closed document with --require-pass, confirmed 13/13 native cases and exact clean revision binding, and approved with no P0-P2 findings.",
+]
+result = "Implemented, validated on the exact clean revision, and independently reviewed on the focused M2 branch; ready to propose through one pull request. No merge, tag, release, hosted provenance attestation, or physical-hardware claim has occurred."
 
 [[tasks]]
 id = "A003"

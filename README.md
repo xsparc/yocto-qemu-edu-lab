@@ -11,7 +11,7 @@ Device-Tree/platform-driver lab, and optional provider-neutral diagnostics. The
 core build and learning path will remain usable without an AI service. See
 [`docs/vision.md`](docs/vision.md) and [`docs/roadmap.md`](docs/roadmap.md).
 
-The current development identity is `0.1.0-dev`; no release is implied. Yocto
+The current development identity is `0.2.0-dev`; no release is implied. Yocto
 metadata inputs are locked to the 6.0.2 Wrynose point release.
 
 The virtual target is an x86-64 machine with QEMU's **EDU educational PCI
@@ -44,9 +44,9 @@ choice.  For Ubuntu or Debian:
 ```bash
 sudo apt-get update
 sudo apt-get install build-essential chrpath cpio debianutils diffstat file \
-    gawk gcc git iputils-ping libacl1 libcrypt-dev locales python3 \
+    gawk gcc git iproute2 iputils-ping libacl1 libcrypt-dev locales openssh-client python3 \
     python3-git python3-jinja2 python3-pexpect python3-pip python3-subunit \
-    socat texinfo unzip wget xz-utils zstd
+    socat sysstat texinfo unzip wget xz-utils zstd
 ```
 
 Ensure `en_US.UTF-8` is available:
@@ -151,7 +151,32 @@ If the module did not autoload:
 modprobe qemu_edu
 ```
 
-## 5. Follow one operation end to end
+## 5. Run the automated runtime suite
+
+On a supported Linux build host, build, boot, and verify the complete baseline
+without an interactive guest login:
+
+```bash
+./runtime-test.sh
+```
+
+This runs Yocto's native `testimage`/OEQA path over unprivileged SLIRP. It
+asserts PCI discovery, identification, liveness, factorial boundaries, legacy
+INTx, invalid inputs, timeout handling, and the removed-device diagnostic. The
+manual `qemu-edu-test` command remains available for teaching and rollback.
+
+A successful run creates a closed, versioned result document at:
+
+```text
+build/evidence/qemu-edu-runtime-v1.json
+```
+
+See [`docs/guest-interface.md`](docs/guest-interface.md) for the sysfs contract
+and [`docs/runtime-testing.md`](docs/runtime-testing.md) for test and evidence
+semantics. The repository does not treat metadata-only CI or an unexecuted
+runtime command as passing runtime evidence.
+
+## 6. Follow one operation end to end
 
 For factorial `5`:
 
@@ -171,7 +196,7 @@ qemu-edu-test
 That is the same basic path used with physical hardware; only the device model
 is software rather than RTL/silicon.
 
-## 6. Where to read the project
+## 7. Where to read the project
 
 Read files in this order:
 
@@ -181,9 +206,11 @@ Read files in this order:
 4. `meta-qemu-edu/recipes-support/qemu-edu-tools/qemu-edu-tools_1.0.bb`
 5. `meta-qemu-edu/recipes-core/images/qemu-edu-image.bb`
 6. `docs/architecture.md`
-7. `docs/mapping-to-real-hardware.md`
+7. `docs/guest-interface.md`
+8. `docs/runtime-testing.md`
+9. `docs/mapping-to-real-hardware.md`
 
-## 7. Edit/rebuild loop
+## 8. Edit/rebuild loop
 
 Change `qemu_edu.c`, then run:
 
@@ -205,7 +232,7 @@ bitbake qemu-edu-driver -c compile -f
 bitbake qemu-edu-image
 ```
 
-## 8. Exercises
+## 9. Exercises
 
 ### Exercise A: Break hardware discovery
 
@@ -242,7 +269,7 @@ Makefile entries, enable it with a kernel configuration fragment, and carry the
 change through a `linux-yocto_%.bbappend`.  This is closer to long-term product
 maintenance.
 
-## 9. What QEMU cannot prove
+## 10. What QEMU cannot prove
 
 QEMU is the right first step, but it cannot validate DDR initialization,
 electrical behavior, clock/reset sequencing, pin multiplexing, analogue
@@ -250,7 +277,7 @@ interfaces, real DMA coherency bugs, interrupt wiring mistakes, or silicon
 errata.  Use it to learn and automate the software architecture; use FPGA or
 real hardware later for physical bring-up.
 
-## 10. Licensing
+## 11. Licensing
 
 This repository is mixed-license:
 
@@ -266,7 +293,7 @@ The full file map, contribution rules, and REUSE policy are documented in
 [`docs/licensing.md`](docs/licensing.md). Do not copy external material into the
 repository unless its source and redistribution terms are clear.
 
-## 11. Project development
+## 12. Project development
 
 Public development is milestone-driven. Each milestone uses one focused pull
 request with explicit scope, validation evidence, licensing impact, and

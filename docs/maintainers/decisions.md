@@ -92,3 +92,12 @@ SPDX-License-Identifier: MIT
   no secrets or persisted credentials, no artifacts, and no durable host state.
 - Revisit when: the runner image or BitBake behavior changes, or metadata moves
   to a persistent runner with a narrower AppArmor profile.
+
+## D-010: Version the M2 contracts as 0.2.0-dev
+
+- Status: Accepted on 2026-08-08 for A002; no tag or release is authorized.
+- Decision: Advance the development identity from `0.1.0-dev` to `0.2.0-dev`
+  because M2 adds a curriculum stage, documents the guest interface, exposes a
+  read-only module-load test seam, and introduces runtime evidence schema 1.
+- Reason: The pre-1.0 policy assigns new curriculum stages and public contracts
+  to a minor line. Schema versioning remains independent of project SemVer.

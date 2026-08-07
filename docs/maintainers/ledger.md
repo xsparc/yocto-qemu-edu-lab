@@ -10,8 +10,8 @@ SPDX-License-Identifier: MIT
 | ID | Milestone | Status | Outcome | Dependency | Next gate |
 |---|---|---|---|---|---|
 | A000 | M0 | Done | Project vision and trustworthy execution | - | Merged through pull request #1 |
-| A001 | M1 | Done | Reproducible setup and fast validation | A000 | Maintainer review and merge of pull request #2 |
-| A002 | M2 | Proposed | Automated QEMU guest verification | A001 | M1 merged and explicit approval |
+| A001 | M1 | Done | Reproducible setup and fast validation | A000 | Merged through pull request #2 |
+| A002 | M2 | Done | Automated QEMU guest verification | A001 | Publish the focused M2 pull request; no dependent work is approved |
 | A003 | M3 | Proposed | Observable MSI learning stage | A002 | M2 merged and explicit approval |
 | A004 | M4 | Proposed | Bounded EDU DMA support | A003 | M3 merged and explicit approval |
 | A005 | M5 | Proposed | Portable platform-driver lab | A002 | Architecture choice and explicit approval |

@@ -56,7 +56,7 @@ as a Wrynose fallback because upstream no longer updates it for new series.
 Outcome: the existing PCI/MMIO/INTx lab is verified without an interactive
 guest login.
 
-Candidate scope:
+Delivered scope:
 
 - document the current sysfs contract and failure semantics;
 - integrate OEQA/testimage coverage for PCI discovery, identification,
@@ -64,8 +64,12 @@ Candidate scope:
   device behavior;
 - emit a versioned result document for CI and local diagnosis.
 
-Acceptance gate: `bitbake qemu-edu-image -c testimage` boots the image and
-produces reproducible pass/fail evidence for positive and negative paths.
+Acceptance evidence: clean commit `6479681` passed locked build-composition
+verification, the complete image build, software-QEMU boot, SSH, and all 11
+project runtime cases. The closed version-1 result records exact revision,
+dirty state, native input digest, task exit, and positive and negative outcomes.
+It remains an unsigned local report, not hosted provenance or physical-hardware
+evidence.
 
 Rollback: retain `qemu-edu-test` as a manual teaching tool even after OEQA owns
 the automated gate.
