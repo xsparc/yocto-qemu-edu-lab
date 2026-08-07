@@ -13,7 +13,7 @@ import tempfile
 import types
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -98,6 +98,21 @@ class RuntimeContractTests(unittest.TestCase):
         self.assertIn("module_param(force_factorial_timeout, bool, 0400);", source)
         self.assertNotIn("force_factorial_timeout = true", source)
 
+    def test_interrupt_policy_uses_managed_modern_pci_vectors(self) -> None:
+        source = (
+            ROOT
+            / "meta-qemu-edu/recipes-kernel/qemu-edu-driver/files/qemu_edu.c"
+        ).read_text(encoding="utf-8")
+        self.assertIn('static char *interrupt_mode = "auto";', source)
+        self.assertIn("module_param(interrupt_mode, charp, 0400);", source)
+        self.assertIn("PCI_IRQ_MSI | PCI_IRQ_INTX", source)
+        self.assertIn("pci_alloc_irq_vectors(pdev, 1, 1, interrupt_flags)", source)
+        self.assertIn("pci_irq_vector(pdev, 0)", source)
+        self.assertIn("pci_dev_msi_enabled(pdev)", source)
+        self.assertNotIn("pci_free_irq_vectors", source)
+        self.assertNotIn("pci_intx(pdev", source)
+        self.assertNotIn("pdev->irq", source)
+
     def test_runtime_wrapper_fails_fast_without_host_ssh(self) -> None:
         wrapper = (ROOT / "runtime-test.sh").read_text(encoding="utf-8")
         self.assertIn("command -v ssh", wrapper)
@@ -117,28 +132,7 @@ class RuntimeContractTests(unittest.TestCase):
         self.assertIn("errno=%d", helper)
 
     def test_schema_is_closed_and_covers_every_case(self) -> None:
-        schema = json.loads(
-            (ROOT / "schemas/qemu-edu-runtime-evidence-v1.schema.json").read_text(
-                encoding="utf-8"
-            )
-        )
-        self.assertFalse(schema["additionalProperties"])
-        self.assertEqual(
-            set(schema["required"]),
-            set(schema["properties"]),
-        )
-        self.assertEqual(
-            set(schema["properties"]["contract"]["required"]),
-            set(schema["properties"]["contract"]["properties"]),
-        )
-        self.assertFalse(schema["properties"]["tests"]["items"]["additionalProperties"])
-        self.assertEqual(schema["properties"]["tests"]["minItems"], 11)
-        self.assertEqual(schema["properties"]["tests"]["maxItems"], 11)
         evidence = load_runtime_evidence()
-        self.assertEqual(
-            set(schema["properties"]["tests"]["items"]["properties"]["status"]["enum"]),
-            evidence.OEQA_STATUSES,
-        )
 
         def string_schemas(value):
             if isinstance(value, dict):
@@ -150,8 +144,65 @@ class RuntimeContractTests(unittest.TestCase):
                 for child in value:
                     yield from string_schemas(child)
 
-        for definition in string_schemas(schema):
-            self.assertEqual(definition.get("maxLength"), evidence.MAX_STRING_LENGTH)
+        for version, count in ((1, 11), (2, len(evidence.EXPECTED_TESTS))):
+            with self.subTest(version=version):
+                schema = json.loads(
+                    (
+                        ROOT
+                        / f"schemas/qemu-edu-runtime-evidence-v{version}.schema.json"
+                    ).read_text(encoding="utf-8")
+                )
+                self.assertFalse(schema["additionalProperties"])
+                self.assertEqual(set(schema["required"]), set(schema["properties"]))
+                self.assertEqual(
+                    set(schema["properties"]["contract"]["required"]),
+                    set(schema["properties"]["contract"]["properties"]),
+                )
+                self.assertFalse(
+                    schema["properties"]["tests"]["items"]["additionalProperties"]
+                )
+                self.assertEqual(schema["properties"]["tests"]["minItems"], count)
+                self.assertEqual(schema["properties"]["tests"]["maxItems"], count)
+                self.assertEqual(
+                    set(
+                        schema["properties"]["tests"]["items"]["properties"][
+                            "status"
+                        ]["enum"]
+                    ),
+                    evidence.OEQA_STATUSES,
+                )
+                for definition in string_schemas(schema):
+                    self.assertEqual(
+                        definition.get("maxLength"), evidence.MAX_STRING_LENGTH
+                    )
+
+    def test_msi_policy_failures_still_attempt_restoration(self) -> None:
+        oeqa_case = load_oeqa_case()
+        bdf = "0000:00:05.0"
+
+        fallback = oeqa_case.QemuEduRuntimeTests(
+            "test_09_automatic_intx_fallback"
+        )
+        fallback.pci_device_bdf = MagicMock(return_value=bdf)
+        fallback.run_ok = MagicMock(return_value="1")
+        fallback.unload_module = MagicMock(side_effect=AssertionError("unload"))
+        fallback.restore_msi_bus_and_default = MagicMock()
+        with self.assertRaisesRegex(AssertionError, "unload"):
+            fallback.test_09_automatic_intx_fallback()
+        fallback.restore_msi_bus_and_default.assert_called_once_with(bdf, "1")
+
+        cleanup = oeqa_case.QemuEduRuntimeTests(
+            "test_10_required_msi_failure_and_cleanup"
+        )
+        cleanup.assert_default_msi = MagicMock(return_value=bdf)
+        cleanup.unload_module = MagicMock()
+        cleanup.run_ok = MagicMock(
+            side_effect=("1", "34", AssertionError("cleanup assertion"))
+        )
+        cleanup.restore_msi_bus_and_default = MagicMock()
+        with self.assertRaisesRegex(AssertionError, "cleanup assertion"):
+            cleanup.test_10_required_msi_failure_and_cleanup()
+        cleanup.restore_msi_bus_and_default.assert_called_once_with(bdf, "1")
 
 
 @unittest.skipIf(sys.platform == "win32", "requires a native Linux Bash environment")

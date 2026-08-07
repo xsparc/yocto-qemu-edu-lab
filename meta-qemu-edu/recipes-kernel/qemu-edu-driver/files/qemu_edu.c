@@ -3,8 +3,8 @@
  * qemu_edu.c - small learning driver for QEMU's EDU PCI device
  *
  * The device specification is documented by QEMU under
- * docs/specs/edu.rst.  This driver intentionally uses legacy INTx first;
- * converting it to MSI is a useful follow-up exercise.
+ * docs/specs/edu.rst.  The interrupt selector keeps MSI, automatic fallback,
+ * and legacy INTx visible as separate learning paths.
  */
 
 #include <linux/atomic.h>
@@ -43,6 +43,16 @@ module_param(force_factorial_timeout, bool, 0400);
 MODULE_PARM_DESC(force_factorial_timeout,
 		 "suppress factorial IRQ requests to exercise timeout handling");
 
+static char *interrupt_mode = "auto";
+module_param(interrupt_mode, charp, 0400);
+MODULE_PARM_DESC(interrupt_mode,
+		 "interrupt policy: auto (MSI then INTx), msi, or intx");
+
+enum qemu_edu_interrupt_mode {
+	QEMU_EDU_INTERRUPT_MSI,
+	QEMU_EDU_INTERRUPT_INTX,
+};
+
 struct qemu_edu {
 	struct pci_dev *pdev;
 	void __iomem *bar0;
@@ -51,6 +61,8 @@ struct qemu_edu {
 	struct completion any_irq_done;
 	atomic_t irq_count;
 	u32 last_irq_status;
+	unsigned int irq;
+	enum qemu_edu_interrupt_mode selected_interrupt_mode;
 
 	bool liveness_valid;
 	u32 liveness_input;
@@ -78,7 +90,7 @@ static irqreturn_t qemu_edu_irq(int irq, void *data)
 	if (!status)
 		return IRQ_NONE;
 
-	/* INTx is level-triggered: acknowledge the device before returning. */
+	/* EDU requires device acknowledgement for both MSI and INTx. */
 	iowrite32(status, edu->bar0 + EDU_REG_IRQ_ACK);
 	WRITE_ONCE(edu->last_irq_status, status);
 	atomic_inc(&edu->irq_count);
@@ -271,6 +283,17 @@ static ssize_t last_irq_status_show(struct device *dev,
 }
 static DEVICE_ATTR_RO(last_irq_status);
 
+static ssize_t interrupt_mode_show(struct device *dev,
+				   struct device_attribute *attr, char *buf)
+{
+	struct qemu_edu *edu = dev_get_drvdata(dev);
+
+	return sysfs_emit(buf, "%s\n",
+			  edu->selected_interrupt_mode == QEMU_EDU_INTERRUPT_MSI ?
+			  "msi" : "intx");
+}
+static DEVICE_ATTR_RO(interrupt_mode);
+
 static struct attribute *qemu_edu_attrs[] = {
 	&dev_attr_identification.attr,
 	&dev_attr_liveness.attr,
@@ -278,6 +301,7 @@ static struct attribute *qemu_edu_attrs[] = {
 	&dev_attr_trigger_irq.attr,
 	&dev_attr_irq_count.attr,
 	&dev_attr_last_irq_status.attr,
+	&dev_attr_interrupt_mode.attr,
 	NULL,
 };
 
@@ -285,12 +309,28 @@ static const struct attribute_group qemu_edu_attr_group = {
 	.attrs = qemu_edu_attrs,
 };
 
+static int qemu_edu_interrupt_flags(struct device *dev)
+{
+	if (!strcmp(interrupt_mode, "auto"))
+		return PCI_IRQ_MSI | PCI_IRQ_INTX;
+	if (!strcmp(interrupt_mode, "msi"))
+		return PCI_IRQ_MSI;
+	if (!strcmp(interrupt_mode, "intx"))
+		return PCI_IRQ_INTX;
+
+	dev_err(dev, "invalid interrupt_mode=%s; expected auto, msi, or intx\n",
+		interrupt_mode);
+	return -EINVAL;
+}
+
 static int qemu_edu_probe(struct pci_dev *pdev,
 			  const struct pci_device_id *id)
 {
 	struct device *dev = &pdev->dev;
 	struct qemu_edu *edu;
+	unsigned long request_flags;
 	u32 identification;
+	int interrupt_flags;
 	int ret;
 
 	ret = pcim_enable_device(pdev);
@@ -322,13 +362,33 @@ static int qemu_edu_probe(struct pci_dev *pdev,
 		return dev_err_probe(dev, ret, "could not set 28-bit DMA mask\n");
 
 	pci_set_master(pdev);
-	pci_intx(pdev, 1);
+	iowrite32(0, edu->bar0 + EDU_REG_STATUS);
+	qemu_edu_ack_pending_irqs(edu);
 
-	ret = devm_request_irq(dev, pdev->irq, qemu_edu_irq, IRQF_SHARED,
+	interrupt_flags = qemu_edu_interrupt_flags(dev);
+	if (interrupt_flags < 0)
+		return interrupt_flags;
+
+	ret = pci_alloc_irq_vectors(pdev, 1, 1, interrupt_flags);
+	if (ret < 0)
+		return dev_err_probe(dev, ret,
+				     "could not allocate interrupt vector for mode %s\n",
+				     interrupt_mode);
+
+	ret = pci_irq_vector(pdev, 0);
+	if (ret < 0)
+		return dev_err_probe(dev, ret, "could not resolve interrupt vector\n");
+	edu->irq = ret;
+	edu->selected_interrupt_mode = pci_dev_msi_enabled(pdev) ?
+		QEMU_EDU_INTERRUPT_MSI : QEMU_EDU_INTERRUPT_INTX;
+	request_flags = edu->selected_interrupt_mode == QEMU_EDU_INTERRUPT_INTX ?
+		IRQF_SHARED : 0;
+
+	ret = devm_request_irq(dev, edu->irq, qemu_edu_irq, request_flags,
 			       DRV_NAME, edu);
 	if (ret)
 		return dev_err_probe(dev, ret, "could not request IRQ %u\n",
-				     pdev->irq);
+				     edu->irq);
 
 	ret = sysfs_create_group(&dev->kobj, &qemu_edu_attr_group);
 	if (ret)
@@ -336,8 +396,10 @@ static int qemu_edu_probe(struct pci_dev *pdev,
 
 	identification = ioread32(edu->bar0 + EDU_REG_IDENTIFICATION);
 	dev_info(dev,
-		 "bound: id=0x%08x BAR0=%pr IRQ=%u; sysfs controls are ready\n",
-		 identification, &pdev->resource[0], pdev->irq);
+		 "bound: id=0x%08x BAR0=%pr IRQ=%u mode=%s; sysfs controls are ready\n",
+		 identification, &pdev->resource[0], edu->irq,
+		 edu->selected_interrupt_mode == QEMU_EDU_INTERRUPT_MSI ?
+		 "msi" : "intx");
 
 	return 0;
 }

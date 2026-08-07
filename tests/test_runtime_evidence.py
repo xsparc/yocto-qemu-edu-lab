@@ -101,7 +101,7 @@ class RuntimeEvidenceTests(unittest.TestCase):
     def test_skipped_negative_path_is_explicit_and_cannot_pass(self) -> None:
         oeqa = oeqa_record()
         record = next(iter(oeqa.values()))
-        record["result"][MODULE.EXPECTED_TESTS[9]]["status"] = "SKIPPED"
+        record["result"][MODULE.EXPECTED_TESTS[12]]["status"] = "SKIPPED"
         evidence = self.build(oeqa)
         timeout = evidence["contract"]["negative_paths"]["factorial_timeout"]
         self.assertFalse(timeout["exercised"])
@@ -110,14 +110,23 @@ class RuntimeEvidenceTests(unittest.TestCase):
     def test_failed_negative_paths_do_not_claim_completed_mechanisms(self) -> None:
         oeqa = oeqa_record()
         record = next(iter(oeqa.values()))
-        record["result"][MODULE.EXPECTED_TESTS[9]]["status"] = "ERROR"
-        record["result"][MODULE.EXPECTED_TESTS[10]]["status"] = "FAILED"
+        record["result"][MODULE.EXPECTED_TESTS[12]]["status"] = "ERROR"
+        record["result"][MODULE.EXPECTED_TESTS[13]]["status"] = "FAILED"
         evidence = self.build(oeqa)
         timeout = evidence["contract"]["negative_paths"]["factorial_timeout"]
         absence = evidence["contract"]["negative_paths"]["device_absence"]
         self.assertFalse(timeout["exercised"])
         self.assertFalse(timeout["fault_injected"])
         self.assertFalse(absence["exercised"])
+        MODULE.validate_evidence(evidence)
+
+    def test_failed_interrupt_path_does_not_claim_completion(self) -> None:
+        oeqa = oeqa_record()
+        record = next(iter(oeqa.values()))
+        record["result"][MODULE.EXPECTED_TESTS[9]]["status"] = "FAILED"
+        evidence = self.build(oeqa)
+        fallback = evidence["contract"]["interrupt_paths"]["automatic_fallback"]
+        self.assertFalse(fallback["exercised"])
         MODULE.validate_evidence(evidence)
 
     def test_boolean_integer_aliases_are_rejected(self) -> None:
@@ -138,6 +147,16 @@ class RuntimeEvidenceTests(unittest.TestCase):
                 0,
             ),
             (("summary", "failed"), False),
+            (("contract", "interrupt_paths", "default_msi", "exercised"), 1),
+            (
+                (
+                    "contract",
+                    "interrupt_paths",
+                    "required_msi_failure",
+                    "device_unbound",
+                ),
+                1,
+            ),
         )
         for path, replacement in mutations:
             with self.subTest(path=path):
@@ -189,6 +208,35 @@ class RuntimeEvidenceTests(unittest.TestCase):
             evidence["project"]["dirty"] = False
             MODULE.write_evidence(path, evidence)
             MODULE.validate_evidence(MODULE.read_object(path), require_pass=True)
+
+    def test_historical_version_1_evidence_remains_valid(self) -> None:
+        evidence = self.build()
+        evidence["schema_version"] = 1
+        evidence["contract"]["guest_interface"]["version"] = 1
+        evidence["contract"]["suite"]["version"] = 1
+        del evidence["contract"]["interrupt_paths"]
+        evidence["tests"] = [
+            {"id": test_id, "status": "PASSED", "duration_seconds": 0.1}
+            for test_id in MODULE.V1_EXPECTED_TESTS
+        ]
+        evidence["summary"]["total"] = len(MODULE.V1_EXPECTED_TESTS)
+        evidence["summary"]["passed"] = len(MODULE.V1_EXPECTED_TESTS)
+        evidence["contract"]["negative_paths"] = {
+            "factorial_timeout": {
+                "case_id": MODULE.V1_EXPECTED_TESTS[9],
+                "exercised": True,
+                "fault_injected": True,
+                "mechanism": "module-parameter:force_factorial_timeout",
+            },
+            "device_absence": {
+                "case_id": MODULE.V1_EXPECTED_TESTS[10],
+                "exercised": True,
+                "mechanism": "linux-pci-hot-remove",
+                "cold_boot_without_device": False,
+            },
+        }
+        evidence["project"]["dirty"] = False
+        MODULE.validate_evidence(evidence, require_pass=True)
 
     def test_duplicate_json_keys_are_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

@@ -5,7 +5,7 @@ SPDX-License-Identifier: MIT
 
 # Automated runtime testing and evidence
 
-M2 uses the Yocto Project's native `testimage` and OEQA runtime framework. The
+The M3 suite uses the Yocto Project's native `testimage` and OEQA runtime framework. The
 image inherits `testimage`, enables Dropbear for the development-only empty-root
 login, selects `ping ssh qemu_edu`, uses unprivileged SLIRP networking, and
 disables KVM for portable evidence. Under SLIRP, OEQA's `ping` bootstrap sees a
@@ -32,7 +32,7 @@ and converts the matching result from that invocation's fresh OEQA directory
 into:
 
 ```text
-build/evidence/qemu-edu-runtime-v1.json
+build/evidence/qemu-edu-runtime-v2.json
 ```
 
 Set `BUILD_DIR` to relocate build products or `EVIDENCE_OUTPUT` to choose a
@@ -53,19 +53,31 @@ The project layer supplies `qemu_edu.QemuEduRuntimeTests`, which asserts:
 - malformed, above-12, and unsigned-32-bit overflow failures without corrupting
   the last good result, using numeric Linux errno rather than localized shell
   diagnostics;
-- legacy INTx allocation, interrupt count, acknowledgement, and zero rejection;
+- default automatic and required MSI allocation, with exactly one vector,
+  interrupt count, and two distinct acknowledged status values;
+- explicit INTx selection with no MSI vector and equivalent delivery behavior;
+- real PCI-core `auto` fallback and required-MSI probe failure after temporarily
+  disabling MSI through the unbound endpoint's root-only `msi_bus` testing ABI;
+- successful managed-vector cleanup, restoration of the original `msi_bus`
+  value, and return to the known-good default MSI binding;
+- zero interrupt rejection;
 - the real factorial timeout path through bounded module-load fault injection;
 - PCI removal, the resulting missing-device diagnostic, and successful PCI
   rescan/rebinding. This uses Linux hot removal rather than a second QEMU boot.
 
-Negative tests use `try/finally` restoration. A failed restore is a test error,
-not a skip. MSI, DMA, multiple devices, and real hardware remain outside M2.
+Policy and negative tests use `try/finally` restoration. A failed unload,
+`msi_bus` restore, or default-MSI rebind is a test error, not a skip. DMA,
+multiple devices, and real hardware remain outside M3.
 
-## Evidence version 1
+## Evidence versions
 
-The closed schema is
-`schemas/qemu-edu-runtime-evidence-v1.schema.json`. The dependency-free
-collector additionally enforces semantic invariants that JSON Schema alone
+The collector emits the closed version-2 schema at
+`schemas/qemu-edu-runtime-evidence-v2.schema.json`. The version-1 schema remains
+unchanged, and the validator continues to accept historical M2 documents. Old
+version-1 readers correctly reject version 2; use the current dependency-free
+validator or retain the M2 revision as the rollback path.
+
+The collector additionally enforces semantic invariants that JSON Schema alone
 does not express: every required case appears once and in order, summary counts
 match statuses, and `result=passed` means every required case passed.
 
@@ -75,16 +87,18 @@ Evidence records only bounded facts:
 - source-lock SHA-256, native OEQA result SHA-256, and declared Yocto
   version/series;
 - guest-interface and suite contract names/versions plus `TEST_TYPE=runtime`;
+- conservative, case-bound claims for default MSI, explicit INTx, automatic
+  fallback, required-MSI failure, and cleanup recovery;
 - machine, image, distro, host distro, OEQA start identifier, and native
   `testimage` exit code;
 - explicit timeout fault-injection and PCI hot-removal mechanisms, including
   that the absence case is not a cold boot without the device;
 - required case IDs, statuses, durations, and summary counts.
 
-Negative-path `exercised` and `fault_injected` flags are conservative completion
-claims: they become true only when the corresponding required case passes. A
-failure document therefore cannot claim that a mechanism completed merely
-because its test was selected or began running.
+Interrupt-path and negative-path completion flags are conservative claims: they
+become true only when the corresponding required case passes. A failure
+document therefore cannot claim that a mechanism completed merely because its
+test was selected or began running.
 
 Raw SSH output, boot logs, absolute paths, environment variables, source text,
 credentials, and arbitrary OEQA extras are excluded. Use OEQA logs for local
@@ -94,7 +108,7 @@ Validate an existing document with:
 
 ```bash
 python3 scripts/runtime_evidence.py validate \
-  build/evidence/qemu-edu-runtime-v1.json --require-pass
+  build/evidence/qemu-edu-runtime-v2.json --require-pass
 ```
 
 ## Host and CI boundary

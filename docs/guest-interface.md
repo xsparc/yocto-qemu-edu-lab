@@ -5,8 +5,8 @@ SPDX-License-Identifier: MIT
 
 # QEMU EDU guest interface contract
 
-This document defines version 1 of the pre-1.0 guest-visible contract for the
-`qemu_edu` learning driver. It describes the current baseline; it is not a
+This document defines version 2 of the pre-1.0 guest-visible contract for the
+`qemu_edu` learning driver. It describes the current stage; it is not a
 promise that a later pre-1.0 minor version will never change the interface.
 
 The driver binds QEMU PCI device `1234:11e8`. A bound device is represented by
@@ -34,6 +34,7 @@ hexadecimal values are accepted, while malformed or out-of-range unsigned
 | `trigger_irq` | write | A nonzero bit mask raises and waits for one device interrupt; zero fails with `EINVAL` |
 | `irq_count` | read | Decimal count of handled device interrupts since this binding began |
 | `last_irq_status` | read | Last acknowledged EDU interrupt status as eight-digit hexadecimal |
+| `interrupt_mode` | read | Resolved interrupt mode: `msi` or `intx`; this is never the requested policy value `auto` |
 
 Factorial and explicit-interrupt writes use a 2000 ms kernel wait budget; the
 system call can return later because of scheduling and teardown overhead. If
@@ -48,12 +49,38 @@ factorial computation without requesting its completion interrupt, allowing
 the automated suite to prove the existing timeout path. It is not an
 application feature and must be restored to its default after the test.
 
-## Interrupt baseline
+The module-load-only string parameter `interrupt_mode` selects the interrupt
+policy. It is read-only after load and accepts only `auto`, `msi`, or `intx`:
 
-Version 1 deliberately uses shared legacy INTx. A passing baseline has no
-allocated MSI IRQ entries for the device, reports `qemu_edu` in
-`/proc/interrupts`, increments `irq_count`, and acknowledges the status seen in
-`last_irq_status`. MSI is a separately versioned M3 learning stage.
+- `auto` is the default and asks the PCI core for MSI with INTx fallback;
+- `msi` requires MSI and leaves the device unbound if a vector cannot be
+  allocated;
+- `intx` deliberately selects shared legacy INTx for comparison and rollback.
+
+The requested policy is visible at
+`/sys/module/qemu_edu/parameters/interrupt_mode`; the resolved per-device mode
+is the `interrupt_mode` attribute in the table above. An invalid policy fails
+probe with `EINVAL` and does not bind the device.
+
+## Interrupt lifecycle
+
+Version 2 allocates exactly one PCI IRQ vector. The locked QEMU EDU device
+supports one MSI vector, so the default `auto` policy resolves to MSI. Both MSI
+and INTx report `qemu_edu` in `/proc/interrupts`, increment `irq_count`, and
+acknowledge each device status in `last_irq_status`. A resolved MSI binding has
+exactly one entry under the PCI function's `msi_irqs` directory; a resolved
+INTx binding has none.
+
+The driver uses the managed vector lifecycle installed by
+`pcim_enable_device()` in the locked Linux 6.18 kernel. It requests the handler
+after vector allocation, quiesces and acknowledges the device before request
+and during removal, and does not manually free the managed vector.
+
+OEQA temporarily uses Linux's root-only, endpoint-scoped `msi_bus` testing ABI
+while the driver is unbound to prove real PCI-core fallback and strict-MSI
+failure. The test saves and restores the original value. `msi_bus` is neither a
+driver attribute nor part of this guest contract, and disabling MSI this way is
+not general application guidance.
 
 ## Diagnostic command
 
@@ -69,7 +96,7 @@ not a privileged bypass: normal file permissions and kernel validation apply.
 
 ## Compatibility and security
 
-Only root can write the attributes in the development image. Sysfs input is
+Only root can write the writable attributes in the development image. Sysfs input is
 untrusted kernel input: range checks, serialized operations, bounded waits,
 interrupt acknowledgement, and safe teardown remain required. QEMU evidence
 does not imply electrical, timing, coherency, or physical-hardware behavior.

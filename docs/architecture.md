@@ -18,7 +18,7 @@ runqemu -> qemu-system-x86_64 -> virtual PCI bus -> EDU device (1234:11e8)
 Linux PCI core -> qemu_edu.ko -> probe()
                                   |
                                   |-- maps BAR0 (MMIO)
-                                  |-- requests shared INTx IRQ
+                                  |-- allocates one managed MSI/INTx vector
                                   |-- creates sysfs attributes
                                   v
 /sys/bus/pci/drivers/qemu_edu/<PCI-address>/
@@ -49,13 +49,15 @@ qemu-edu-test
 - The lock guarantees metadata source identity, not recipe-download
   availability, authenticated upstream origin, bit-for-bit output, or runtime
   behavior.
-- M2 adds a native OEQA/testimage suite and a closed version-1 result schema.
+- M2 added a native OEQA/testimage suite and a closed version-1 result schema;
+  M3 retains its validator while adding version 2 for interrupt-mode evidence.
   A full build/runtime pass remains an evidence claim only after it executes on
   an adequate Linux host; the manual guest script remains the teaching path.
-- The driver deliberately starts with legacy INTx and has not implemented the
-  EDU DMA engine.
+- The driver defaults to automatic MSI-preferred allocation, exposes strict MSI
+  and explicit INTx policies for comparison, and has not implemented the EDU
+  DMA engine.
 - The user-facing sysfs control surface is documented as guest-interface
-  contract version 1. It remains pre-1.0 and may evolve only with an explicit
+  contract version 2. It remains pre-1.0 and may evolve only with an explicit
   project-version and compatibility decision.
 - The repository has no physical-hardware target and must not imply QEMU
   validates electrical or silicon behavior.
@@ -113,10 +115,13 @@ as evidence. Evidence records the source revision, machine, image, test suite,
 result, and environment needed to interpret it. It never upgrades “unknown” to
 “pass.”
 
-Runtime evidence version 1 is a lossy, allowlisted projection of native OEQA
-JSON. It records exact required case statuses, durations, source-lock identity,
-project revision/dirty state, and the native task exit. Raw logs and arbitrary
-upstream fields remain diagnostic inputs rather than public schema fields.
+Runtime evidence versions 1 and 2 are lossy, allowlisted projections of native
+OEQA JSON. Version 1 remains immutable for the M2 INTx baseline. Version 2 adds
+conservative, case-bound claims for MSI, explicit INTx, automatic fallback,
+strict-MSI failure, and cleanup recovery. Both record exact required case
+statuses, durations, source-lock identity, project revision/dirty state, and the
+native task exit. Raw logs and arbitrary upstream fields remain diagnostic
+inputs rather than public schema fields.
 
 ### Boundary 5: integrations
 

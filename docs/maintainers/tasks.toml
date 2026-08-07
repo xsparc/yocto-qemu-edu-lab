@@ -139,25 +139,35 @@ review_evidence = [
   "Quality, security, DevOps, and licensing review found evidence-integrity and validator-parity defects; the runtime preflight, exact types, conservative negative-path claims, and executable shell regressions were added, and final re-review reported no P0-P2 findings with REUSE 66/66.",
   "Independent final diff review recomputed the evidence, native OEQA, and source-lock hashes, validated the closed document with --require-pass, confirmed 13/13 native cases and exact clean revision binding, and approved with no P0-P2 findings.",
 ]
-result = "Implemented, validated on the exact clean revision, and independently reviewed on the focused M2 branch; ready to propose through one pull request. No merge, tag, release, hosted provenance attestation, or physical-hardware claim has occurred."
+result = "Implemented, independently reviewed, and squash-merged through pull request #3 as commit d40e2db33e74b7b91ee07ad389a99cdf405b98df; no tag or release was published."
 
 [[tasks]]
 id = "A003"
-status = "Proposed"
+status = "In Progress"
 milestone = "M3"
 title = "Add MSI as an observable learning stage"
 outcome = "Teach modern PCI interrupt allocation while preserving an explicit INTx comparison path."
-scope = ["Add PCI IRQ vector allocation.", "Keep the lab and tests able to explain INTx versus MSI behavior."]
+scope = [
+  "Add one managed PCI IRQ vector with auto, MSI, and INTx load policies.",
+  "Expose the resolved mode and keep MSI versus INTx behavior observable.",
+  "Prove real automatic fallback, required-MSI failure, cleanup, and recovery through bounded OEQA tests.",
+  "Add evidence schema 2 while retaining historical version-1 validation.",
+]
 non_scope = ["DMA", "Multi-device concurrency", "Platform drivers"]
 acceptance_criteria = [
-  "Automated tests prove the selected interrupt mode.",
-  "Cleanup and fallback behavior are covered.",
+  "Automated tests prove default and strict MSI plus explicit INTx selection.",
+  "Real PCI-core fallback, required-MSI failure, cleanup, and default recovery are covered.",
   "Documentation connects the implementation to the PCI lifecycle.",
 ]
 dependencies = ["A002"]
 risks = ["kernel", "interrupts", "compatibility", "regression"]
-validation = ["driver build", "QEMU runtime suite", "project fast-check suite"]
-approval = ""
+validation = [
+  "exact locked driver and image build",
+  "version-2 QEMU runtime suite and qualified evidence",
+  "historical version-1 evidence validation",
+  "project fast-check and licensing suite",
+]
+approval = "Repository owner confirmed the M2 squash merge and explicitly requested continued development on 2026-08-08."
 reviews_required = ["quality", "architecture", "security", "independent-diff"]
 reviews_completed = []
 validation_evidence = []

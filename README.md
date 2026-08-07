@@ -11,7 +11,7 @@ Device-Tree/platform-driver lab, and optional provider-neutral diagnostics. The
 core build and learning path will remain usable without an AI service. See
 [`docs/vision.md`](docs/vision.md) and [`docs/roadmap.md`](docs/roadmap.md).
 
-The current development identity is `0.2.0-dev`; no release is implied. Yocto
+The current development identity is `0.3.0-dev`; no release is implied. Yocto
 metadata inputs are locked to the 6.0.2 Wrynose point release.
 
 The virtual target is an x86-64 machine with QEMU's **EDU educational PCI
@@ -26,7 +26,8 @@ This first lab implements:
 - An out-of-tree PCI kernel module
 - PCI ID matching and `probe()`
 - BAR/MMIO mapping
-- A shared legacy interrupt handler
+- One managed PCI interrupt vector with MSI-preferred, strict-MSI, and explicit
+  INTx learning policies
 - sysfs controls
 - Automatic module loading
 - A user-space test package
@@ -161,14 +162,15 @@ without an interactive guest login:
 ```
 
 This runs Yocto's native `testimage`/OEQA path over unprivileged SLIRP. It
-asserts PCI discovery, identification, liveness, factorial boundaries, legacy
-INTx, invalid inputs, timeout handling, and the removed-device diagnostic. The
+asserts PCI discovery, identification, liveness, factorial boundaries, default
+and strict MSI, explicit INTx, real automatic fallback, strict-MSI failure,
+cleanup, invalid inputs, timeout handling, and the removed-device diagnostic. The
 manual `qemu-edu-test` command remains available for teaching and rollback.
 
 A successful run creates a closed, versioned result document at:
 
 ```text
-build/evidence/qemu-edu-runtime-v1.json
+build/evidence/qemu-edu-runtime-v2.json
 ```
 
 See [`docs/guest-interface.md`](docs/guest-interface.md) for the sysfs contract
@@ -250,11 +252,22 @@ Change `QEMU_EDU_DEVICE_ID` in the driver.  The device remains visible in
 Add `dev_info()` calls around the liveness register access, rebuild, and compare
 `dmesg` with the sysfs result.
 
-### Exercise D: Convert INTx to MSI
+### Exercise D: Compare MSI and INTx
 
-Replace the direct use of `pdev->irq` with `pci_alloc_irq_vectors()`,
-`pci_irq_vector()`, and `pci_free_irq_vectors()`.  QEMU EDU supports MSI, but
-its interrupt acknowledge register must still be written.
+The driver requests one vector with `pci_alloc_irq_vectors()` and resolves it
+with `pci_irq_vector()`. Observe the default MSI path, then select legacy INTx:
+
+```bash
+cat /sys/bus/pci/drivers/qemu_edu/*:*/interrupt_mode
+modprobe -r qemu_edu
+modprobe qemu_edu interrupt_mode=intx
+cat /sys/bus/pci/drivers/qemu_edu/*:*/interrupt_mode
+```
+
+Restore the default with `modprobe -r qemu_edu && modprobe qemu_edu`. Both paths
+must acknowledge the EDU interrupt status. Because this driver combines
+`pcim_enable_device()` with the locked Linux 6.18 managed-vector lifecycle, it
+must not call `pci_free_irq_vectors()` itself.
 
 ### Exercise E: Add DMA
 
