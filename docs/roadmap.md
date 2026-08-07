@@ -78,7 +78,7 @@ the automated gate.
 
 Outcome: the lab teaches modern PCI vector allocation and compares it with INTx.
 
-In-progress scope:
+Delivered scope:
 
 - select `auto`, required MSI, or explicit INTx at module load and report the
   resolved per-device mode;
@@ -88,10 +88,12 @@ In-progress scope:
   strict-MSI failure, acknowledgement, cleanup, and default recovery;
 - emit evidence schema 2 while preserving version-1 validation.
 
-Acceptance gate: a clean revision builds the driver and image, all version-2
-OEQA cases pass without skips, structured evidence qualifies, and independent
-review finds no unresolved blocking issue. QEMU evidence remains distinct from
-physical-hardware qualification.
+Acceptance evidence: clean commit `3ea0204` passed the exact locked image path,
+software-QEMU boot, SSH, and all 14 project cases without skips or failures.
+The closed version-2 evidence records the exact revision, clean tree, native
+result digest, and conservative completion claims for every interrupt and
+negative path. Independent review found no remaining P0-P2 issue. QEMU evidence
+remains distinct from physical-hardware qualification.
 
 Rollback: load `interrupt_mode=intx`, or revert the focused M3 change. Retain
 the immutable version-1 schema and validator path for historical M2 evidence.

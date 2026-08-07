@@ -5,7 +5,7 @@ SPDX-License-Identifier: MIT
 
 # Project context
 
-- Active task: A003, the M3 observable MSI learning stage, is In Progress.
+- Active task: none. A003, the M3 observable MSI learning stage, is Done on its focused branch.
 - Current branch: `milestone/m3-msi-learning`.
 - Baseline: one x86-64 Yocto 6.0 (`wrynose`) learning machine using QEMU EDU PCI device `1234:11e8`.
 - Existing merged runtime features: PCI discovery, BAR0 MMIO, legacy INTx,
@@ -25,6 +25,10 @@ SPDX-License-Identifier: MIT
   load policy. Runtime tests use the endpoint-scoped Linux `msi_bus` testing
   ABI to prove real fallback and strict-MSI failure without a synthetic driver
   fault hook.
-- Next safe action: implement and qualify A003 as one focused pull request.
-  M4, M5, and M6 remain Proposed and unapproved.
+- A003 clean commit `3ea020489152f4c0080a37c5a04918cf7c888b0f`
+  passed the exact locked image path, software-QEMU boot, ping, SSH, and all 14
+  project cases. Closed evidence version 2 records `dirty=false` and validates
+  with every interrupt and negative-path completion claim true.
+- Next safe action: publish the one focused A003 pull request and observe its
+  hosted fast and metadata gates. M4, M5, and M6 remain Proposed and unapproved.
 - Public workflow state uses tool-neutral maintainer paths while preserving the same task, approval, validation, review, and handoff semantics.

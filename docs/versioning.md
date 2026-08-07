@@ -40,7 +40,7 @@ automatically public APIs.
 | Project line | Yocto release lock | Series | Evidence available |
 |---|---|---|---|
 | `0.2.0-dev` | 6.0.2 | `wrynose` | Repository, static, licensing, exact-source, parse, inspection, and native layer CI; clean commit `6479681` completed the full image build and passed all 11 project runtime cases under software QEMU with validated version-1 evidence |
-| `0.3.0-dev` | 6.0.2 | `wrynose` | M3 repository and runtime qualification is in progress; no MSI/INTx compatibility claim is complete until a clean revision passes the version-2 suite |
+| `0.3.0-dev` | 6.0.2 | `wrynose` | Clean commit `3ea0204` completed the exact locked image path and passed ping, SSH, and all 14 project cases under software QEMU with validated version-2 evidence; no physical-hardware or release claim is implied |
 
 The runtime document is an unsigned local report whose SHA-256 was independently
 recomputed. It is not a hosted provenance attestation or a physical-hardware
