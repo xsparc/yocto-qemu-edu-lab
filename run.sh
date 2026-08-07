@@ -3,14 +3,16 @@
 set -eo pipefail
 ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 
-if [ ! -f "$ROOT_DIR/poky/oe-init-build-env" ]; then
-    echo "Run ./setup.sh and ./build.sh first." >&2
+# shellcheck source=environment.sh
+source "$ROOT_DIR/environment.sh"
+LOCK_TOOL="$ROOT_DIR/scripts/source_lock.py"
+MACHINE=$(python3 "$LOCK_TOOL" --repo "$ROOT_DIR" get build.machine)
+TARGET_TEXT=$(python3 "$LOCK_TOOL" --repo "$ROOT_DIR" get build.targets --lines)
+mapfile -t TARGETS <<<"$TARGET_TEXT"
+if [ "${#TARGETS[@]}" -ne 1 ]; then
+    echo "run.sh requires exactly one locked image target" >&2
     exit 1
 fi
 
-set +u
-source "$ROOT_DIR/poky/oe-init-build-env" "$ROOT_DIR/build" >/dev/null
-set -u
-
 # slirp requires no root privileges; snapshot avoids modifying the built image.
-runqemu qemu-edu-x86-64 qemu-edu-image ext4.zst nographic slirp snapshot "$@"
+runqemu "$MACHINE" "${TARGETS[0]}" ext4.zst nographic slirp snapshot "$@"

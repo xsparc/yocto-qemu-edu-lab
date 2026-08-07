@@ -21,7 +21,9 @@ Use a supported Linux host, Linux VM, or WSL2 for Yocto builds. Repository-local
 checks require Python 3.11 or newer:
 
 ```bash
+python3 scripts/source_lock.py validate
 python3 scripts/validate_workflow.py
+python3 scripts/validate_ci.py
 python3 -m unittest discover -s tests -p 'test_*.py'
 python3 scripts/update_checksums.py --check
 git diff --check
@@ -29,6 +31,8 @@ git diff --check
 
 Run the build and runtime commands relevant to your change. If a full Yocto
 build is unavailable, say so in the pull request; do not report it as passed.
+See `docs/ci.md` for the distinction between fast, metadata, and full runtime
+evidence.
 
 ## Pull requests
 
@@ -37,6 +41,8 @@ build is unavailable, say so in the pull request; do not report it as passed.
   run, evidence gaps, and rollback.
 - Add positive and negative tests for behavior changes.
 - Update explanations and exercises in the same pull request as behavior.
+- Explain source-lock or compatibility changes using `docs/source-lock.md` and
+  `docs/versioning.md`; do not widen a support claim without its evidence.
 - Stage the complete intended source change, then regenerate `SHA256SUMS` last
   with `python3 scripts/update_checksums.py`. The generator hashes staged Git
   blobs, so unstaged and untracked files are deliberately excluded.

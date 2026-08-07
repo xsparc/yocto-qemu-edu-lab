@@ -1,0 +1,105 @@
+# SPDX-License-Identifier: MIT
+name: Fast checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fast-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  repository:
+    timeout-minutes: 10
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Repository checks
+        run: |
+          python3 scripts/source_lock.py validate
+          python3 scripts/validate_workflow.py
+          python3 scripts/validate_ci.py
+          python3 -m unittest discover -s tests -p 'test_*.py' -v
+          python3 scripts/update_checksums.py --check
+      - name: Patch whitespace
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before || '' }}
+        run: |
+          if [[ -n "$BASE_SHA" && ! "$BASE_SHA" =~ ^0+$ ]]; then
+            git diff --check "$BASE_SHA" "$GITHUB_SHA"
+          else
+            git show --check --format= "$GITHUB_SHA"
+          fi
+
+  static:
+    timeout-minutes: 10
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Install checksum-verified static tools
+        env:
+          SHELLCHECK_SHA256: 8c3be12b05d5c177a04c29e3c78ce89ac86f1595681cab149b65b97c4e227198
+          ACTIONLINT_SHA256: 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8
+        run: |
+          install -d "$RUNNER_TEMP/m1-tools/shellcheck" "$RUNNER_TEMP/m1-tools/actionlint"
+          curl --proto '=https' --tlsv1.2 --fail --silent --show-error --location \
+            --output "$RUNNER_TEMP/m1-tools/shellcheck.tar.xz" \
+            https://github.com/koalaman/shellcheck/releases/download/v0.11.0/shellcheck-v0.11.0.linux.x86_64.tar.xz
+          printf '%s  %s\n' "$SHELLCHECK_SHA256" "$RUNNER_TEMP/m1-tools/shellcheck.tar.xz" | \
+            sha256sum --check --strict
+          tar --extract --xz --file "$RUNNER_TEMP/m1-tools/shellcheck.tar.xz" \
+            --directory "$RUNNER_TEMP/m1-tools/shellcheck" --strip-components 1
+          curl --proto '=https' --tlsv1.2 --fail --silent --show-error --location \
+            --output "$RUNNER_TEMP/m1-tools/actionlint.tar.gz" \
+            https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz
+          printf '%s  %s\n' "$ACTIONLINT_SHA256" "$RUNNER_TEMP/m1-tools/actionlint.tar.gz" | \
+            sha256sum --check --strict
+          tar --extract --gzip --file "$RUNNER_TEMP/m1-tools/actionlint.tar.gz" \
+            --directory "$RUNNER_TEMP/m1-tools/actionlint" actionlint
+      - name: Static analysis
+        run: |
+          "$RUNNER_TEMP/m1-tools/shellcheck/shellcheck" --severity=warning \
+            setup.sh environment.sh build.sh inspect.sh run.sh
+          "$RUNNER_TEMP/m1-tools/actionlint/actionlint" \
+            -shellcheck="$RUNNER_TEMP/m1-tools/shellcheck/shellcheck"
+
+  licensing:
+    timeout-minutes: 10
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: REUSE compliance
+        run: |
+          docker run --rm \
+            --read-only \
+            --network none \
+            --cap-drop ALL \
+            --security-opt no-new-privileges:true \
+            --tmpfs /tmp:rw,noexec,nosuid,size=64m \
+            --volume "$GITHUB_WORKSPACE:/data:ro" \
+            --workdir /data \
+            --env PYTHONDONTWRITEBYTECODE=1 \
+            fsfe/reuse@sha256:c65a00f628cc5a9bb2dcb2c84f860bd34da567f9b77584eaa6a93d2dfb134a0c \
+            lint

@@ -49,3 +49,33 @@ SPDX-License-Identifier: MIT
   scaffolding or making unsupported authorship claims.
 - Reason: A public open-source workflow should remain understandable and useful
   when contributors use different editors, automation, or no automation at all.
+
+## D-006: Lock the split Yocto source repositories in a project format
+
+- Status: Accepted on 2026-08-07 for M1.
+- Decision: Resolve Yocto 6.0.2 from exact BitBake, OE-Core, and meta-yocto
+  commits in a closed, versioned JSON schema. Keep kas and upstream
+  `bitbake-setup` as migration candidates rather than M1 dependencies.
+- Reason: The Poky combo repository stopped receiving new series after Yocto
+  5.2. Three fixed repositories do not yet justify another host dependency,
+  while a small transparent contract is easier to teach and translate later.
+- Revisit when: an external BSP or QEMU repository is added, multiple build
+  configurations need composition, or signed-source policy is introduced.
+
+## D-007: Separate fast, metadata, and full runtime evidence
+
+- Status: Accepted on 2026-08-07 for M1.
+- Decision: Run secret-free fast checks on every pull request and a path-scoped
+  Linux metadata lane for locked checkout, parse, environment, and layer
+  validation. Do not call those checks a full image build or runtime test.
+- Reason: Standard public runners are useful for metadata but do not meet the
+  documented storage and memory baseline for honest full Yocto evidence.
+
+## D-008: Begin with a pre-release SemVer identity
+
+- Status: Accepted on 2026-08-07 for M1.
+- Decision: Record `0.1.0-dev` as the development identity. A version string
+  does not create a release; tags and publication remain separately approved.
+- Reason: Source-lock and command contracts need a compatibility vocabulary
+  before integrations consume them, without implying that the unvalidated
+  runtime curriculum has already been released.

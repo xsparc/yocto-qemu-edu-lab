@@ -1,0 +1,69 @@
+{
+  "schema_version": 1,
+  "release": {
+    "project": "yocto",
+    "version": "6.0.2",
+    "series": "wrynose"
+  },
+  "build": {
+    "build_system": "openembedded",
+    "environment_script": "layers/openembedded-core/oe-init-build-env",
+    "bitbake_bin": "layers/bitbake/bin",
+    "build_dir": "build",
+    "distro": "poky",
+    "machine": "qemu-edu-x86-64",
+    "targets": [
+      "qemu-edu-image"
+    ],
+      "layers": [
+        "layers/openembedded-core/meta",
+        "layers/meta-yocto/meta-poky",
+        "meta-qemu-edu"
+    ]
+  },
+  "sources": [
+    {
+      "id": "bitbake",
+      "type": "git",
+      "url": "https://git.openembedded.org/bitbake",
+      "branch_ref": "refs/heads/2.18",
+      "release_ref": "refs/tags/yocto-6.0.2",
+      "commit": "178b39316042fd71d46e82ba6889e3b824024bb0",
+      "object_format": "sha1",
+      "path": "layers/bitbake",
+      "required_paths": [
+        "bin/bitbake",
+        "bin/bitbake-getvar",
+        "bin/bitbake-setup"
+      ]
+    },
+    {
+      "id": "openembedded-core",
+      "type": "git",
+      "url": "https://git.openembedded.org/openembedded-core",
+      "branch_ref": "refs/heads/wrynose",
+      "release_ref": "refs/tags/yocto-6.0.2",
+      "commit": "8ecd6056805602dc99c4cd110b04e39ae5424610",
+      "object_format": "sha1",
+      "path": "layers/openembedded-core",
+      "required_paths": [
+        "oe-init-build-env",
+        "meta/conf/layer.conf",
+        "scripts/yocto-check-layer"
+      ]
+    },
+    {
+      "id": "meta-yocto",
+      "type": "git",
+      "url": "https://git.yoctoproject.org/meta-yocto",
+      "branch_ref": "refs/heads/wrynose",
+      "release_ref": "refs/tags/yocto-6.0.2",
+      "commit": "c81e26bda0cacc3e13b1fee7a98faadc449841bc",
+      "object_format": "sha1",
+      "path": "layers/meta-yocto",
+      "required_paths": [
+        "meta-poky/conf/layer.conf"
+      ]
+    }
+  ]
+}

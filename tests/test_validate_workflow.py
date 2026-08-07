@@ -72,10 +72,10 @@ class WorkflowValidationTests(unittest.TestCase):
         root = self.copy_repository()
         path = root / "docs/maintainers/ledger.md"
         text = path.read_text(encoding="utf-8").replace(
-            "| A000 | M0 | In Progress |", "| A000 | M0 | Ready |", 1
+            "| A001 | M1 | In Progress |", "| A001 | M1 | Ready |", 1
         )
         path.write_text(text, encoding="utf-8")
-        self.assertIn("ledger is missing A000", MODULE.validate(root))
+        self.assertIn("ledger is missing A001", MODULE.validate(root))
 
     def test_done_task_requires_every_review_category(self) -> None:
         root = self.copy_repository()
@@ -83,7 +83,7 @@ class WorkflowValidationTests(unittest.TestCase):
         text = tasks_path.read_text(encoding="utf-8")
         text = text.replace('status = "In Progress"', 'status = "Done"', 1)
         text = text.replace(
-            'reviews_completed = ["architecture", "documentation", "independent-diff", "licensing", "quality"]',
+            "reviews_completed = []",
             'reviews_completed = ["quality"]',
             1,
         )
@@ -98,13 +98,13 @@ class WorkflowValidationTests(unittest.TestCase):
         ledger_path = root / "docs/maintainers/ledger.md"
         ledger_path.write_text(
             ledger_path.read_text(encoding="utf-8").replace(
-                "| A000 | M0 | In Progress |", "| A000 | M0 | Done |", 1
+                "| A001 | M1 | In Progress |", "| A001 | M1 | Done |", 1
             ),
             encoding="utf-8",
         )
         errors = MODULE.validate(root)
         self.assertIn(
-            "A000 is Done without completed reviews: architecture, documentation, independent-diff, licensing",
+            "A001 is Done without completed reviews: architecture, devops, independent-diff, security",
             errors,
         )
 

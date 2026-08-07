@@ -27,6 +27,12 @@ REQUIRED_FILES = (
     "docs/roadmap.md",
     "docs/maintenance-workflow.md",
     "docs/licensing.md",
+    "docs/source-lock.md",
+    "docs/ci.md",
+    "docs/versioning.md",
+    "config/sources.lock.json",
+    ".github/workflows/fast-checks.yml",
+    ".github/workflows/yocto-metadata.yml",
 )
 
 
@@ -150,6 +156,10 @@ def validate(root: Path) -> list[str]:
         "roadmap_path",
         "maintenance_plan_path",
         "license_policy_path",
+        "source_lock_path",
+        "source_lock_policy_path",
+        "ci_policy_path",
+        "versioning_path",
     ):
         relative = config.get(key)
         if not relative or not (root / str(relative)).is_file():

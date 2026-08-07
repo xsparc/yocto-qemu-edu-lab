@@ -7,7 +7,7 @@ updated_on = "2026-08-07"
 
 [[tasks]]
 id = "A000"
-status = "In Progress"
+status = "Done"
 milestone = "M0"
 title = "Establish project vision and trustworthy execution"
 outcome = "Create a durable, legally clear foundation for milestone-driven development."
@@ -55,11 +55,11 @@ review_evidence = [
   "Final independent recheck reported no blocking or non-blocking findings after Done-state review reconciliation, contributor guidance, and checksum tests were added.",
   "The tool-neutral maintainer-workflow migration was independently reviewed; three coherence findings were fixed and the final recheck reported no remaining findings.",
 ]
-result = "M0 implementation, licensing audit, validation, and independent review are complete; pull request #1 is open and ready for repository-owner review and merge."
+result = "M0 was independently reviewed and squash-merged through pull request #1 as commit cc72890cb2fc5258bec1fbdd8c58e2ed44458749."
 
 [[tasks]]
 id = "A001"
-status = "Proposed"
+status = "In Progress"
 milestone = "M1"
 title = "Make source setup and fast validation reproducible"
 outcome = "Pin external inputs and provide fast pull-request checks before expensive image builds."
@@ -67,17 +67,27 @@ scope = [
   "Choose and document a reproducible source lock strategy.",
   "Add shell, metadata, license, workflow, and layer parse checks.",
   "Add a CI path that does not require publishing artifacts or secrets.",
+  "Define the pre-1.0 SemVer and Yocto compatibility policy.",
 ]
 non_scope = ["Driver feature development", "Release publication"]
 acceptance_criteria = [
-  "A clean Linux host resolves the same declared Poky revision.",
+  "A clean Linux host resolves the same declared BitBake, OE-Core, and meta-yocto revisions.",
   "Fast checks fail clearly on metadata, licensing, workflow, or shell regressions.",
   "CI documents which evidence is fast, scheduled, or unavailable.",
 ]
 dependencies = ["A000"]
 risks = ["ci", "network", "reproducibility", "supply-chain"]
-validation = ["python3 scripts/validate_workflow.py", "project fast-check suite", "CI run"]
-approval = ""
+validation = [
+  "python3 scripts/source_lock.py validate",
+  "python3 scripts/validate_workflow.py",
+  "python3 scripts/validate_ci.py",
+  "python3 -m unittest discover -s tests -p test_*.py",
+  "python3 scripts/update_checksums.py --check",
+  "shellcheck and actionlint in Fast checks CI",
+  "REUSE 3.3 lint in Fast checks CI",
+  "Yocto metadata CI run",
+]
+approval = "Repository owner confirmed the M0 squash merge and explicitly requested continued development on 2026-08-07."
 reviews_required = ["architecture", "quality", "devops", "security", "independent-diff"]
 reviews_completed = []
 validation_evidence = []

@@ -11,6 +11,9 @@ Device-Tree/platform-driver lab, and optional provider-neutral diagnostics. The
 core build and learning path will remain usable without an AI service. See
 [`docs/vision.md`](docs/vision.md) and [`docs/roadmap.md`](docs/roadmap.md).
 
+The current development identity is `0.1.0-dev`; no release is implied. Yocto
+metadata inputs are locked to the 6.0.2 Wrynose point release.
+
 The virtual target is an x86-64 machine with QEMU's **EDU educational PCI
 peripheral**.  EDU was specifically designed for kernel-driver exercises.  It
 has a 1 MiB MMIO BAR, identification and liveness registers, asynchronous
@@ -62,9 +65,22 @@ cd yocto-qemu-edu-lab
 ./setup.sh
 ```
 
-The script clones Poky on the `wrynose` branch, creates `build/`, adds
-`meta-qemu-edu`, selects the custom machine, and enables development login
-settings.
+The script resolves the exact BitBake, OpenEmbedded Core, and meta-yocto commits
+declared in `config/sources.lock.json`, creates `build/`, adds the ordered locked
+layers and `meta-qemu-edu`, selects the custom machine, and enables development
+login settings. It refuses dirty, wrong-origin, or unexpected source checkouts.
+
+Verify existing checkouts without fetching, or configure from already-cached
+Git objects:
+
+```bash
+./setup.sh --check
+./setup.sh --offline
+python3 scripts/source_lock.py --format json status
+```
+
+Offline source checkout does not make recipe downloads available offline. See
+[`docs/source-lock.md`](docs/source-lock.md) for the exact contract and limits.
 
 Inspect the metadata before compiling:
 
@@ -182,7 +198,7 @@ habitually delete the whole build directory.
 Useful commands after sourcing the environment:
 
 ```bash
-source poky/oe-init-build-env build
+source ./environment.sh
 bitbake -e qemu-edu-driver | less
 bitbake qemu-edu-driver -c devshell
 bitbake qemu-edu-driver -c compile -f
@@ -265,5 +281,6 @@ Fast repository checks require Python 3.11 or newer:
 make check
 ```
 
-These checks do not replace the Linux-host Yocto build and QEMU runtime gates
-listed for each milestone.
+Fast checks do not replace Linux source/metadata validation, a full image build,
+or QEMU runtime gates. [`docs/ci.md`](docs/ci.md) defines those evidence tiers;
+[`docs/versioning.md`](docs/versioning.md) defines SemVer and Yocto compatibility.

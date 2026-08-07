@@ -14,7 +14,7 @@ having the right to submit their work.
 |---|---|---|
 | Documentation, scripts, tests, maintainer state, Yocto metadata, image recipe, test utility | MIT | Permissive reuse of educational and build material |
 | `qemu_edu.c` and its external-module `Makefile` | GPL-2.0-only | Linux kernel module implementation and build source |
-| Third-party checkouts and build output | Their own licenses; not vendored here | `poky/`, downloads, shared state, and build output are ignored |
+| Third-party checkouts and build output | Their own licenses; not vendored here | `layers/`, legacy `poky/`, downloads, shared state, and build output are ignored |
 
 The top-level `LICENSE` summarizes the mixed-license repository and `LICENSES/`
 contains the corresponding SPDX-named license texts.
@@ -50,13 +50,16 @@ SPDX license. `qemu_edu.c` therefore retains the `GPL-2.0-only` SPDX identifier.
 `REUSE.toml` supplies project copyright and fallback license information while
 preserving more specific file headers. `LICENSES/MIT.txt` and
 `LICENSES/GPL-2.0-only.txt` are the only license texts needed by the current
-tree. Run `reuse lint` in CI once the tool is introduced in M1. Until then,
-review the mapping whenever files or license boundaries change.
+tree. Fast CI runs REUSE from a digest-pinned, network-disabled container.
+Review the mapping whenever files or license boundaries change.
 
 ## Dependencies, artifacts, and releases
 
-- Prefer dependencies already supplied by supported Yocto/Poky revisions.
+- Prefer dependencies already supplied by the supported Yocto source lock.
 - Record licenses for any new host tool or vendored component before adoption.
+- Locked external Git checkouts retain their upstream licensing and are not
+  covered by this repository's REUSE report. CI tools are fetched for execution
+  and are not redistributed in the source tree.
 - Yocto-generated SPDX SBOMs describe image contents; they complement rather
   than replace repository file licensing.
 - Release artifacts should include source revision, build input identity,

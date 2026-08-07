@@ -8,9 +8,15 @@ vision_path = "docs/vision.md"
 roadmap_path = "docs/roadmap.md"
 maintenance_plan_path = "docs/maintenance-workflow.md"
 license_policy_path = "docs/licensing.md"
+source_lock_path = "config/sources.lock.json"
+source_lock_policy_path = "docs/source-lock.md"
+ci_policy_path = "docs/ci.md"
+versioning_path = "docs/versioning.md"
 
 validation_commands = [
+  "python3 scripts/source_lock.py validate",
   "python3 scripts/validate_workflow.py",
+  "python3 scripts/validate_ci.py",
   "python3 -m unittest discover -s tests -p test_*.py",
   "python3 scripts/update_checksums.py --check",
   "git diff --check",

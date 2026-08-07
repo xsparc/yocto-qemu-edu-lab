@@ -43,8 +43,12 @@ qemu-edu-test
 ## Current constraints
 
 - The layer declares compatibility only with Yocto 6.0 (`wrynose`).
-- `setup.sh` selects the Poky branch but does not yet pin a commit, so identical
-  source resolution over time is not guaranteed.
+- `config/sources.lock.json` pins BitBake, OE-Core, and meta-yocto at Yocto
+  6.0.2. The source helper verifies tag identity, branch ancestry, origins, and
+  clean detached checkouts.
+- The lock guarantees metadata source identity, not recipe-download
+  availability, authenticated upstream origin, bit-for-bit output, or runtime
+  behavior.
 - Runtime verification is a manual guest shell script, not an OEQA/testimage
   suite.
 - The driver deliberately starts with legacy INTx and has not implemented the
@@ -53,6 +57,8 @@ qemu-edu-test
   learning but are not yet documented as a versioned interface contract.
 - The repository has no physical-hardware target and must not imply QEMU
   validates electrical or silicon behavior.
+- Public CI has fast and Linux metadata lanes. A full image/runtime lane is not
+  yet available on an adequately sized protected runner.
 
 ## Target architecture
 
@@ -81,6 +87,9 @@ human learning       CI / optional tool adapter
 External repositories and revisions must be explicit and lockable. The build
 declaration owns source identity, layer order, machine, image, and configuration
 fragments; caches remain replaceable performance aids, not source of truth.
+The current version-1 declaration is project-owned and intentionally maps to
+kas and upstream `bitbake-setup` concepts if the source graph later justifies a
+migration.
 
 ### Boundary 2: lab modules
 
@@ -126,8 +135,10 @@ transport, credentials, and hosted storage remain outside the core lab.
 
 ## Security and trust boundaries
 
-- Setup may fetch declared public sources; validation reports the resolved
-  revision. No credentials belong in project configuration.
+- Setup may fetch only declared public HTTPS Git sources; validation reports
+  exact resolved revisions. No credentials belong in project configuration.
+- Existing source trees are never reset, cleaned, or silently replaced. Dirty,
+  wrong-origin, attached, or unexpected checkouts fail closed.
 - QEMU runs unprivileged with SLIRP and snapshot mode by default.
 - Guest input is untrusted at kernel boundaries. Range, timeout, teardown, and
   concurrent removal behavior require tests as features expand.
@@ -140,6 +151,6 @@ transport, credentials, and hosted storage remain outside the core lab.
 
 ## Replaceability
 
-Poky source orchestration, CI vendor, evidence storage, and AI provider are
+Source orchestration, CI vendor, evidence storage, and AI provider are
 replaceable. The enduring project assets are the Yocto metadata, lab contracts,
 tests, schemas, research trail, and learning explanations.
