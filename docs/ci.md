@@ -1,0 +1,79 @@
+<!--
+SPDX-FileCopyrightText: 2026 Yocto QEMU EDU learning project contributors
+SPDX-License-Identifier: MIT
+-->
+
+# Continuous integration and evidence tiers
+
+CI reports the strongest evidence it actually ran. It does not turn skipped,
+resource-constrained, or metadata-only checks into build or runtime claims.
+
+| Tier | Trigger and environment | Evidence | Not proved |
+|---|---|---|---|
+| Fast checks | Every PR, main push, or manual run on `ubuntu-24.04` | Lock schema, workflow/CI policy, unit tests, checksums, changed-line whitespace, ShellCheck, actionlint, REUSE | Upstream availability, BitBake parse, image build, guest runtime |
+| Yocto metadata | Relevant PR/main changes or manual run on `ubuntu-24.04` | Exact source resolution, cached offline recheck, layer order, `bitbake -p`, expanded image metadata, `yocto-check-layer` | Compiled image, QEMU boot, guest behavior, offline recipe fetches, bit-for-bit output |
+| Full build/runtime | Not yet automated | Future image build and OEQA/QEMU evidence on an adequately sized protected runner | Nothing until that lane exists and passes |
+
+The stable fast job IDs are `repository`, `static`, and `licensing`. The metadata
+job is path-scoped and initially advisory; path-filtered checks should not be
+made universally required because unrelated pull requests may not create them.
+For native layer checking, CI creates a separate core-only build directory with
+OE-Core's weak `qemux86-64` default. It proves that base composition before
+asking `yocto-check-layer` to add the project layer and test the project-provided
+`qemu-edu-x86-64` machine. The weak default allows the checker to select that
+machine during its BSP tests.
+
+## Public-repository trust boundary
+
+- Workflows have read-only `contents` permission and do not use secrets.
+- External actions use immutable 40-character commit SHAs. Checkout does not
+  persist credentials and fetches history only for patch comparison.
+- Static tools are downloaded from their official HTTPS release pages and
+  checked against committed SHA-256 values before execution.
+- REUSE runs from a digest-pinned container with no network, no capabilities,
+  a read-only filesystem, and a read-only repository mount.
+- Workflows do not use `pull_request_target`, privileged follow-up events,
+  caches, artifact uploads, or persistent self-hosted runners.
+- `scripts/validate_ci.py` enforces these local invariants and fails closed on
+  unpinned actions, write permissions, secrets, or jobs without timeouts.
+
+Hosted runner packages and images remain mutable. Metadata results therefore
+record the GitHub runner image identity and prove compatibility with that
+observed environment, not a hermetic host distribution.
+
+Ubuntu 24.04 restricts unprivileged user namespaces through AppArmor, while
+BitBake uses them to isolate tasks. The metadata job disables that one kernel
+restriction only inside its disposable GitHub-hosted VM and immediately probes
+the required namespace operation. The exception is not applied to persistent
+runners, carries no secrets or write token, and does not broaden workflow
+permissions.
+
+## Local checks
+
+Run the dependency-free repository suite with Python 3.11 or newer:
+
+```bash
+python3 scripts/source_lock.py validate
+python3 scripts/validate_workflow.py
+python3 scripts/validate_ci.py
+python3 -m unittest discover -s tests -p 'test_*.py' -v
+python3 scripts/update_checksums.py --check
+git diff --check
+```
+
+ShellCheck, actionlint, and REUSE run in CI with pinned tool identities. A Linux
+maintainer may run equivalent local tools but must record their versions.
+
+## Full-build lane gate
+
+Yocto 6.0 documents a 140 GB free-disk and 32 GB RAM baseline, while a standard
+GitHub-hosted runner is smaller. Do not add a nominal full build that is
+predictably resource-starved. A future lane needs an ephemeral or protected,
+main-only Linux runner with at least 150 GB usable storage, preferably 32 GB
+RAM, no exposure to fork code, and bounded download/shared-state retention.
+M2 then adds OEQA/testimage runtime evidence.
+
+After the first green M1 runs, maintainers should separately consider making
+the three stable fast jobs required, enabling repository-wide action SHA
+enforcement, restricting allowed actions, and enabling Dependabot security
+updates. These are repository-setting changes, not implied by this pull request.

@@ -31,6 +31,19 @@ class WorkflowValidationTests(unittest.TestCase):
         )
         return destination
 
+    def replace_in_task(
+        self, text: str, task_id: str, old: str, new: str
+    ) -> str:
+        marker = f'[[tasks]]\nid = "{task_id}"'
+        start = text.index(marker)
+        end = text.find("\n[[tasks]]", start + len(marker))
+        if end == -1:
+            end = len(text)
+        block = text[start:end]
+        replaced = block.replace(old, new, 1)
+        self.assertNotEqual(block, replaced)
+        return text[:start] + replaced + text[end:]
+
     def test_repository_workflow_is_valid(self) -> None:
         self.assertEqual([], MODULE.validate(ROOT))
 
@@ -70,41 +83,65 @@ class WorkflowValidationTests(unittest.TestCase):
 
     def test_ledger_status_drift_is_rejected(self) -> None:
         root = self.copy_repository()
+        state = MODULE.load_toml(root / "docs/maintainers/tasks.toml")
+        task = state["tasks"][0]
         path = root / "docs/maintainers/ledger.md"
         text = path.read_text(encoding="utf-8").replace(
-            "| A000 | M0 | In Progress |", "| A000 | M0 | Ready |", 1
+            f'| {task["id"]} | {task["milestone"]} | {task["status"]} |',
+            f'| {task["id"]} | {task["milestone"]} | Ready |',
+            1,
         )
         path.write_text(text, encoding="utf-8")
-        self.assertIn("ledger is missing A000", MODULE.validate(root))
+        self.assertIn(f'ledger is missing {task["id"]}', MODULE.validate(root))
 
     def test_done_task_requires_every_review_category(self) -> None:
         root = self.copy_repository()
         tasks_path = root / "docs/maintainers/tasks.toml"
+        state = MODULE.load_toml(tasks_path)
+        task = next(task for task in state["tasks"] if task["status"] == "Proposed")
+        task_id = task["id"]
         text = tasks_path.read_text(encoding="utf-8")
-        text = text.replace('status = "In Progress"', 'status = "Done"', 1)
-        text = text.replace(
-            'reviews_completed = ["architecture", "documentation", "independent-diff", "licensing", "quality"]',
+        text = self.replace_in_task(
+            text, task_id, 'status = "Proposed"', 'status = "Done"'
+        )
+        text = self.replace_in_task(
+            text, task_id, 'approval = ""', 'approval = "Test approval"'
+        )
+        text = self.replace_in_task(
+            text,
+            task_id,
+            "reviews_completed = []",
             'reviews_completed = ["quality"]',
-            1,
         )
-        text = text.replace(
-            "validation_evidence = []", 'validation_evidence = ["tests passed"]', 1
+        text = self.replace_in_task(
+            text,
+            task_id,
+            "validation_evidence = []",
+            'validation_evidence = ["tests passed"]',
         )
-        text = text.replace(
-            "review_evidence = []", 'review_evidence = ["quality reviewed"]', 1
+        text = self.replace_in_task(
+            text,
+            task_id,
+            "review_evidence = []",
+            'review_evidence = ["quality reviewed"]',
         )
-        text = text.replace('result = ""', 'result = "complete"', 1)
+        text = self.replace_in_task(
+            text, task_id, 'result = ""', 'result = "complete"'
+        )
         tasks_path.write_text(text, encoding="utf-8")
         ledger_path = root / "docs/maintainers/ledger.md"
         ledger_path.write_text(
             ledger_path.read_text(encoding="utf-8").replace(
-                "| A000 | M0 | In Progress |", "| A000 | M0 | Done |", 1
+                f'| {task_id} | {task["milestone"]} | Proposed |',
+                f'| {task_id} | {task["milestone"]} | Done |',
+                1,
             ),
             encoding="utf-8",
         )
         errors = MODULE.validate(root)
+        missing = sorted(set(task["reviews_required"]) - {"quality"})
         self.assertIn(
-            "A000 is Done without completed reviews: architecture, documentation, independent-diff, licensing",
+            f"{task_id} is Done without completed reviews: " + ", ".join(missing),
             errors,
         )
 

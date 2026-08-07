@@ -3,64 +3,62 @@
 set -eo pipefail
 
 ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-POKY_DIR=${POKY_DIR:-"$ROOT_DIR/poky"}
-BUILD_DIR=${BUILD_DIR:-"$ROOT_DIR/build"}
-YOCTO_BRANCH=${YOCTO_BRANCH:-wrynose}
+LOCK_TOOL="$ROOT_DIR/scripts/source_lock.py"
+CONFIGURE_TOOL="$ROOT_DIR/scripts/configure_build.py"
+OFFLINE=false
+CHECK_ONLY=false
+
+usage() {
+    cat <<'EOF'
+Usage: ./setup.sh [--check] [--offline]
+
+  --check    verify existing source checkouts without fetching or configuring
+  --offline  configure using already-cached locked Git objects; never fetch
+EOF
+}
+
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        --check) CHECK_ONLY=true ;;
+        --offline) OFFLINE=true ;;
+        --help|-h) usage; exit 0 ;;
+        *) echo "Unknown option: $1" >&2; usage >&2; exit 2 ;;
+    esac
+    shift
+done
 
 command -v git >/dev/null || { echo "git is required" >&2; exit 1; }
 command -v python3 >/dev/null || { echo "python3 is required" >&2; exit 1; }
 
-if [ ! -d "$POKY_DIR/.git" ]; then
-    echo "Cloning Poky branch '$YOCTO_BRANCH'..."
-    git clone --branch "$YOCTO_BRANCH" --single-branch \
-        https://git.yoctoproject.org/poky "$POKY_DIR"
+if $CHECK_ONLY; then
+    python3 "$LOCK_TOOL" --repo "$ROOT_DIR" status
+    exit $?
+fi
+
+if $OFFLINE; then
+    python3 "$LOCK_TOOL" --repo "$ROOT_DIR" sync --offline
 else
-    echo "Using existing Poky checkout: $POKY_DIR"
+    python3 "$LOCK_TOOL" --repo "$ROOT_DIR" sync
 fi
 
-# Yocto's setup script is not written for nounset shells.
-set +u
-source "$POKY_DIR/oe-init-build-env" "$BUILD_DIR" >/dev/null
-set -u
+# shellcheck source=environment.sh
+source "$ROOT_DIR/environment.sh"
 
-if ! bitbake-layers show-layers 2>/dev/null | grep -Fq "$ROOT_DIR/meta-qemu-edu"; then
-    bitbake-layers add-layer "$ROOT_DIR/meta-qemu-edu"
-fi
+python3 "$CONFIGURE_TOOL" --repo "$ROOT_DIR" configure --build-dir "$BUILD_DIR"
 
-LOCAL_CONF="$BUILD_DIR/conf/local.conf"
-export LOCAL_CONF
-python3 <<'PY'
-import os
-from pathlib import Path
+ACTUAL_DISTRO=$(bitbake-getvar --value DISTRO)
+ACTUAL_MACHINE=$(bitbake-getvar --value MACHINE)
+ACTUAL_BBLAYERS=$(bitbake-getvar --value BBLAYERS)
+python3 "$CONFIGURE_TOOL" --repo "$ROOT_DIR" verify \
+    --distro "$ACTUAL_DISTRO" \
+    --machine "$ACTUAL_MACHINE" \
+    --bblayers "$ACTUAL_BBLAYERS"
 
-path = Path(os.environ["LOCAL_CONF"])
-text = path.read_text()
-start = "# BEGIN yocto-qemu-edu-lab"
-end = "# END yocto-qemu-edu-lab"
-block = f'''{start}
-MACHINE = "qemu-edu-x86-64"
-
-# Keep reusable downloads and shared-state output outside tmp/.
-DL_DIR ?= "${{TOPDIR}}/../downloads"
-SSTATE_DIR ?= "${{TOPDIR}}/../sstate-cache"
-
-# Development convenience only; remove this from a production image.
-EXTRA_IMAGE_FEATURES += "debug-tweaks"
-{end}'''
-
-if start in text and end in text:
-    before = text.split(start, 1)[0].rstrip()
-    after = text.split(end, 1)[1].lstrip("\n")
-    text = before + "\n\n" + block + "\n"
-    if after:
-        text += "\n" + after
-else:
-    text = text.rstrip() + "\n\n" + block + "\n"
-path.write_text(text)
-PY
+bitbake-layers show-layers
 
 echo
 echo "Configuration complete."
+echo "  Locked sources: $ROOT_DIR/config/sources.lock.json"
 echo "  Build: $ROOT_DIR/build.sh"
 echo "  Inspect metadata: $ROOT_DIR/inspect.sh"
 echo "  Run after building: $ROOT_DIR/run.sh"

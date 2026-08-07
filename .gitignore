@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: MIT
 
 # Yocto checkouts and build products
+layers/
+# Kept ignored so an old checkout is not deleted or accidentally committed.
 poky/
 build/
 downloads/

@@ -1,0 +1,118 @@
+# SPDX-License-Identifier: MIT
+name: Yocto metadata
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/yocto-metadata.yml"
+      - "config/sources.lock.json"
+      - "scripts/source_lock.py"
+      - "scripts/configure_build.py"
+      - "setup.sh"
+      - "environment.sh"
+      - "build.sh"
+      - "inspect.sh"
+      - "Makefile"
+      - "meta-qemu-edu/**"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/yocto-metadata.yml"
+      - "config/sources.lock.json"
+      - "scripts/source_lock.py"
+      - "scripts/configure_build.py"
+      - "setup.sh"
+      - "environment.sh"
+      - "build.sh"
+      - "inspect.sh"
+      - "Makefile"
+      - "meta-qemu-edu/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: metadata-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  metadata:
+    timeout-minutes: 45
+    runs-on: ubuntu-24.04
+    env:
+      LANG: en_US.UTF-8
+      LC_ALL: en_US.UTF-8
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Install Yocto host packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends \
+            build-essential chrpath cpio debianutils diffstat file gawk gcc git \
+            iputils-ping libacl1 libcrypt-dev locales python3 python3-git \
+            python3-jinja2 python3-pexpect python3-pip python3-subunit \
+            python3-websockets socat texinfo unzip wget xz-utils zstd
+          sudo locale-gen en_US.UTF-8
+      - name: Allow BitBake user namespaces
+        run: |
+          sudo sysctl --write kernel.apparmor_restrict_unprivileged_userns=0
+          unshare --user --map-root-user --net true
+      - name: Resolve and verify locked sources
+        env:
+          BUILD_DIR: ${{ runner.temp }}/yocto-build
+        run: |
+          echo "runner=${ImageOS:-unknown} image-version=${ImageVersion:-unknown}"
+          python3 scripts/source_lock.py validate
+          ./setup.sh
+          ./setup.sh --check
+          ./setup.sh --offline
+          python3 scripts/source_lock.py --format json status
+      - name: Parse and inspect metadata
+        env:
+          BUILD_DIR: ${{ runner.temp }}/yocto-build
+        run: |
+          ./inspect.sh
+          # shellcheck source=environment.sh
+          source ./environment.sh
+          bitbake -p
+      - name: Check the project layer
+        run: |
+          CHECK_LAYER_BUILD_DIR="$RUNNER_TEMP/yocto-check-layer-build"
+          export PATH="$GITHUB_WORKSPACE/layers/bitbake/bin:$PATH"
+          unset DISTRO MACHINE TEMPLATECONF
+          # shellcheck disable=SC1091
+          source "$GITHUB_WORKSPACE/layers/openembedded-core/oe-init-build-env" \
+            "$CHECK_LAYER_BUILD_DIR" >/dev/null
+          printf '\nDISTRO = "nodistro"\nMACHINE ??= "qemux86-64"\n' \
+            >> "$CHECK_LAYER_BUILD_DIR/conf/local.conf"
+
+          ACTUAL_MACHINE=$(bitbake-getvar --value MACHINE)
+          if [ "$ACTUAL_MACHINE" != "qemux86-64" ]; then
+            echo "Unexpected base MACHINE: $ACTUAL_MACHINE" >&2
+            exit 1
+          fi
+
+          EXPECTED_CORE_LAYER="$GITHUB_WORKSPACE/layers/openembedded-core/meta"
+          ACTUAL_BBLAYERS=$(bitbake-getvar --value BBLAYERS)
+          read -r -a ACTUAL_LAYERS <<< "$ACTUAL_BBLAYERS"
+          if [ "${#ACTUAL_LAYERS[@]}" -ne 1 ] || \
+             [ "${ACTUAL_LAYERS[0]}" != "$EXPECTED_CORE_LAYER" ]; then
+            echo "Layer-check base must contain only OE-Core: $ACTUAL_BBLAYERS" >&2
+            exit 1
+          fi
+
+          yocto-check-layer \
+            --no-auto \
+            --no-auto-dependency \
+            --dependency "$EXPECTED_CORE_LAYER" \
+            --machines qemu-edu-x86-64 \
+            -- "$GITHUB_WORKSPACE/meta-qemu-edu"

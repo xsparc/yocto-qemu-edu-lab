@@ -3,11 +3,11 @@
 
 schema_version = 1
 task_id_prefix = "A"
-updated_on = "2026-08-07"
+updated_on = "2026-08-08"
 
 [[tasks]]
 id = "A000"
-status = "In Progress"
+status = "Done"
 milestone = "M0"
 title = "Establish project vision and trustworthy execution"
 outcome = "Create a durable, legally clear foundation for milestone-driven development."
@@ -55,11 +55,11 @@ review_evidence = [
   "Final independent recheck reported no blocking or non-blocking findings after Done-state review reconciliation, contributor guidance, and checksum tests were added.",
   "The tool-neutral maintainer-workflow migration was independently reviewed; three coherence findings were fixed and the final recheck reported no remaining findings.",
 ]
-result = "M0 implementation, licensing audit, validation, and independent review are complete; pull request #1 is open and ready for repository-owner review and merge."
+result = "M0 was independently reviewed and squash-merged through pull request #1 as commit cc72890cb2fc5258bec1fbdd8c58e2ed44458749."
 
 [[tasks]]
 id = "A001"
-status = "Proposed"
+status = "Done"
 milestone = "M1"
 title = "Make source setup and fast validation reproducible"
 outcome = "Pin external inputs and provide fast pull-request checks before expensive image builds."
@@ -67,22 +67,41 @@ scope = [
   "Choose and document a reproducible source lock strategy.",
   "Add shell, metadata, license, workflow, and layer parse checks.",
   "Add a CI path that does not require publishing artifacts or secrets.",
+  "Define the pre-1.0 SemVer and Yocto compatibility policy.",
 ]
 non_scope = ["Driver feature development", "Release publication"]
 acceptance_criteria = [
-  "A clean Linux host resolves the same declared Poky revision.",
+  "A clean Linux host resolves the same declared BitBake, OE-Core, and meta-yocto revisions.",
   "Fast checks fail clearly on metadata, licensing, workflow, or shell regressions.",
   "CI documents which evidence is fast, scheduled, or unavailable.",
 ]
 dependencies = ["A000"]
 risks = ["ci", "network", "reproducibility", "supply-chain"]
-validation = ["python3 scripts/validate_workflow.py", "project fast-check suite", "CI run"]
-approval = ""
+validation = [
+  "python3 scripts/source_lock.py validate",
+  "python3 scripts/validate_workflow.py",
+  "python3 scripts/validate_ci.py",
+  "python3 -m unittest discover -s tests -p test_*.py",
+  "python3 scripts/update_checksums.py --check",
+  "shellcheck and actionlint in Fast checks CI",
+  "REUSE 3.3 lint in Fast checks CI",
+  "Yocto metadata CI run",
+]
+approval = "Repository owner confirmed the M0 squash merge and explicitly requested continued development on 2026-08-07."
 reviews_required = ["architecture", "quality", "devops", "security", "independent-diff"]
-reviews_completed = []
-validation_evidence = []
-review_evidence = []
-result = ""
+reviews_completed = ["architecture", "quality", "devops", "security", "independent-diff"]
+validation_evidence = [
+  "Local suite on 2026-08-08 discovered 42 tests: 41 passed and the Linux-only relative BUILD_DIR test was skipped on Windows; the hosted repository job passed the complete Linux suite.",
+  "Fast checks run 31188219482 passed repository, ShellCheck/actionlint static analysis, and REUSE licensing at commit 09344b334d9ccbf74242b572ea6718adbc36830c.",
+  "Yocto metadata run 31188220096 passed in 12m27s at commit 09344b334d9ccbf74242b572ea6718adbc36830c: exact online source sync, read-only and offline rechecks, locked configuration, 953-recipe parse, metadata inspection, and native yocto-check-layer validation.",
+  "Local source-lock, workflow, CI-policy, checksum, staged whitespace, Bash syntax, ShellCheck 0.11.0, actionlint 1.7.12, and REUSE 3.3 checks passed; REUSE covered 56/56 files.",
+]
+review_evidence = [
+  "Architecture review required split Yocto repositories, exact effective build composition, safe BUILD_DIR handling, and an isolated core-only layer-check environment; all findings were fixed and final rechecks approved with no findings.",
+  "DevOps, security, and quality review verified read-only secret-free CI, immutable tool identities, fail-closed policy tests, the bounded Ubuntu namespace exception, and hosted evidence claims; final rechecks approved with no findings.",
+  "Independent diff review reproduced and closed source-tag, configuration, workflow, checksum, portability, and Yocto feature compatibility defects; the final milestone and each hosted repair were approved with no remaining findings.",
+]
+result = "Implemented and validated through pull request #2 at https://github.com/xsparc/yocto-qemu-edu-lab/pull/2; ready for maintainer review, not merged or released."
 
 [[tasks]]
 id = "A002"

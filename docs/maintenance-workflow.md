@@ -71,7 +71,7 @@ repositories. Record disagreement or uncertainty rather than blending sources.
 
 AI readiness means high-quality interfaces, not adding a chatbot first:
 
-- commands have stable exit codes and `--json` output;
+- commands have stable exit codes and a documented JSON output mode;
 - schemas carry versions and reject unknown unsafe input;
 - evidence links to source revision and validation context;
 - read-only inspection is separated from state changes;

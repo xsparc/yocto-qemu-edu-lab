@@ -30,21 +30,26 @@ Rollback: revert the M0 PR; it does not change guest runtime behavior.
 Outcome: a pull request can prove source identity and catch inexpensive failures
 before a full Yocto build.
 
-Candidate scope:
+Delivered scope:
 
-- choose a pinned source strategy after comparing a project lock file with kas;
-- make setup idempotent and report resolved revisions;
+- lock the official split BitBake, OE-Core, and meta-yocto repositories after
+  comparing a project format, kas, and upstream `bitbake-setup`;
+- make setup idempotent, fail closed on local drift, and report resolved
+  revisions in human and JSON forms;
 - add shell, SPDX/REUSE, checksum, workflow, BitBake syntax/parse, and
   `yocto-check-layer` gates where practical;
-- add CI with fast PR checks and an explicit scheduled/full-build lane;
+- add immutable, secret-free fast PR checks and a distinct Linux metadata lane;
+- document why a full build/runtime lane needs a larger protected runner;
 - define project SemVer and Yocto-series compatibility policy.
 
-Acceptance gate: a clean supported Linux environment resolves the same inputs,
-fast checks are documented and green, and unavailable full-build evidence is
-reported honestly.
+Acceptance evidence: pull request #2 resolves the declared inputs on a clean
+Linux runner, passes documented fast checks and native metadata/layer checks,
+and reports unavailable full-build/runtime evidence honestly. Merge and release
+remain separate maintainer decisions.
 
-Rollback: keep the current `setup.sh` path available for one milestone while the
-new source declaration proves equivalence.
+Rollback: revert M1 scripts and workflows without deleting `layers/`, `poky/`,
+downloads, shared state, or build output. The former Poky combo path is not kept
+as a Wrynose fallback because upstream no longer updates it for new series.
 
 ## M2 — Automated baseline runtime evidence
 

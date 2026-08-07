@@ -3,13 +3,9 @@
 set -eo pipefail
 ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 
-if [ ! -f "$ROOT_DIR/poky/oe-init-build-env" ]; then
-    echo "Run ./setup.sh first." >&2
-    exit 1
-fi
-
-set +u
-source "$ROOT_DIR/poky/oe-init-build-env" "$ROOT_DIR/build" >/dev/null
-set -u
-
-bitbake qemu-edu-image
+# shellcheck source=environment.sh
+source "$ROOT_DIR/environment.sh"
+TARGET_TEXT=$(python3 "$ROOT_DIR/scripts/source_lock.py" --repo "$ROOT_DIR" \
+    get build.targets --lines)
+mapfile -t TARGETS <<<"$TARGET_TEXT"
+bitbake "${TARGETS[@]}"
