@@ -1,0 +1,209 @@
+# SPDX-FileCopyrightText: 2026 Yocto QEMU EDU learning project contributors
+# SPDX-License-Identifier: MIT
+
+schema_version = 1
+task_id_prefix = "A"
+updated_on = "2026-08-07"
+
+[[tasks]]
+id = "A000"
+status = "In Progress"
+milestone = "M0"
+title = "Establish project vision and trustworthy execution"
+outcome = "Create a durable, legally clear foundation for milestone-driven development."
+scope = [
+  "Audit current repository architecture and licensing boundaries.",
+  "Document the product vision, target architecture, roadmap, and maintenance model.",
+  "Create project-owned workflow state and deterministic validation.",
+  "Establish contribution, security, licensing, research, and pull-request policy.",
+]
+non_scope = [
+  "Changing the runtime driver interface or guest image behavior.",
+  "Running a full Yocto image build on the Windows host.",
+  "Adding an AI service, MCP server, telemetry service, or external dependency.",
+  "Merging or releasing without a separate explicit decision.",
+]
+acceptance_criteria = [
+  "The long-term vision and non-goals are explicit.",
+  "Milestones have scope, dependencies, acceptance gates, and PR boundaries.",
+  "Mixed-license boundaries and contribution rules are machine-readable and documented.",
+  "A future maintainer or automation tool can select the next task from durable repository state.",
+  "Project-owned workflow and checksum validation pass.",
+  "The milestone is independently reviewed and proposed through one focused pull request.",
+]
+dependencies = []
+risks = ["licensing", "documentation", "workflow", "public-repository"]
+validation = [
+  "python3 scripts/validate_workflow.py",
+  "python3 -m unittest discover -s tests -p test_*.py",
+  "python3 scripts/update_checksums.py --check",
+  "git diff --check",
+]
+approval = "Repository owner request on 2026-08-07 explicitly authorized this planning, licensing, documentation, maintenance workflow, and milestone pull-request scope."
+reviews_required = ["architecture", "documentation", "licensing", "quality", "independent-diff"]
+reviews_completed = ["architecture", "documentation", "independent-diff", "licensing", "quality"]
+validation_evidence = [
+  "uv run --no-project python scripts/validate_workflow.py -> PASS on 2026-08-07.",
+  "uv run --no-project python -m unittest discover -s tests -p test_*.py -v -> 10 tests passed on 2026-08-07.",
+  "uv run --no-project python scripts/update_checksums.py --check -> PASS on 2026-08-07.",
+  "uvx --no-python-downloads --from reuse[charset-normalizer] reuse lint -> REUSE 3.3 compliant, 39/39 covered files on 2026-08-07.",
+  "git diff --cached --check, Markdown link check, secret-pattern scan, and private-path scan -> PASS on 2026-08-07.",
+  "Full Yocto build, BitBake parse, kernel-module build, and QEMU runtime were not run because this Windows host cannot provide the required Linux build environment; M0 does not change runtime behavior.",
+]
+review_evidence = [
+  "Independent findings-first review found and reproduced a cross-platform checksum/EOL blocker; fixed by hashing staged Git blob bytes.",
+  "Final independent recheck reported no blocking or non-blocking findings after Done-state review reconciliation, contributor guidance, and checksum tests were added.",
+  "The tool-neutral maintainer-workflow migration was independently reviewed; three coherence findings were fixed and the final recheck reported no remaining findings.",
+]
+result = "M0 implementation, licensing audit, validation, and independent review are complete; pull request #1 is open and ready for repository-owner review and merge."
+
+[[tasks]]
+id = "A001"
+status = "Proposed"
+milestone = "M1"
+title = "Make source setup and fast validation reproducible"
+outcome = "Pin external inputs and provide fast pull-request checks before expensive image builds."
+scope = [
+  "Choose and document a reproducible source lock strategy.",
+  "Add shell, metadata, license, workflow, and layer parse checks.",
+  "Add a CI path that does not require publishing artifacts or secrets.",
+]
+non_scope = ["Driver feature development", "Release publication"]
+acceptance_criteria = [
+  "A clean Linux host resolves the same declared Poky revision.",
+  "Fast checks fail clearly on metadata, licensing, workflow, or shell regressions.",
+  "CI documents which evidence is fast, scheduled, or unavailable.",
+]
+dependencies = ["A000"]
+risks = ["ci", "network", "reproducibility", "supply-chain"]
+validation = ["python3 scripts/validate_workflow.py", "project fast-check suite", "CI run"]
+approval = ""
+reviews_required = ["architecture", "quality", "devops", "security", "independent-diff"]
+reviews_completed = []
+validation_evidence = []
+review_evidence = []
+result = ""
+
+[[tasks]]
+id = "A002"
+status = "Proposed"
+milestone = "M2"
+title = "Automate QEMU guest verification"
+outcome = "Turn the existing manual smoke test into repeatable Yocto runtime evidence."
+scope = [
+  "Define the guest-visible driver interface contract.",
+  "Add OEQA/testimage coverage for discovery, MMIO, interrupts, and negative cases.",
+  "Publish structured test evidence without secrets or mutable external services.",
+]
+non_scope = ["MSI or DMA feature implementation", "Real hardware validation"]
+acceptance_criteria = [
+  "The image boots under QEMU and the automated suite exercises the documented baseline.",
+  "Timeout, range, and missing-device failures are asserted.",
+  "Test output is useful to humans and machine consumers.",
+]
+dependencies = ["A001"]
+risks = ["test", "runtime", "compatibility", "kernel"]
+validation = ["bitbake qemu-edu-image -c testimage", "project fast-check suite"]
+approval = ""
+reviews_required = ["quality", "architecture", "security", "independent-diff"]
+reviews_completed = []
+validation_evidence = []
+review_evidence = []
+result = ""
+
+[[tasks]]
+id = "A003"
+status = "Proposed"
+milestone = "M3"
+title = "Add MSI as an observable learning stage"
+outcome = "Teach modern PCI interrupt allocation while preserving an explicit INTx comparison path."
+scope = ["Add PCI IRQ vector allocation.", "Keep the lab and tests able to explain INTx versus MSI behavior."]
+non_scope = ["DMA", "Multi-device concurrency", "Platform drivers"]
+acceptance_criteria = [
+  "Automated tests prove the selected interrupt mode.",
+  "Cleanup and fallback behavior are covered.",
+  "Documentation connects the implementation to the PCI lifecycle.",
+]
+dependencies = ["A002"]
+risks = ["kernel", "interrupts", "compatibility", "regression"]
+validation = ["driver build", "QEMU runtime suite", "project fast-check suite"]
+approval = ""
+reviews_required = ["quality", "architecture", "security", "independent-diff"]
+reviews_completed = []
+validation_evidence = []
+review_evidence = []
+result = ""
+
+[[tasks]]
+id = "A004"
+status = "Proposed"
+milestone = "M4"
+title = "Add bounded EDU DMA learning support"
+outcome = "Teach coherent DMA mapping, the 28-bit mask, transfer direction, and safe cleanup."
+scope = ["Implement bounded DMA round trips.", "Add negative and timeout tests.", "Document real-hardware caveats."]
+non_scope = ["Zero-copy APIs", "Production DMA performance", "IOMMU validation on physical hardware"]
+acceptance_criteria = [
+  "Both transfer directions pass automated tests.",
+  "Bounds, mask, timeout, and cleanup behavior are explicit.",
+  "The public interface remains small and versioned.",
+]
+dependencies = ["A003"]
+risks = ["kernel", "dma", "memory-safety", "compatibility"]
+validation = ["driver build", "QEMU runtime suite", "project fast-check suite"]
+approval = ""
+reviews_required = ["quality", "architecture", "security", "independent-diff"]
+reviews_completed = []
+validation_evidence = []
+review_evidence = []
+result = ""
+
+[[tasks]]
+id = "A005"
+status = "Proposed"
+milestone = "M5"
+title = "Introduce a portable platform-driver lab"
+outcome = "Add one non-PCI architecture path that teaches Device Tree and platform-driver bring-up."
+scope = ["Select ARM64 or RISC-V using a recorded decision.", "Add a versioned QEMU device boundary and a platform-driver lab."]
+non_scope = ["Supporting every CPU architecture", "Claiming physical validation"]
+acceptance_criteria = [
+  "The existing PCI lab remains independently usable.",
+  "The new lab proves Device Tree discovery, MMIO, and interrupts.",
+  "Shared concepts and architecture-specific differences are documented.",
+]
+dependencies = ["A002"]
+risks = ["qemu-patch", "device-tree", "maintenance", "compatibility"]
+validation = ["both lab build paths", "both QEMU runtime suites", "project fast-check suite"]
+approval = ""
+reviews_required = ["architecture", "quality", "devops", "security", "independent-diff"]
+reviews_completed = []
+validation_evidence = []
+review_evidence = []
+result = ""
+
+[[tasks]]
+id = "A006"
+status = "Proposed"
+milestone = "M6"
+title = "Expose provider-neutral lab diagnostics"
+outcome = "Make build and runtime evidence safely consumable by humans, CI, and optional AI tools."
+scope = [
+  "Add a local lab command with versioned JSON output for status, doctor, inspect, and test evidence.",
+  "Evaluate a read-only MCP adapter only after the CLI contract is stable.",
+  "Define explicit approval boundaries for any state-changing tool.",
+]
+non_scope = ["Requiring an LLM", "Sending source or logs to hosted AI by default", "Autonomous production changes"]
+acceptance_criteria = [
+  "The lab works fully without AI or network services.",
+  "Machine-readable schemas are versioned and tested.",
+  "Any MCP surface is a replaceable adapter over the same deterministic core.",
+  "Unsafe or secret-bearing operations are absent or explicitly gated.",
+]
+dependencies = ["A002"]
+risks = ["ai", "security", "privacy", "interface", "compatibility"]
+validation = ["schema tests", "CLI contract tests", "security review", "project fast-check suite"]
+approval = ""
+reviews_required = ["architecture", "quality", "security", "documentation", "independent-diff"]
+reviews_completed = []
+validation_evidence = []
+review_evidence = []
+result = ""

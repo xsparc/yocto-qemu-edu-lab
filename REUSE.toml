@@ -1,0 +1,38 @@
+version = 1
+
+[[annotations]]
+path = [
+  "docs/maintainers/**",
+  ".github/**",
+  ".gitattributes",
+  ".gitignore",
+  "MAINTAINERS.md",
+  "CONTRIBUTING.md",
+  "Makefile",
+  "README.md",
+  "SECURITY.md",
+  "SHA256SUMS",
+  "build.sh",
+  "docs/**",
+  "inspect.sh",
+  "meta-qemu-edu/conf/**",
+  "meta-qemu-edu/recipes-core/**",
+  "meta-qemu-edu/recipes-kernel/qemu-edu-driver/qemu-edu-driver_1.0.bb",
+  "meta-qemu-edu/recipes-support/**",
+  "run.sh",
+  "scripts/**",
+  "setup.sh",
+  "tests/**",
+]
+precedence = "closest"
+SPDX-FileCopyrightText = "2026 Yocto QEMU EDU learning project contributors"
+SPDX-License-Identifier = "MIT"
+
+[[annotations]]
+path = [
+  "meta-qemu-edu/recipes-kernel/qemu-edu-driver/files/Makefile",
+  "meta-qemu-edu/recipes-kernel/qemu-edu-driver/files/qemu_edu.c",
+]
+precedence = "closest"
+SPDX-FileCopyrightText = "2026 Yocto QEMU EDU learning project contributors"
+SPDX-License-Identifier = "GPL-2.0-only"

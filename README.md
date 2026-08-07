@@ -5,6 +5,12 @@
 This is a PC-only example BSP project for learning how Yocto, QEMU, Linux
 hardware discovery, a kernel driver, packages, and an image fit together.
 
+The long-term direction is a progressive, evidence-driven curriculum from this
+first virtual PCI driver through automated runtime testing, MSI, DMA, a
+Device-Tree/platform-driver lab, and optional provider-neutral diagnostics. The
+core build and learning path will remain usable without an AI service. See
+[`docs/vision.md`](docs/vision.md) and [`docs/roadmap.md`](docs/roadmap.md).
+
 The virtual target is an x86-64 machine with QEMU's **EDU educational PCI
 peripheral**.  EDU was specifically designed for kernel-driver exercises.  It
 has a 1 MiB MMIO BAR, identification and liveness registers, asynchronous
@@ -239,3 +245,25 @@ This repository is mixed-license:
 
 Individual files may carry `SPDX-License-Identifier` comments that state the
 applicable license for that file.
+
+The full file map, contribution rules, and REUSE policy are documented in
+[`docs/licensing.md`](docs/licensing.md). Do not copy external material into the
+repository unless its source and redistribution terms are clear.
+
+## 11. Project development
+
+Public development is milestone-driven. Each milestone uses one focused pull
+request with explicit scope, validation evidence, licensing impact, and
+rollback. The durable plan is in [`docs/maintenance-workflow.md`](docs/maintenance-workflow.md), and
+contribution guidance is in [`CONTRIBUTING.md`](CONTRIBUTING.md).
+Maintainer conventions begin in [`MAINTAINERS.md`](MAINTAINERS.md), with
+machine-readable task state under [`docs/maintainers/`](docs/maintainers/).
+
+Fast repository checks require Python 3.11 or newer:
+
+```bash
+make check
+```
+
+These checks do not replace the Linux-host Yocto build and QEMU runtime gates
+listed for each milestone.

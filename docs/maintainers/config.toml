@@ -1,0 +1,32 @@
+# SPDX-FileCopyrightText: 2026 Yocto QEMU EDU learning project contributors
+# SPDX-License-Identifier: MIT
+
+project_name = "yocto-qemu-edu-lab"
+task_id_prefix = "A"
+design_path = "docs/architecture.md"
+vision_path = "docs/vision.md"
+roadmap_path = "docs/roadmap.md"
+maintenance_plan_path = "docs/maintenance-workflow.md"
+license_policy_path = "docs/licensing.md"
+
+validation_commands = [
+  "python3 scripts/validate_workflow.py",
+  "python3 -m unittest discover -s tests -p test_*.py",
+  "python3 scripts/update_checksums.py --check",
+  "git diff --check",
+]
+
+[workflow]
+statuses = ["Proposed", "Ready", "In Progress", "Blocked", "Done"]
+max_in_progress = 1
+ready_requires_user_approval = true
+done_requires_validation_evidence = true
+done_requires_review_evidence = true
+one_pull_request_per_milestone = true
+public_actions_require_explicit_scope = true
+
+[licensing]
+default_license = "MIT"
+kernel_module_license = "GPL-2.0-only"
+reuse_specification = "3.3"
+unlicensed_vendoring_allowed = false
