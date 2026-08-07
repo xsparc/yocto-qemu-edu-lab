@@ -3,7 +3,7 @@ SPDX-FileCopyrightText: 2026 Yocto QEMU EDU learning project contributors
 SPDX-License-Identifier: MIT
 -->
 
-# Agent ledger
+# Delivery ledger
 
 `tasks.toml` is authoritative. This view is kept compact for maintainers.
 

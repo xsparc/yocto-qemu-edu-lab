@@ -254,8 +254,10 @@ repository unless its source and redistribution terms are clear.
 
 Public development is milestone-driven. Each milestone uses one focused pull
 request with explicit scope, validation evidence, licensing impact, and
-rollback. The durable plan is in [`docs/agentic-implementation-plan.md`](docs/agentic-implementation-plan.md), and
+rollback. The durable plan is in [`docs/maintenance-workflow.md`](docs/maintenance-workflow.md), and
 contribution guidance is in [`CONTRIBUTING.md`](CONTRIBUTING.md).
+Maintainer conventions begin in [`MAINTAINERS.md`](MAINTAINERS.md), with
+machine-readable task state under [`docs/maintainers/`](docs/maintainers/).
 
 Fast repository checks require Python 3.11 or newer:
 

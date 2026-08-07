@@ -73,7 +73,7 @@ runtime tests -> versioned evidence document
        +--------+---------+
        |                  |
        v                  v
-human learning       CI / optional agent adapter
+human learning       CI / optional tool adapter
 ```
 
 ### Boundary 1: source and build declaration
@@ -104,7 +104,7 @@ result, and environment needed to interpret it. It never upgrades “unknown” 
 
 ### Boundary 5: integrations
 
-CI, dashboards, and optional MCP or other AI-oriented tools consume the same
+CI, dashboards, and optional MCP or other automation tools consume the same
 read-only evidence and invoke the same bounded commands as a person. Provider,
 transport, credentials, and hosted storage remain outside the core lab.
 
@@ -121,7 +121,8 @@ transport, credentials, and hosted storage remain outside the core lab.
 - Prefer Yocto-native validation (`yocto-check-layer`, BitBake parse, OEQA
   runtime tests, SPDX output) before inventing parallel tooling.
 - Preserve command-line and JSON/TOML interfaces so alternative CI systems and
-  agent frameworks can integrate without repository-specific screen scraping.
+  automation frameworks can integrate without repository-specific screen
+  scraping.
 
 ## Security and trust boundaries
 
@@ -130,8 +131,9 @@ transport, credentials, and hosted storage remain outside the core lab.
 - QEMU runs unprivileged with SLIRP and snapshot mode by default.
 - Guest input is untrusted at kernel boundaries. Range, timeout, teardown, and
   concurrent removal behavior require tests as features expand.
-- Optional agent tools start read-only. Any state-changing capability must be
-  separately named, approval-gated, and safe against path or argument injection.
+- Optional automation tools start read-only. Any state-changing capability must
+  be separately named, approval-gated, and safe against path or argument
+  injection.
 - Release artifacts should eventually carry SBOM and provenance evidence, but
   the project will not claim a SLSA level until it meets and verifies that
   level's requirements.

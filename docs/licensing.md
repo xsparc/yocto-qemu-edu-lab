@@ -12,7 +12,7 @@ having the right to submit their work.
 
 | Area | License | Reason |
 |---|---|---|
-| Documentation, scripts, tests, agent state, Yocto metadata, image recipe, test utility | MIT | Permissive reuse of educational and build material |
+| Documentation, scripts, tests, maintainer state, Yocto metadata, image recipe, test utility | MIT | Permissive reuse of educational and build material |
 | `qemu_edu.c` and its external-module `Makefile` | GPL-2.0-only | Linux kernel module implementation and build source |
 | Third-party checkouts and build output | Their own licenses; not vendored here | `poky/`, downloads, shared state, and build output are ignored |
 

@@ -6,7 +6,7 @@ task_id_prefix = "A"
 design_path = "docs/architecture.md"
 vision_path = "docs/vision.md"
 roadmap_path = "docs/roadmap.md"
-agent_plan_path = "docs/agentic-implementation-plan.md"
+maintenance_plan_path = "docs/maintenance-workflow.md"
 license_policy_path = "docs/licensing.md"
 
 validation_commands = [

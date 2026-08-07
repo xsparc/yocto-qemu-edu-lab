@@ -3,16 +3,16 @@ SPDX-FileCopyrightText: 2026 Yocto QEMU EDU learning project contributors
 SPDX-License-Identifier: MIT
 -->
 
-# Agentic implementation plan
+# Maintenance workflow
 
-This plan makes long-running work resumable without granting an agent unlimited
-authority. It applies equally to a person using automation and to a coding
-agent.
+This plan makes long-running work resumable without granting any person or
+automation tool unlimited authority. The same evidence and approval rules apply
+regardless of how a change is prepared.
 
 ## Control loop
 
-1. **Orient:** inspect branch and worktree, read `AGENTS.md` and `.agents`
-   state, then run the workflow validator.
+1. **Orient:** inspect the branch and worktree, read `MAINTAINERS.md` and
+   `docs/maintainers/`, then run the workflow validator.
 2. **Research:** check time-sensitive claims against primary sources. Record the
    date, source, conclusion, and affected decision under `docs/research/`.
 3. **Select:** resume the one In Progress task. If none exists, propose or groom
@@ -27,15 +27,15 @@ agent.
 7. **Review:** perform an independent findings-first diff review. Kernel,
    licensing, CI, public interface, security, and documentation changes receive
    their relevant specialist view.
-8. **Close:** reconcile task evidence, ledger, memory, decisions, docs, and
+8. **Close:** reconcile task evidence, ledger, context, decisions, docs, and
    checksums. Mark Done only when all required evidence exists.
 9. **Publish the milestone proposal:** create a concise commit, push its branch,
    and open one pull request. Do not merge or release unless separately asked.
 
 ## Milestone branch and PR contract
 
-- Branch: `codex/m<N>-<short-purpose>` for automated sessions, or an equivalent
-  contributor branch that names the milestone.
+- Branch: `milestone/m<N>-<short-purpose>` or an equivalent contributor branch
+  that names the milestone.
 - Commit subject: imperative, specific, and free of unsupported claims.
 - Pull-request body: problem, outcome, scope, non-scope, architecture and license
   impact, tests actually run, gaps, rollback, and follow-up milestone.
@@ -67,7 +67,7 @@ Yocto releases, QEMU/kernel interfaces, CI services, security standards, SBOM
 formats, SLSA, or MCP. Prefer official manuals, specifications, and upstream
 repositories. Record disagreement or uncertainty rather than blending sources.
 
-## AI-oriented direction
+## Optional automation and AI integration
 
 AI readiness means high-quality interfaces, not adding a chatbot first:
 

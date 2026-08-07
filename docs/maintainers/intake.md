@@ -7,13 +7,13 @@ SPDX-License-Identifier: MIT
 
 ## 2026-08-07 project direction request
 
-Source: repository owner `/goal` request.
+Source: repository owner request.
 
 Requested outcomes:
 
 - understand and document the long-term project vision;
 - continue development autonomously through coherent milestones;
-- maintain design, roadmap, implementation, and agent handoff material;
+- maintain design, roadmap, implementation, and maintainer handoff material;
 - keep the public repository professional and contributor-friendly;
 - prevent licensing problems;
 - use one properly scoped pull request per milestone;

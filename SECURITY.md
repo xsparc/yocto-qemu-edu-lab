@@ -30,7 +30,7 @@ project.
   credentials.
 - Guest input reaches a kernel module and is treated as untrusted.
 - Full Yocto builds and generated images are not sandbox guarantees.
-- Optional future agent integrations begin read-only and require separate
+- Optional future automation integrations begin read-only and require separate
   review before gaining state-changing tools.
 
 Do not report ordinary setup questions as vulnerabilities; use a normal issue

@@ -13,7 +13,7 @@ title = "Establish project vision and trustworthy execution"
 outcome = "Create a durable, legally clear foundation for milestone-driven development."
 scope = [
   "Audit current repository architecture and licensing boundaries.",
-  "Document the product vision, target architecture, roadmap, and agent execution model.",
+  "Document the product vision, target architecture, roadmap, and maintenance model.",
   "Create project-owned workflow state and deterministic validation.",
   "Establish contribution, security, licensing, research, and pull-request policy.",
 ]
@@ -27,7 +27,7 @@ acceptance_criteria = [
   "The long-term vision and non-goals are explicit.",
   "Milestones have scope, dependencies, acceptance gates, and PR boundaries.",
   "Mixed-license boundaries and contribution rules are machine-readable and documented.",
-  "A future agent can select the next task from durable repository state.",
+  "A future maintainer or automation tool can select the next task from durable repository state.",
   "Project-owned workflow and checksum validation pass.",
   "The milestone is independently reviewed and proposed through one focused pull request.",
 ]
@@ -39,7 +39,7 @@ validation = [
   "python3 scripts/update_checksums.py --check",
   "git diff --check",
 ]
-approval = "Repository owner /goal request on 2026-08-07 explicitly requested this planning, licensing, documentation, autonomous workflow, and milestone PR scope."
+approval = "Repository owner request on 2026-08-07 explicitly authorized this planning, licensing, documentation, maintenance workflow, and milestone pull-request scope."
 reviews_required = ["architecture", "documentation", "licensing", "quality", "independent-diff"]
 reviews_completed = ["architecture", "documentation", "independent-diff", "licensing", "quality"]
 validation_evidence = [
@@ -53,6 +53,7 @@ validation_evidence = [
 review_evidence = [
   "Independent findings-first review found and reproduced a cross-platform checksum/EOL blocker; fixed by hashing staged Git blob bytes.",
   "Final independent recheck reported no blocking or non-blocking findings after Done-state review reconciliation, contributor guidance, and checksum tests were added.",
+  "The tool-neutral maintainer-workflow migration was independently reviewed; three coherence findings were fixed and the final recheck reported no remaining findings.",
 ]
 result = "M0 implementation, licensing audit, validation, and independent review are complete; pull request #1 is open and ready for repository-owner review and merge."
 

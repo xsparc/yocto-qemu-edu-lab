@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # SPDX-FileCopyrightText: 2026 Yocto QEMU EDU learning project contributors
 # SPDX-License-Identifier: MIT
-"""Validate the repository's small, dependency-free agent workflow."""
+"""Validate the repository's small, dependency-free maintenance workflow."""
 
 from __future__ import annotations
 
@@ -14,18 +14,18 @@ from typing import Any
 
 
 REQUIRED_FILES = (
-    "AGENTS.md",
-    ".agents/README.md",
-    ".agents/config.toml",
-    ".agents/intake.md",
-    ".agents/tasks.toml",
-    ".agents/ledger.md",
-    ".agents/memory.md",
-    ".agents/decisions.md",
+    "MAINTAINERS.md",
+    "docs/maintainers/README.md",
+    "docs/maintainers/config.toml",
+    "docs/maintainers/intake.md",
+    "docs/maintainers/tasks.toml",
+    "docs/maintainers/ledger.md",
+    "docs/maintainers/context.md",
+    "docs/maintainers/decisions.md",
     "docs/vision.md",
     "docs/architecture.md",
     "docs/roadmap.md",
-    "docs/agentic-implementation-plan.md",
+    "docs/maintenance-workflow.md",
     "docs/licensing.md",
 )
 
@@ -41,9 +41,9 @@ def validate(root: Path) -> list[str]:
         if not (root / relative).is_file():
             errors.append(f"missing required file: {relative}")
 
-    config_path = root / ".agents/config.toml"
-    tasks_path = root / ".agents/tasks.toml"
-    ledger_path = root / ".agents/ledger.md"
+    config_path = root / "docs/maintainers/config.toml"
+    tasks_path = root / "docs/maintainers/tasks.toml"
+    ledger_path = root / "docs/maintainers/ledger.md"
     if not config_path.is_file() or not tasks_path.is_file():
         return errors
 
@@ -144,7 +144,13 @@ def validate(root: Path) -> list[str]:
             if not re.search(pattern, ledger):
                 errors.append(f"ledger is missing {task_id}")
 
-    for key in ("design_path", "vision_path", "roadmap_path", "agent_plan_path", "license_policy_path"):
+    for key in (
+        "design_path",
+        "vision_path",
+        "roadmap_path",
+        "maintenance_plan_path",
+        "license_policy_path",
+    ):
         relative = config.get(key)
         if not relative or not (root / str(relative)).is_file():
             errors.append(f"configured path is missing: {key}={relative!r}")

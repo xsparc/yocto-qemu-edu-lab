@@ -35,21 +35,21 @@ class WorkflowValidationTests(unittest.TestCase):
         self.assertEqual([], MODULE.validate(ROOT))
 
     def test_task_ids_are_unique(self) -> None:
-        state = MODULE.load_toml(ROOT / ".agents/tasks.toml")
+        state = MODULE.load_toml(ROOT / "docs/maintainers/tasks.toml")
         ids = [task["id"] for task in state["tasks"]]
         self.assertEqual(len(ids), len(set(ids)))
 
     def test_only_one_task_is_in_progress(self) -> None:
-        state = MODULE.load_toml(ROOT / ".agents/tasks.toml")
+        state = MODULE.load_toml(ROOT / "docs/maintainers/tasks.toml")
         active = [task["id"] for task in state["tasks"] if task["status"] == "In Progress"]
         self.assertLessEqual(len(active), 1)
 
     def test_missing_approval_is_rejected(self) -> None:
         root = self.copy_repository()
-        path = root / ".agents/tasks.toml"
+        path = root / "docs/maintainers/tasks.toml"
         text = path.read_text(encoding="utf-8")
         text = text.replace(
-            'approval = "Repository owner /goal request on 2026-08-07 explicitly requested this planning, licensing, documentation, autonomous workflow, and milestone PR scope."',
+            'approval = "Repository owner request on 2026-08-07 explicitly authorized this planning, licensing, documentation, maintenance workflow, and milestone pull-request scope."',
             'approval = ""',
             1,
         )
@@ -58,7 +58,7 @@ class WorkflowValidationTests(unittest.TestCase):
 
     def test_unknown_dependency_is_reported_without_crashing(self) -> None:
         root = self.copy_repository()
-        path = root / ".agents/tasks.toml"
+        path = root / "docs/maintainers/tasks.toml"
         text = path.read_text(encoding="utf-8").replace(
             'dependencies = ["A000"]', 'dependencies = ["A999"]', 1
         ).replace('status = "Proposed"', 'status = "Ready"', 1).replace(
@@ -70,7 +70,7 @@ class WorkflowValidationTests(unittest.TestCase):
 
     def test_ledger_status_drift_is_rejected(self) -> None:
         root = self.copy_repository()
-        path = root / ".agents/ledger.md"
+        path = root / "docs/maintainers/ledger.md"
         text = path.read_text(encoding="utf-8").replace(
             "| A000 | M0 | In Progress |", "| A000 | M0 | Ready |", 1
         )
@@ -79,7 +79,7 @@ class WorkflowValidationTests(unittest.TestCase):
 
     def test_done_task_requires_every_review_category(self) -> None:
         root = self.copy_repository()
-        tasks_path = root / ".agents/tasks.toml"
+        tasks_path = root / "docs/maintainers/tasks.toml"
         text = tasks_path.read_text(encoding="utf-8")
         text = text.replace('status = "In Progress"', 'status = "Done"', 1)
         text = text.replace(
@@ -95,7 +95,7 @@ class WorkflowValidationTests(unittest.TestCase):
         )
         text = text.replace('result = ""', 'result = "complete"', 1)
         tasks_path.write_text(text, encoding="utf-8")
-        ledger_path = root / ".agents/ledger.md"
+        ledger_path = root / "docs/maintainers/ledger.md"
         ledger_path.write_text(
             ledger_path.read_text(encoding="utf-8").replace(
                 "| A000 | M0 | In Progress |", "| A000 | M0 | Done |", 1

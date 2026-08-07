@@ -39,3 +39,13 @@ SPDX-License-Identifier: MIT
   and hardware claims may be expanded only when the corresponding build or
   runtime evidence exists.
 - Reason: Unknown or unavailable checks are evidence gaps, not passes.
+
+## D-005: Public workflow state is tool-neutral
+
+- Status: Accepted on 2026-08-07 from the repository owner request.
+- Decision: Keep the operating contract in `MAINTAINERS.md` and durable state
+  under `docs/maintainers/`. People and automation consume the same task,
+  approval, evidence, and review model without requiring tool-specific public
+  scaffolding or making unsupported authorship claims.
+- Reason: A public open-source workflow should remain understandable and useful
+  when contributors use different editors, automation, or no automation at all.

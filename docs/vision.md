@@ -11,7 +11,7 @@ Yocto QEMU EDU Lab should become a progressive, evidence-driven path from a
 first virtual PCI driver to maintainable embedded Linux board-support work.
 Every stage should be small enough to understand end to end, realistic enough
 to transfer to physical hardware, and reproducible enough for a learner,
-teacher, maintainer, CI runner, or software agent to reach the same conclusion.
+teacher, maintainer, CI runner, or automation tool to reach the same conclusion.
 
 The project is successful when a learner can answer not only “did it work?” but
 also “which layer made it work, what evidence proves it, what would change on
@@ -27,8 +27,8 @@ Primary users:
 - educators who need repeatable exercises and observable failure modes;
 - maintainers who need a compact reference layer for Yocto/QEMU automation.
 
-Secondary users include CI systems and coding agents. They consume the same
-versioned diagnostics and test evidence as humans; they are not a separate
+Secondary users include CI systems and development automation. They consume the
+same versioned diagnostics and test evidence as humans; they are not a separate
 source of truth.
 
 ## Product principles
@@ -62,7 +62,7 @@ reproducible setup
   -> bounded DMA
   -> Device Tree and platform-driver lab
   -> optional FPGA/physical target bridge
-  -> provider-neutral diagnostics and optional agent adapters
+  -> provider-neutral diagnostics and optional tool adapters
 ```
 
 Each stage should expose:
@@ -84,7 +84,7 @@ Each stage should expose:
 - `yocto-check-layer` and declared `LAYERSERIES_COMPAT` evidence agree.
 - A learner can add or complete a lab without reverse-engineering maintainer
   intent from commit history.
-- Machine-readable output is stable enough for CI and optional agent tools
+- Machine-readable output is stable enough for CI and optional automation tools
   without parsing prose or granting broad host access.
 
 ## Non-goals

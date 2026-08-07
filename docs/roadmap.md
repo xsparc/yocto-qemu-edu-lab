@@ -5,13 +5,13 @@ SPDX-License-Identifier: MIT
 
 # Development roadmap
 
-The roadmap describes outcomes and gates. `.agents/tasks.toml` owns executable
-task state. Every milestone uses one focused pull request; a dependency is not
-approval to begin the next milestone.
+The roadmap describes outcomes and gates. `docs/maintainers/tasks.toml` owns
+executable task state. Every milestone uses one focused pull request; a
+dependency is not approval to begin the next milestone.
 
 ## M0 — Project foundation and trustworthy execution
 
-Outcome: maintainers and future agents share one vision, architecture, license
+Outcome: maintainers and automation share one vision, architecture, license
 boundary, task state, research trail, and public change process.
 
 Acceptance gate:
@@ -99,7 +99,7 @@ concepts are explicit.
 
 Rollback: the new lab is additive and can be removed without changing x86-64.
 
-## M6 — Provider-neutral diagnostics and optional agent access
+## M6 — Provider-neutral diagnostics and optional tool access
 
 Outcome: `doctor`, `inspect`, and test evidence are safe and structured enough
 for people, CI, and optional assistants.

@@ -10,7 +10,7 @@ Thanks for helping make the lab clearer, safer, and more reproducible.
 ## Before starting
 
 - Read `docs/vision.md`, `docs/architecture.md`, and `docs/roadmap.md`.
-- Check `.agents/ledger.md` for active or overlapping work.
+- Check `docs/maintainers/ledger.md` for active or overlapping work.
 - Open an issue or discussion before a new architecture, external dependency,
   public interface, or broad milestone.
 - Keep a change focused on one learning outcome or milestone.

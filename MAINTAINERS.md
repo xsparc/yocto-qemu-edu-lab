@@ -11,7 +11,8 @@ can be taught, tested, reviewed, and reverted independently.
 ## Start every session
 
 1. Inspect `git status --short --branch` and do not overwrite unrelated work.
-2. Read `.agents/memory.md`, `.agents/tasks.toml`, and `.agents/ledger.md`.
+2. Read `docs/maintainers/context.md`, `docs/maintainers/tasks.toml`, and
+   `docs/maintainers/ledger.md`.
 3. Run `python3 scripts/validate_workflow.py`.
 4. Select the single `In Progress` task, or orient on Proposed work without
    implementing it.
@@ -22,9 +23,11 @@ can be taught, tested, reviewed, and reverted independently.
 1. `docs/vision.md` — users, outcomes, principles, and non-goals.
 2. `docs/architecture.md` — current system and target boundaries.
 3. `docs/roadmap.md` — milestone sequence and acceptance gates.
-4. `.agents/tasks.toml` — executable state, approvals, dependencies, evidence.
-5. `.agents/ledger.md` — readable view of task state.
-6. `.agents/decisions.md` and `.agents/memory.md` — durable choices and facts.
+4. `docs/maintainers/tasks.toml` — executable state, approvals, dependencies,
+   and evidence.
+5. `docs/maintainers/ledger.md` — readable view of task state.
+6. `docs/maintainers/decisions.md` and `docs/maintainers/context.md` — durable
+   choices and facts.
 7. Code, recipes, tests, and observed build/runtime evidence.
 8. Supporting documentation.
 
@@ -38,7 +41,7 @@ silently pick the convenient answer.
 - Keep at most one task In Progress.
 - Implement one milestone per branch and pull request.
 - A task is Done only after acceptance criteria, validation, independent review,
-  documentation, ledger, decisions, and memory agree with reality.
+  documentation, ledger, decisions, and context agree with reality.
 - Do not merge, publish a release, alter production, incur costs, or perform a
   destructive action unless the user explicitly authorized that scope.
 
@@ -46,8 +49,9 @@ silently pick the convenient answer.
 
 - Keep the lab usable offline after its declared sources are available.
 - Prefer deterministic commands and versioned machine-readable output.
-- Treat optional AI or MCP support as an adapter over the same local contracts;
-  never require an LLM to build, boot, test, or understand the lab.
+- Treat optional automation or MCP support as an adapter over the same local
+  contracts; never require a hosted service to build, boot, test, or understand
+  the lab.
 - Declare Yocto, QEMU, kernel, architecture, and hardware compatibility only
   when supported by recorded evidence.
 - Unknown, skipped, or unavailable validation is a gap, not a pass.
@@ -64,7 +68,7 @@ silently pick the convenient answer.
 
 ## Validation and closeout
 
-Run the commands in `.agents/config.toml`, then inspect `git diff` and
+Run the commands in `docs/maintainers/config.toml`, then inspect `git diff` and
 `git diff --check`. Record exact commands and results in the active task. Update
 `SHA256SUMS` last with `python3 scripts/update_checksums.py`.
 

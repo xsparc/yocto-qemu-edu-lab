@@ -3,10 +3,11 @@ SPDX-FileCopyrightText: 2026 Yocto QEMU EDU learning project contributors
 SPDX-License-Identifier: MIT
 -->
 
-# Agent workspace
+# Maintainer workspace
 
-This directory is durable project state, not a private transcript. Keep it
-compact, factual, and safe to publish.
+This directory contains durable project state for maintainers and automation.
+It is not a private transcript. Keep it compact, factual, and safe to publish.
+Start with the repository-level `MAINTAINERS.md` operating contract.
 
 ## Lifecycle
 
@@ -22,7 +23,7 @@ Only one task may be `In Progress`.
 - `intake.md` preserves unsorted requests, assumptions, and open questions.
 - `tasks.toml` is the machine-readable task source of truth.
 - `ledger.md` is the human-readable task view.
-- `memory.md` contains compact current facts, not a session diary.
+- `context.md` contains compact current facts, not a session diary.
 - `decisions.md` records consequential choices and their status.
 
 Run `python3 scripts/validate_workflow.py` after changing this directory.
