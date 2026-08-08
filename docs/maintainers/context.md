@@ -5,10 +5,11 @@ SPDX-License-Identifier: MIT
 
 # Project context
 
-- Active task: none. A002, M2 automated QEMU guest verification, is Done on its focused branch.
-- Current branch: `milestone/m2-runtime-verification`.
+- Active task: none. A003, the M3 observable MSI learning stage, is Done on its focused branch.
+- Current branch: `milestone/m3-msi-learning`.
 - Baseline: one x86-64 Yocto 6.0 (`wrynose`) learning machine using QEMU EDU PCI device `1234:11e8`.
-- Existing runtime features: PCI discovery, BAR0 MMIO, legacy INTx, sysfs, factorial/liveness operations, and a guest smoke test.
+- Existing merged runtime features: PCI discovery, BAR0 MMIO, legacy INTx,
+  sysfs, factorial/liveness operations, and automated guest verification.
 - Current license boundary: infrastructure and learning material are MIT; kernel module source and its module Makefile are GPL-2.0-only.
 - Yocto 6.0 uses separate BitBake, OE-Core, and meta-yocto repositories; the old Poky combo repository is not a valid Wrynose source.
 - M1 locks Yocto 6.0.2 source metadata through `config/sources.lock.json`; recipe downloads, full image output, and runtime evidence remain separate claims.
@@ -17,5 +18,17 @@ SPDX-License-Identifier: MIT
 - M1 resolves exact Yocto 6.0.2 sources, reconciles locked build configuration, and provides green fast and Linux metadata evidence through pull request #2.
 - Pull request #2 passed repository, static, licensing, source sync, setup, parse, inspection, and native layer checks, then squash-merged as `b269b002500059ee31754b7868c0b5a250089f0a`; no release was published.
 - A002 clean-revision validation at `64796817412a4b582723165f0413be6edf3891c1` built the complete image and passed ping, SSH, and all 11 project OEQA cases under software QEMU. The closed version-1 evidence records `dirty=false` and was independently verified.
-- Next safe action: publish the one focused A002 pull request and observe its hosted fast and metadata gates. M3, M5, and M6 remain Proposed and unapproved.
+- Pull request #3 passed its hosted fast and metadata gates, then squash-merged
+  as `d40e2db33e74b7b91ee07ad389a99cdf405b98df`; no tag or release was
+  published.
+- M3 uses one managed PCI IRQ vector with a read-only `auto`, `msi`, or `intx`
+  load policy. Runtime tests use the endpoint-scoped Linux `msi_bus` testing
+  ABI to prove real fallback and strict-MSI failure without a synthetic driver
+  fault hook.
+- A003 clean commit `3ea020489152f4c0080a37c5a04918cf7c888b0f`
+  passed the exact locked image path, software-QEMU boot, ping, SSH, and all 14
+  project cases. Closed evidence version 2 records `dirty=false` and validates
+  with every interrupt and negative-path completion claim true.
+- Next safe action: publish the one focused A003 pull request and observe its
+  hosted fast and metadata gates. M4, M5, and M6 remain Proposed and unapproved.
 - Public workflow state uses tool-neutral maintainer paths while preserving the same task, approval, validation, review, and handoff semantics.

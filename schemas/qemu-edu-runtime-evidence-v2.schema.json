@@ -1,0 +1,212 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:yocto-qemu-edu-lab:qemu-edu-runtime-evidence:2",
+  "title": "QEMU EDU runtime evidence version 2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "kind",
+    "contract",
+    "project",
+    "inputs",
+    "build",
+    "result",
+    "summary",
+    "tests"
+  ],
+  "properties": {
+    "schema_version": { "const": 2 },
+    "kind": { "const": "qemu-edu-runtime" },
+    "contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["guest_interface", "suite", "interrupt_paths", "negative_paths"],
+      "properties": {
+        "guest_interface": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["name", "version"],
+          "properties": {
+            "name": { "const": "qemu-edu-sysfs" },
+            "version": { "const": 2 }
+          }
+        },
+        "suite": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["name", "version", "test_type"],
+          "properties": {
+            "name": { "const": "qemu-edu-baseline" },
+            "version": { "const": 2 },
+            "test_type": { "const": "runtime" }
+          }
+        },
+        "interrupt_paths": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "default_msi",
+            "explicit_intx",
+            "automatic_fallback",
+            "required_msi_failure",
+            "cleanup_recovery"
+          ],
+          "properties": {
+            "default_msi": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["case_id", "exercised", "requested", "selected"],
+              "properties": {
+                "case_id": { "const": "qemu_edu.QemuEduRuntimeTests.test_07_default_and_required_msi" },
+                "exercised": { "type": "boolean" },
+                "requested": { "const": "auto" },
+                "selected": { "const": "msi" }
+              }
+            },
+            "explicit_intx": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["case_id", "exercised", "requested", "selected"],
+              "properties": {
+                "case_id": { "const": "qemu_edu.QemuEduRuntimeTests.test_08_explicit_intx_comparison" },
+                "exercised": { "type": "boolean" },
+                "requested": { "const": "intx" },
+                "selected": { "const": "intx" }
+              }
+            },
+            "automatic_fallback": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["case_id", "exercised", "requested", "selected", "mechanism"],
+              "properties": {
+                "case_id": { "const": "qemu_edu.QemuEduRuntimeTests.test_09_automatic_intx_fallback" },
+                "exercised": { "type": "boolean" },
+                "requested": { "const": "auto" },
+                "selected": { "const": "intx" },
+                "mechanism": { "const": "pci-device-msi_bus" }
+              }
+            },
+            "required_msi_failure": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["case_id", "exercised", "requested", "device_unbound", "mechanism"],
+              "properties": {
+                "case_id": { "const": "qemu_edu.QemuEduRuntimeTests.test_10_required_msi_failure_and_cleanup" },
+                "exercised": { "type": "boolean" },
+                "requested": { "const": "msi" },
+                "device_unbound": { "type": "boolean" },
+                "mechanism": { "const": "pci-device-msi_bus" }
+              }
+            },
+            "cleanup_recovery": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["case_id", "exercised", "restored"],
+              "properties": {
+                "case_id": { "const": "qemu_edu.QemuEduRuntimeTests.test_10_required_msi_failure_and_cleanup" },
+                "exercised": { "type": "boolean" },
+                "restored": { "const": "auto-msi" }
+              }
+            }
+          }
+        },
+        "negative_paths": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["factorial_timeout", "device_absence"],
+          "properties": {
+            "factorial_timeout": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["case_id", "exercised", "fault_injected", "mechanism"],
+              "properties": {
+                "case_id": { "const": "qemu_edu.QemuEduRuntimeTests.test_12_factorial_timeout" },
+                "exercised": { "type": "boolean" },
+                "fault_injected": { "type": "boolean" },
+                "mechanism": { "const": "module-parameter:force_factorial_timeout" }
+              }
+            },
+            "device_absence": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["case_id", "exercised", "mechanism", "cold_boot_without_device"],
+              "properties": {
+                "case_id": { "const": "qemu_edu.QemuEduRuntimeTests.test_13_removed_device_diagnostic" },
+                "exercised": { "type": "boolean" },
+                "mechanism": { "const": "linux-pci-hot-remove" },
+                "cold_boot_without_device": { "const": false }
+              }
+            }
+          }
+        }
+      }
+    },
+    "project": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version", "revision", "dirty"],
+      "properties": {
+        "name": { "const": "yocto-qemu-edu-lab" },
+        "version": { "type": "string", "minLength": 1, "maxLength": 4096 },
+        "revision": { "type": "string", "maxLength": 4096, "pattern": "^[0-9a-f]{40}$" },
+        "dirty": { "type": "boolean" }
+      }
+    },
+    "inputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_lock_sha256", "oeqa_result_sha256", "yocto_version", "yocto_series"],
+      "properties": {
+        "source_lock_sha256": { "type": "string", "maxLength": 4096, "pattern": "^[0-9a-f]{64}$" },
+        "oeqa_result_sha256": { "type": "string", "maxLength": 4096, "pattern": "^[0-9a-f]{64}$" },
+        "yocto_version": { "type": "string", "minLength": 1, "maxLength": 4096 },
+        "yocto_series": { "type": "string", "minLength": 1, "maxLength": 4096 }
+      }
+    },
+    "build": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["machine", "image", "distro", "host_distro", "started_at", "oeqa_result_id", "testimage_exit_code"],
+      "properties": {
+        "machine": { "type": "string", "minLength": 1, "maxLength": 4096 },
+        "image": { "type": "string", "minLength": 1, "maxLength": 4096 },
+        "distro": { "type": "string", "minLength": 1, "maxLength": 4096 },
+        "host_distro": { "type": "string", "minLength": 1, "maxLength": 4096 },
+        "started_at": { "type": "string", "minLength": 1, "maxLength": 4096 },
+        "oeqa_result_id": { "type": "string", "minLength": 1, "maxLength": 4096 },
+        "testimage_exit_code": { "type": "integer", "minimum": 0, "maximum": 255 }
+      }
+    },
+    "result": { "enum": ["passed", "failed"] },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["total", "passed", "failed", "errors", "skipped", "expected_failures", "unknown"],
+      "properties": {
+        "total": { "type": "integer", "minimum": 0 },
+        "passed": { "type": "integer", "minimum": 0 },
+        "failed": { "type": "integer", "minimum": 0 },
+        "errors": { "type": "integer", "minimum": 0 },
+        "skipped": { "type": "integer", "minimum": 0 },
+        "expected_failures": { "type": "integer", "minimum": 0 },
+        "unknown": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "tests": {
+      "type": "array",
+      "minItems": 14,
+      "maxItems": 14,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "status", "duration_seconds"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1, "maxLength": 4096 },
+          "status": { "enum": ["PASSED", "FAILED", "ERROR", "SKIPPED", "EXPECTEDFAIL", "UNKNOWN"] },
+          "duration_seconds": { "type": "number", "minimum": 0 }
+        }
+      }
+    }
+  }
+}

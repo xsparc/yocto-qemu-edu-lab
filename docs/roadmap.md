@@ -78,10 +78,25 @@ the automated gate.
 
 Outcome: the lab teaches modern PCI vector allocation and compares it with INTx.
 
-Acceptance gate: tests prove the selected mode, interrupt acknowledgement,
-fallback or failure behavior, and cleanup; documentation explains both paths.
+Delivered scope:
 
-Rollback: make the interrupt mode a lab selection until MSI evidence is stable.
+- select `auto`, required MSI, or explicit INTx at module load and report the
+  resolved per-device mode;
+- allocate one managed PCI vector without double-freeing the locked Linux 6.18
+  managed lifecycle;
+- prove default and strict MSI, explicit INTx, actual PCI-core fallback,
+  strict-MSI failure, acknowledgement, cleanup, and default recovery;
+- emit evidence schema 2 while preserving version-1 validation.
+
+Acceptance evidence: clean commit `3ea0204` passed the exact locked image path,
+software-QEMU boot, SSH, and all 14 project cases without skips or failures.
+The closed version-2 evidence records the exact revision, clean tree, native
+result digest, and conservative completion claims for every interrupt and
+negative path. Independent review found no remaining P0-P2 issue. QEMU evidence
+remains distinct from physical-hardware qualification.
+
+Rollback: load `interrupt_mode=intx`, or revert the focused M3 change. Retain
+the immutable version-1 schema and validator path for historical M2 evidence.
 
 ## M4 — Bounded DMA learning stage
 

@@ -139,30 +139,50 @@ review_evidence = [
   "Quality, security, DevOps, and licensing review found evidence-integrity and validator-parity defects; the runtime preflight, exact types, conservative negative-path claims, and executable shell regressions were added, and final re-review reported no P0-P2 findings with REUSE 66/66.",
   "Independent final diff review recomputed the evidence, native OEQA, and source-lock hashes, validated the closed document with --require-pass, confirmed 13/13 native cases and exact clean revision binding, and approved with no P0-P2 findings.",
 ]
-result = "Implemented, validated on the exact clean revision, and independently reviewed on the focused M2 branch; ready to propose through one pull request. No merge, tag, release, hosted provenance attestation, or physical-hardware claim has occurred."
+result = "Implemented, independently reviewed, and squash-merged through pull request #3 as commit d40e2db33e74b7b91ee07ad389a99cdf405b98df; no tag or release was published."
 
 [[tasks]]
 id = "A003"
-status = "Proposed"
+status = "Done"
 milestone = "M3"
 title = "Add MSI as an observable learning stage"
 outcome = "Teach modern PCI interrupt allocation while preserving an explicit INTx comparison path."
-scope = ["Add PCI IRQ vector allocation.", "Keep the lab and tests able to explain INTx versus MSI behavior."]
+scope = [
+  "Add one managed PCI IRQ vector with auto, MSI, and INTx load policies.",
+  "Expose the resolved mode and keep MSI versus INTx behavior observable.",
+  "Prove real automatic fallback, required-MSI failure, cleanup, and recovery through bounded OEQA tests.",
+  "Add evidence schema 2 while retaining historical version-1 validation.",
+]
 non_scope = ["DMA", "Multi-device concurrency", "Platform drivers"]
 acceptance_criteria = [
-  "Automated tests prove the selected interrupt mode.",
-  "Cleanup and fallback behavior are covered.",
+  "Automated tests prove default and strict MSI plus explicit INTx selection.",
+  "Real PCI-core fallback, required-MSI failure, cleanup, and default recovery are covered.",
   "Documentation connects the implementation to the PCI lifecycle.",
 ]
 dependencies = ["A002"]
 risks = ["kernel", "interrupts", "compatibility", "regression"]
-validation = ["driver build", "QEMU runtime suite", "project fast-check suite"]
-approval = ""
+validation = [
+  "exact locked driver and image build",
+  "version-2 QEMU runtime suite and qualified evidence",
+  "historical version-1 evidence validation",
+  "project fast-check and licensing suite",
+]
+approval = "Repository owner confirmed the M2 squash merge and explicitly requested continued development on 2026-08-08."
 reviews_required = ["quality", "architecture", "security", "independent-diff"]
-reviews_completed = []
-validation_evidence = []
-review_evidence = []
-result = ""
+reviews_completed = ["quality", "architecture", "security", "independent-diff"]
+validation_evidence = [
+  "Exact locked Linux 6.18.24 compiled the managed-vector driver successfully; the resource-capped worker then completed or reused all 4,738 image tasks with the exact Yocto 6.0.2 source lock.",
+  "The discovery runtime exposed one OEQA shell-status defect even though the correct PCI BDF was printed; that run was recorded as failed, the harness was fixed, and the complete rerun passed ping, SSH, and all 14 project cases with no skips, failures, or errors.",
+  "Clean commit 3ea020489152f4c0080a37c5a04918cf7c888b0f passed effective locked-build verification, all 4,738 image tasks, software-QEMU boot, ping, SSH, and all 14 project cases in 111.785 seconds with no skips, failures, or errors.",
+  "Version-2 evidence validated with project dirty=false and testimage exit 0; evidence SHA-256 is 8d6e8c2f0af19e61cb3e5fa7545f442430680fb9e53940fec05d218e1314db92, native OEQA SHA-256 is 97f3fa78c7b10800de202037026c7d2fc99a5d31a4ee3536769292175f29e8f9, and source-lock SHA-256 is 8b92b01e49afdce24864edcaeea2a8bf7110c638db0e3592572dccac5bb035e0.",
+  "The complete Linux suite passed 72/72 tests; source-lock, workflow, CI-policy, Bash syntax, checksum, staged and unstaged whitespace, and REUSE 3.3 checks passed, with REUSE covering 68/68 files.",
+]
+review_evidence = [
+  "Architecture review verified exact locked Linux/QEMU compatibility, managed vector lifecycle, requested-versus-resolved policy, truthful msi_bus fallback, versioning, and rollback; final re-review reported no P0-P2 findings.",
+  "Quality, security, evidence, and licensing review found one restoration-boundary defect; tests 07-10 now install cleanup before every mode-changing unload, a failure-injection regression proves restoration, and final re-review approved with no P0-P2 findings.",
+  "Independent frozen-diff review verified driver cleanup, all interrupt paths, closed conservative evidence v2 with immutable v1 compatibility, public-neutral documentation, and license coverage; it approved with no P0-P2 findings.",
+]
+result = "Implemented, validated on exact clean commit 3ea020489152f4c0080a37c5a04918cf7c888b0f, and independently reviewed on the focused M3 branch; ready to propose through one pull request. No merge, tag, release, hosted provenance attestation, or physical-hardware claim has occurred."
 
 [[tasks]]
 id = "A004"

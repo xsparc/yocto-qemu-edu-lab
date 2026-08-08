@@ -101,3 +101,18 @@ SPDX-License-Identifier: MIT
   read-only module-load test seam, and introduces runtime evidence schema 1.
 - Reason: The pre-1.0 policy assigns new curriculum stages and public contracts
   to a minor line. Schema versioning remains independent of project SemVer.
+
+## D-011: Make MSI preferred but keep interrupt policy observable
+
+- Status: Accepted on 2026-08-08 for A003; no tag or release is authorized.
+- Decision: Advance the development identity to `0.3.0-dev`. Request one PCI
+  vector through a read-only `interrupt_mode=auto|msi|intx` module policy,
+  defaulting to `auto`, and expose the resolved `msi` or `intx` mode per device.
+  Use Linux's endpoint-scoped `msi_bus` testing ABI only while EDU is unbound to
+  prove real automatic fallback and required-MSI failure. Emit runtime evidence
+  schema 2 and retain validation of immutable version-1 evidence.
+- Reason: This teaches the modern PCI allocation lifecycle, preserves an
+  explicit comparison and operational rollback, avoids a synthetic driver fault
+  control, and keeps old evidence consumable. The locked Linux 6.18 managed
+  lifecycle installed after `pcim_enable_device()` means the driver must not
+  manually free its allocated vector.

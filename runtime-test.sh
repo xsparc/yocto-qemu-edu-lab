@@ -31,7 +31,7 @@ python3 "$CONFIGURE_TOOL" --repo "$ROOT_DIR" verify \
     --machine "$ACTUAL_MACHINE" \
     --bblayers "$ACTUAL_BBLAYERS"
 
-EVIDENCE_OUTPUT=${EVIDENCE_OUTPUT:-"$BUILD_DIR/evidence/qemu-edu-runtime-v1.json"}
+EVIDENCE_OUTPUT=${EVIDENCE_OUTPUT:-"$BUILD_DIR/evidence/qemu-edu-runtime-v2.json"}
 install -d "$BUILD_DIR/evidence"
 OEQA_JSON_RESULT_DIR=$(mktemp -d "$BUILD_DIR/evidence/oeqa.XXXXXXXX")
 export OEQA_JSON_RESULT_DIR

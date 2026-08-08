@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # SPDX-FileCopyrightText: 2026 Yocto QEMU EDU learning project contributors
 # SPDX-License-Identifier: MIT
-"""Collect and validate closed version-1 QEMU EDU runtime evidence."""
+"""Collect version-2 and validate supported QEMU EDU runtime evidence."""
 
 from __future__ import annotations
 
@@ -17,14 +17,14 @@ from pathlib import Path
 from typing import Any
 
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 KIND = "qemu-edu-runtime"
 PROJECT_NAME = "yocto-qemu-edu-lab"
 MAX_JSON_BYTES = 4 * 1024 * 1024
 MAX_STRING_LENGTH = 4096
 GUEST_CONTRACT_NAME = "qemu-edu-sysfs"
 SUITE_NAME = "qemu-edu-baseline"
-EXPECTED_TESTS = (
+V1_EXPECTED_TESTS = (
     "qemu_edu.QemuEduRuntimeTests.test_00_driver_registered",
     "qemu_edu.QemuEduRuntimeTests.test_01_pci_device_bound",
     "qemu_edu.QemuEduRuntimeTests.test_02_identification_register",
@@ -37,6 +37,23 @@ EXPECTED_TESTS = (
     "qemu_edu.QemuEduRuntimeTests.test_09_factorial_timeout",
     "qemu_edu.QemuEduRuntimeTests.test_10_removed_device_diagnostic",
 )
+EXPECTED_TESTS = (
+    "qemu_edu.QemuEduRuntimeTests.test_00_driver_registered",
+    "qemu_edu.QemuEduRuntimeTests.test_01_pci_device_bound",
+    "qemu_edu.QemuEduRuntimeTests.test_02_identification_register",
+    "qemu_edu.QemuEduRuntimeTests.test_03_initial_operation_state",
+    "qemu_edu.QemuEduRuntimeTests.test_04_liveness_inversion",
+    "qemu_edu.QemuEduRuntimeTests.test_05_factorial_boundaries",
+    "qemu_edu.QemuEduRuntimeTests.test_06_invalid_factorial_inputs",
+    "qemu_edu.QemuEduRuntimeTests.test_07_default_and_required_msi",
+    "qemu_edu.QemuEduRuntimeTests.test_08_explicit_intx_comparison",
+    "qemu_edu.QemuEduRuntimeTests.test_09_automatic_intx_fallback",
+    "qemu_edu.QemuEduRuntimeTests.test_10_required_msi_failure_and_cleanup",
+    "qemu_edu.QemuEduRuntimeTests.test_11_zero_interrupt_rejected",
+    "qemu_edu.QemuEduRuntimeTests.test_12_factorial_timeout",
+    "qemu_edu.QemuEduRuntimeTests.test_13_removed_device_diagnostic",
+)
+SUPPORTED_TESTS = {1: V1_EXPECTED_TESTS, 2: EXPECTED_TESTS}
 OEQA_STATUSES = {
     "PASSED",
     "FAILED",
@@ -136,7 +153,8 @@ def git_state(repo: Path) -> tuple[str, bool]:
 
 
 def select_oeqa_result(
-    data: dict[str, Any], machine: str, image: str
+    data: dict[str, Any], machine: str, image: str,
+    expected_tests: tuple[str, ...] = EXPECTED_TESTS,
 ) -> tuple[str, dict[str, Any], dict[str, Any]]:
     candidates: list[tuple[str, str, dict[str, Any], dict[str, Any]]] = []
     for result_id, record in data.items():
@@ -150,7 +168,7 @@ def select_oeqa_result(
             continue
         if configuration.get("IMAGE_BASENAME") != image:
             continue
-        if not any(test_id in results for test_id in EXPECTED_TESTS):
+        if not any(test_id in results for test_id in expected_tests):
             continue
         started_at = require_string(configuration.get("STARTTIME"), "STARTTIME")
         candidates.append((started_at, result_id, configuration, results))
@@ -221,25 +239,58 @@ def build_evidence(
         "contract": {
             "guest_interface": {
                 "name": GUEST_CONTRACT_NAME,
-                "version": 1,
+                "version": 2,
             },
             "suite": {
                 "name": SUITE_NAME,
-                "version": 1,
+                "version": 2,
                 "test_type": require_string(
                     configuration.get("TEST_TYPE"), "TEST_TYPE"
                 ),
             },
-            "negative_paths": {
-                "factorial_timeout": {
+            "interrupt_paths": {
+                "default_msi": {
+                    "case_id": EXPECTED_TESTS[7],
+                    "exercised": status_by_id[EXPECTED_TESTS[7]] == "PASSED",
+                    "requested": "auto",
+                    "selected": "msi",
+                },
+                "explicit_intx": {
+                    "case_id": EXPECTED_TESTS[8],
+                    "exercised": status_by_id[EXPECTED_TESTS[8]] == "PASSED",
+                    "requested": "intx",
+                    "selected": "intx",
+                },
+                "automatic_fallback": {
                     "case_id": EXPECTED_TESTS[9],
                     "exercised": status_by_id[EXPECTED_TESTS[9]] == "PASSED",
-                    "fault_injected": status_by_id[EXPECTED_TESTS[9]] == "PASSED",
+                    "requested": "auto",
+                    "selected": "intx",
+                    "mechanism": "pci-device-msi_bus",
+                },
+                "required_msi_failure": {
+                    "case_id": EXPECTED_TESTS[10],
+                    "exercised": status_by_id[EXPECTED_TESTS[10]] == "PASSED",
+                    "requested": "msi",
+                    "device_unbound": status_by_id[EXPECTED_TESTS[10]] == "PASSED",
+                    "mechanism": "pci-device-msi_bus",
+                },
+                "cleanup_recovery": {
+                    "case_id": EXPECTED_TESTS[10],
+                    "exercised": status_by_id[EXPECTED_TESTS[10]] == "PASSED",
+                    "restored": "auto-msi",
+                },
+            },
+            "negative_paths": {
+                "factorial_timeout": {
+                    "case_id": EXPECTED_TESTS[12],
+                    "exercised": status_by_id[EXPECTED_TESTS[12]] == "PASSED",
+                    "fault_injected": status_by_id[EXPECTED_TESTS[12]] == "PASSED",
                     "mechanism": "module-parameter:force_factorial_timeout",
                 },
                 "device_absence": {
-                    "case_id": EXPECTED_TESTS[10],
-                    "exercised": status_by_id[EXPECTED_TESTS[10]] == "PASSED",
+                    "case_id": EXPECTED_TESTS[13],
+                    "exercised": status_by_id[EXPECTED_TESTS[13]] == "PASSED",
                     "mechanism": "linux-pci-hot-remove",
                     "cold_boot_without_device": False,
                 },
@@ -298,19 +349,18 @@ def validate_evidence(evidence: dict[str, Any], *, require_pass: bool = False) -
         },
         "evidence",
     )
-    if (
-        require_integer(evidence["schema_version"], "schema_version")
-        != SCHEMA_VERSION
-        or evidence["kind"] != KIND
-    ):
+    schema_version = require_integer(evidence["schema_version"], "schema_version")
+    expected_tests = SUPPORTED_TESTS.get(schema_version)
+    if expected_tests is None or evidence["kind"] != KIND:
         raise EvidenceError("unsupported evidence schema or kind")
 
     contract = evidence["contract"]
     if not isinstance(contract, dict):
         raise EvidenceError("contract must be an object")
-    require_exact_keys(
-        contract, {"guest_interface", "suite", "negative_paths"}, "contract"
-    )
+    contract_keys = {"guest_interface", "suite", "negative_paths"}
+    if schema_version == 2:
+        contract_keys.add("interrupt_paths")
+    require_exact_keys(contract, contract_keys, "contract")
     guest = contract["guest_interface"]
     if not isinstance(guest, dict):
         raise EvidenceError("contract.guest_interface must be an object")
@@ -318,7 +368,7 @@ def validate_evidence(evidence: dict[str, Any], *, require_pass: bool = False) -
     if (
         guest.get("name") != GUEST_CONTRACT_NAME
         or require_integer(guest.get("version"), "contract.guest_interface.version")
-        != 1
+        != schema_version
     ):
         raise EvidenceError("unsupported guest-interface contract")
     suite = contract["suite"]
@@ -327,7 +377,8 @@ def validate_evidence(evidence: dict[str, Any], *, require_pass: bool = False) -
     require_exact_keys(suite, {"name", "version", "test_type"}, "contract.suite")
     if (
         suite.get("name") != SUITE_NAME
-        or require_integer(suite.get("version"), "contract.suite.version") != 1
+        or require_integer(suite.get("version"), "contract.suite.version")
+        != schema_version
         or suite.get("test_type") != "runtime"
     ):
         raise EvidenceError("unsupported runtime suite contract")
@@ -388,10 +439,10 @@ def validate_evidence(evidence: dict[str, Any], *, require_pass: bool = False) -
         raise EvidenceError("build.testimage_exit_code must be between 0 and 255")
 
     tests = evidence["tests"]
-    if not isinstance(tests, list) or len(tests) != len(EXPECTED_TESTS):
+    if not isinstance(tests, list) or len(tests) != len(expected_tests):
         raise EvidenceError("tests must contain every required QEMU EDU case")
     statuses: list[str] = []
-    for expected_id, test in zip(EXPECTED_TESTS, tests, strict=True):
+    for expected_id, test in zip(expected_tests, tests, strict=True):
         if not isinstance(test, dict):
             raise EvidenceError("every test must be an object")
         require_exact_keys(test, {"id", "status", "duration_seconds"}, "test")
@@ -437,22 +488,104 @@ def validate_evidence(evidence: dict[str, Any], *, require_pass: bool = False) -
         absence["cold_boot_without_device"],
         "device_absence.cold_boot_without_device",
     )
-    expected_timeout_exercised = statuses[9] == "PASSED"
-    expected_absence_exercised = statuses[10] == "PASSED"
+    timeout_index = 9 if schema_version == 1 else 12
+    absence_index = 10 if schema_version == 1 else 13
+    expected_timeout_exercised = statuses[timeout_index] == "PASSED"
+    expected_absence_exercised = statuses[absence_index] == "PASSED"
     if timeout != {
-        "case_id": EXPECTED_TESTS[9],
+        "case_id": expected_tests[timeout_index],
         "exercised": expected_timeout_exercised,
         "fault_injected": expected_timeout_exercised,
         "mechanism": "module-parameter:force_factorial_timeout",
     }:
         raise EvidenceError("factorial-timeout semantics do not match the suite")
     if absence != {
-        "case_id": EXPECTED_TESTS[10],
+        "case_id": expected_tests[absence_index],
         "exercised": expected_absence_exercised,
         "mechanism": "linux-pci-hot-remove",
         "cold_boot_without_device": False,
     }:
         raise EvidenceError("device-absence semantics do not match the suite")
+
+    interrupt_paths = None
+    if schema_version == 2:
+        interrupt_paths = contract["interrupt_paths"]
+        if not isinstance(interrupt_paths, dict):
+            raise EvidenceError("contract.interrupt_paths must be an object")
+        require_exact_keys(
+            interrupt_paths,
+            {
+                "default_msi",
+                "explicit_intx",
+                "automatic_fallback",
+                "required_msi_failure",
+                "cleanup_recovery",
+            },
+            "interrupt_paths",
+        )
+        for name, expected_keys in {
+            "default_msi": {"case_id", "exercised", "requested", "selected"},
+            "explicit_intx": {"case_id", "exercised", "requested", "selected"},
+            "automatic_fallback": {
+                "case_id",
+                "exercised",
+                "requested",
+                "selected",
+                "mechanism",
+            },
+            "required_msi_failure": {
+                "case_id",
+                "exercised",
+                "requested",
+                "device_unbound",
+                "mechanism",
+            },
+            "cleanup_recovery": {"case_id", "exercised", "restored"},
+        }.items():
+            path = interrupt_paths[name]
+            if not isinstance(path, dict):
+                raise EvidenceError(f"interrupt_paths.{name} must be an object")
+            require_exact_keys(path, expected_keys, f"interrupt_paths.{name}")
+            require_boolean(path["exercised"], f"interrupt_paths.{name}.exercised")
+        require_boolean(
+            interrupt_paths["required_msi_failure"]["device_unbound"],
+            "interrupt_paths.required_msi_failure.device_unbound",
+        )
+        expected_interrupt_paths = {
+            "default_msi": {
+                "case_id": expected_tests[7],
+                "exercised": statuses[7] == "PASSED",
+                "requested": "auto",
+                "selected": "msi",
+            },
+            "explicit_intx": {
+                "case_id": expected_tests[8],
+                "exercised": statuses[8] == "PASSED",
+                "requested": "intx",
+                "selected": "intx",
+            },
+            "automatic_fallback": {
+                "case_id": expected_tests[9],
+                "exercised": statuses[9] == "PASSED",
+                "requested": "auto",
+                "selected": "intx",
+                "mechanism": "pci-device-msi_bus",
+            },
+            "required_msi_failure": {
+                "case_id": expected_tests[10],
+                "exercised": statuses[10] == "PASSED",
+                "requested": "msi",
+                "device_unbound": statuses[10] == "PASSED",
+                "mechanism": "pci-device-msi_bus",
+            },
+            "cleanup_recovery": {
+                "case_id": expected_tests[10],
+                "exercised": statuses[10] == "PASSED",
+                "restored": "auto-msi",
+            },
+        }
+        if interrupt_paths != expected_interrupt_paths:
+            raise EvidenceError("interrupt-path semantics do not match the suite")
 
     summary = evidence["summary"]
     if not isinstance(summary, dict):
@@ -481,6 +614,10 @@ def validate_evidence(evidence: dict[str, Any], *, require_pass: bool = False) -
         raise EvidenceError("passing runtime evidence requires a clean project tree")
     if require_pass and (not timeout["exercised"] or not absence["exercised"]):
         raise EvidenceError("passing runtime evidence requires both negative paths")
+    if require_pass and interrupt_paths is not None and not all(
+        path["exercised"] for path in interrupt_paths.values()
+    ):
+        raise EvidenceError("passing runtime evidence requires every interrupt path")
 
 
 def write_evidence(path: Path, evidence: dict[str, Any]) -> None:

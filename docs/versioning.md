@@ -6,7 +6,7 @@ SPDX-License-Identifier: MIT
 # Versioning and compatibility
 
 The project follows Semantic Versioning 2.0.0 for tagged releases. `VERSION`
-currently contains `0.2.0-dev`, a development identity rather than a published
+currently contains `0.3.0-dev`, a development identity rather than a published
 release. Creating a tag, release, or artifact remains a separate maintainer
 decision.
 
@@ -40,6 +40,7 @@ automatically public APIs.
 | Project line | Yocto release lock | Series | Evidence available |
 |---|---|---|---|
 | `0.2.0-dev` | 6.0.2 | `wrynose` | Repository, static, licensing, exact-source, parse, inspection, and native layer CI; clean commit `6479681` completed the full image build and passed all 11 project runtime cases under software QEMU with validated version-1 evidence |
+| `0.3.0-dev` | 6.0.2 | `wrynose` | Clean commit `3ea0204` completed the exact locked image path and passed ping, SSH, and all 14 project cases under software QEMU with validated version-2 evidence; no physical-hardware or release claim is implied |
 
 The runtime document is an unsigned local report whose SHA-256 was independently
 recomputed. It is not a hosted provenance attestation or a physical-hardware
@@ -51,6 +52,10 @@ A new Yocto series requires a pre-1.0 minor-version decision, layer metadata
 review, migration notes, and the full relevant gates; changing only
 `LAYERSERIES_COMPAT` is insufficient.
 
-Schema versioning is independent of project SemVer. Unknown source-lock schema
-versions fail closed. A schema change must state whether old readers can
-continue safely and provide a deterministic migration or rollback.
+Schema versioning is independent of project SemVer. Unknown source-lock and
+runtime-evidence schema versions fail closed. Runtime evidence version 1 is an
+immutable M2 contract; the current validator accepts versions 1 and 2, while
+the collector emits only version 2. Version-1 readers reject version 2 and can
+roll back to the M2 revision without translating claims. Any later schema
+change must state whether old readers can continue safely and provide a
+deterministic migration or rollback.
