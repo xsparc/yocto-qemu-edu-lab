@@ -3,7 +3,7 @@
 
 schema_version = 1
 task_id_prefix = "A"
-updated_on = "2026-08-08"
+updated_on = "2026-08-09"
 
 [[tasks]]
 id = "A000"
@@ -182,7 +182,7 @@ review_evidence = [
   "Quality, security, evidence, and licensing review found one restoration-boundary defect; tests 07-10 now install cleanup before every mode-changing unload, a failure-injection regression proves restoration, and final re-review approved with no P0-P2 findings.",
   "Independent frozen-diff review verified driver cleanup, all interrupt paths, closed conservative evidence v2 with immutable v1 compatibility, public-neutral documentation, and license coverage; it approved with no P0-P2 findings.",
 ]
-result = "Implemented, validated on exact clean commit 3ea020489152f4c0080a37c5a04918cf7c888b0f, and independently reviewed on the focused M3 branch; ready to propose through one pull request. No merge, tag, release, hosted provenance attestation, or physical-hardware claim has occurred."
+result = "Implemented, independently reviewed, and squash-merged through pull request #4 as commit 2daea1223775c8aff91a0a7db3b8cdd693f74195; no tag or release was published."
 
 [[tasks]]
 id = "A004"
@@ -197,7 +197,7 @@ acceptance_criteria = [
   "Bounds, mask, timeout, and cleanup behavior are explicit.",
   "The public interface remains small and versioned.",
 ]
-dependencies = ["A003"]
+dependencies = ["A003", "A007"]
 risks = ["kernel", "dma", "memory-safety", "compatibility"]
 validation = ["driver build", "QEMU runtime suite", "project fast-check suite"]
 approval = ""
@@ -206,6 +206,58 @@ reviews_completed = []
 validation_evidence = []
 review_evidence = []
 result = ""
+
+[[tasks]]
+id = "A007"
+status = "In Progress"
+milestone = "M3.1"
+title = "Backport QEMU EDU DMA bounds enforcement"
+outcome = "Prevent guest-controlled EDU DMA ranges from escaping the device buffer before the DMA curriculum begins."
+scope = [
+  "Backport exact upstream QEMU commit 42f599172ae023924f288e20af0ceed681674747 to qemu-system-native 10.2.0, which supplies runqemu through qemu-helper-native.",
+  "Fail closed if the selected host-emulator recipe is not the reviewed 10.2.0 input.",
+  "Verify append selection, exact patch and patched-source digests, guarded DMA copy placement, compilation, fail-closed native-sysroot consumption in both public boot paths, and the existing M3 runtime suite.",
+  "Record upstream provenance, compatible licensing, rollback, and the security evidence boundary.",
+]
+non_scope = [
+  "Adding guest driver DMA interfaces or M4 behavior.",
+  "Updating the Yocto source lock or QEMU release line.",
+  "Running an out-of-bounds exploit or negative test against an unpatched emulator.",
+  "Claiming a CVE, physical-hardware result, release, or merge.",
+]
+acceptance_criteria = [
+  "The exact qemu-system-native 10.2.0 append selects the attributed upstream patch exactly once.",
+  "The exact patched source keeps both DMA copies inside guards that abort when the device-buffer range is invalid.",
+  "The selected recipe compiles, populates qemu-helper-native's consumer sysroot, and supplies the executable selected by testimage/runqemu without host fallback.",
+  "A clean project revision passes all 14 M3 runtime cases under the patched software emulator with validated version-2 evidence.",
+  "Repository, metadata, licensing, checksum, and independent security review gates pass without executing unsafe out-of-bounds input.",
+]
+dependencies = ["A003"]
+risks = ["qemu", "security", "memory-safety", "supply-chain", "licensing", "runtime"]
+validation = [
+  "python3 scripts/verify_qemu_security.py static",
+  "project fast-check and licensing suite",
+  "Yocto metadata append and dependency verification",
+  "qemu-system-native do_patch, exact source and guard verification, compile, do_populate_sysroot, helper consumer population, and executable verification",
+  "clean version-2 QEMU runtime suite and qualified evidence",
+]
+approval = "Repository owner explicitly approved A007 on 2026-08-08 and its focused pull-request metadata correction on 2026-08-09."
+reviews_required = ["architecture", "quality", "devops", "security", "licensing", "independent-diff"]
+reviews_completed = ["architecture", "quality", "devops", "security", "licensing", "independent-diff"]
+validation_evidence = [
+  "The approved pull-request metadata correction pins the exact qemu-edu-x86-64 conditional integration and rejects unconditional, wrong-machine, or additional global patch entries; the focused 10-test verifier suite and the 88-test repository suite passed locally on 2026-08-09, with 11 expected native-Linux skips.",
+  "Hosted correction run 31262995800 passed in 8m32s at commit 93ed2320c2200bb1b0812532e493b99a5f91e95b: the project-machine metadata selected the exact qemu-system-native 10.2.0 append and patch, test_signatures passed for the unrelated qemux86-64 baseline, and all 13 native layer checks completed with meta-qemu-edu PASS.",
+  "Clean Linux implementation commit 46e2280448cf2a857f8599f677f1b1bd0284fa13 passed source-lock, workflow, CI-policy, checksum, Bash syntax, and all 87 repository tests with no skips; the Debian 12 worker used BB_NUMBER_THREADS=4, PARALLEL_MAKE=-j 4, and software QEMU with no /dev/kvm.",
+  "The exact QEMU backport normalized SHA-256 73689608fcf9d8826ca95a105562c9962c79f207fb11a65e1a7451ab6085a72c applied successfully; do_compile and do_populate_sysroot passed, the patched edu.c SHA-256 was 32e2a035df36c25410d843e902cb4057aa43e83c047f682589d6f8539036ca2a, and the verified qemu-helper-native consumer executable SHA-256 was 3031eea7a879b94627661d9e0d420982e0701188c1e54dbfaad290885c98e3f5.",
+  "After clearing an inherited forced driver task, a warning-free clean driver/image rerun passed ping, SSH, and all 14 project OEQA cases with zero skips, failures, or errors; closed version-2 evidence dirty=false and testimage_exit_code=0 validated with --require-pass.",
+  "Final evidence SHA-256 is 861de3b963d0e2c89a17dc84f001914e7f1680a97fe476c04b7f3f00f971b5fe; independently recomputed native OEQA SHA-256 c95ad4c9f7ec51b78d0c5b4db8a27c661c93f32745d8f7810f76f6300712089e matches the document.",
+  "Pinned network-disabled REUSE 3.3 validation passed 74/74 files with only MIT and GPL-2.0-only licenses.",
+]
+review_evidence = [
+  "Architecture re-review verified the exact qemu-helper-native/runqemu consumer boundary, shared manual and OEQA preflight, patch/source pinning, compatibility, and rollback with no P0-P2 findings.",
+  "Quality, DevOps, security, licensing, and final frozen-index review verified crafted false-positive regressions, host-fallback rejection, CI trust boundaries, public-neutral content, staged checksums, and REUSE coverage with no P0-P2 findings.",
+]
+result = "A007 implementation and clean local Linux qualification are complete at commit 46e2280448cf2a857f8599f677f1b1bd0284fa13, and pull request #5 passes hosted fast and metadata gates at correction commit 93ed2320c2200bb1b0812532e493b99a5f91e95b; public review, merge, and any release remain pending."
 
 [[tasks]]
 id = "A005"

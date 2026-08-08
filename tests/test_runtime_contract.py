@@ -216,10 +216,21 @@ class RuntimeWrapperTests(unittest.TestCase):
         self.scripts_dir.mkdir()
         shutil.copy2(ROOT / "runtime-test.sh", self.root / "runtime-test.sh")
         (self.root / "runtime-test.sh").chmod(0o755)
+        shutil.copy2(ROOT / "run.sh", self.root / "run.sh")
+        (self.root / "run.sh").chmod(0o755)
+        shutil.copy2(
+            ROOT / "scripts/qemu_security_preflight.sh",
+            self.scripts_dir / "qemu_security_preflight.sh",
+        )
         (self.root / "environment.sh").write_text(
             'BUILD_DIR="$ROOT_DIR/build"\nexport BUILD_DIR\n', encoding="utf-8"
         )
-        for name in ("source_lock.py", "configure_build.py", "runtime_evidence.py"):
+        for name in (
+            "source_lock.py",
+            "configure_build.py",
+            "runtime_evidence.py",
+            "verify_qemu_security.py",
+        ):
             (self.scripts_dir / name).touch()
         self.log = self.root / "calls.log"
         self._write_command(
@@ -229,19 +240,48 @@ class RuntimeWrapperTests(unittest.TestCase):
         self._write_command(
             "bitbake-getvar",
             """#!/usr/bin/env bash
-case "$2" in
+variable=${!#}
+case "$variable" in
     DISTRO) printf '%s\\n' poky ;;
     MACHINE) printf '%s\\n' qemu-edu-x86-64 ;;
     BBLAYERS) printf '%s\\n' "$FAKE_LAYERS" ;;
+    PN) printf '%s\\n' qemu-system-native ;;
+    PV) printf '%s\\n' 10.2.0 ;;
+    FILE) printf '%s\\n' "$FAKE_ROOT/layers/openembedded-core/meta/recipes-devtools/qemu/qemu-system-native_10.2.0.bb" ;;
+    SRC_URI) printf '%s\\n' 'file://0001-hw-misc-edu-restrict-dma-access-to-dma-buffer.patch' ;;
+    TESTIMAGEDEPENDS) printf '%s\\n' 'qemu-helper-native:do_populate_sysroot qemu-helper-native:do_addto_recipe_sysroot' ;;
+    DEPENDS) printf '%s\\n' 'qemu-system-native pseudo-native' ;;
+    S) printf '%s\\n' "$FAKE_ROOT/build/work/qemu-10.2.0" ;;
+    STAGING_BINDIR_NATIVE) printf '%s\\n' "$FAKE_ROOT/build/work/qemu-helper/recipe-sysroot-native/usr/bin" ;;
     *) exit 2 ;;
 esac
+""",
+        )
+        self._write_command(
+            "bitbake-layers",
+            """#!/usr/bin/env bash
+printf '=== qemu-system-native_10.2.0.bb ===\\n  %s\\n' \\
+    "$FAKE_ROOT/meta-qemu-edu/recipes-devtools/qemu/qemu-system-native_10.2.0.bbappend"
 """,
         )
         self._write_command(
             "bitbake",
             """#!/usr/bin/env bash
 printf 'bitbake:%s:oeqa=%s\\n' "$*" "${OEQA_JSON_RESULT_DIR:-}" >> "$CALL_LOG"
-if [ "${2:-}" = "-c" ]; then
+if [ "${1:-}" = "qemu-system-native" ]; then
+    case "${3:-}" in
+        patch) exit "${QEMU_PATCH_STATUS:-${QEMU_TASK_STATUS:-0}}" ;;
+        populate_sysroot) exit "${QEMU_POPULATE_STATUS:-${QEMU_TASK_STATUS:-0}}" ;;
+        *) exit 2 ;;
+    esac
+fi
+if [ "${1:-}" = "qemu-helper-native" ]; then
+    case "${3:-}" in
+        addto_recipe_sysroot) exit "${QEMU_HELPER_STATUS:-0}" ;;
+        *) exit 2 ;;
+    esac
+fi
+if [ "${2:-}" = "-c" ] && [ "${3:-}" = "testimage" ]; then
     install -d "$OEQA_JSON_RESULT_DIR"
     printf '{}\\n' > "$OEQA_JSON_RESULT_DIR/testresults.json"
     exit "${TESTIMAGE_STATUS:-0}"
@@ -272,9 +312,22 @@ case "$1" in
             *) exit 2 ;;
         esac
         ;;
+    */verify_qemu_security.py)
+        printf 'security:%s\\n' "$*" >> "$CALL_LOG"
+        case "$*" in
+            *' metadata '*) exit "${SECURITY_METADATA_STATUS:-${SECURITY_STATUS:-0}}" ;;
+            *' source '*) exit "${SECURITY_SOURCE_STATUS:-${SECURITY_STATUS:-0}}" ;;
+            *' consumer '*) exit "${SECURITY_CONSUMER_STATUS:-${SECURITY_STATUS:-0}}" ;;
+            *) exit 2 ;;
+        esac
+        ;;
     *) exit 2 ;;
 esac
 """,
+        )
+        self._write_command(
+            "runqemu",
+            "#!/usr/bin/env bash\nprintf 'runqemu:%s\\n' \"$*\" >> \"$CALL_LOG\"\nexit 0\n",
         )
 
     def tearDown(self) -> None:
@@ -291,12 +344,33 @@ esac
             {
                 "PATH": f"{self.bin_dir}{os.pathsep}{environment['PATH']}",
                 "CALL_LOG": str(self.log),
+                "FAKE_ROOT": str(self.root),
                 "FAKE_LAYERS": f"{self.root}/layers/core {self.root}/meta-qemu-edu",
             }
         )
         environment.update(overrides)
         return subprocess.run(
             ["bash", str(self.root / "runtime-test.sh")],
+            cwd=self.root,
+            env=environment,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+
+    def run_manual_wrapper(self, **overrides: str) -> subprocess.CompletedProcess[str]:
+        environment = os.environ.copy()
+        environment.update(
+            {
+                "PATH": f"{self.bin_dir}{os.pathsep}{environment['PATH']}",
+                "CALL_LOG": str(self.log),
+                "FAKE_ROOT": str(self.root),
+                "FAKE_LAYERS": f"{self.root}/layers/core {self.root}/meta-qemu-edu",
+            }
+        )
+        environment.update(overrides)
+        return subprocess.run(
+            ["bash", str(self.root / "run.sh")],
             cwd=self.root,
             env=environment,
             text=True,
@@ -314,6 +388,40 @@ esac
         self.assertIn("verify:", calls)
         self.assertIn("--distro poky", calls)
         self.assertIn("--machine qemu-edu-x86-64", calls)
+        metadata = next(line for line in calls.splitlines() if "security:" in line)
+        self.assertIn(" metadata ", metadata)
+        self.assertIn("--pv 10.2.0", metadata)
+        self.assertIn(" source --source-tree ", calls)
+        call_lines = calls.splitlines()
+        patch_index = next(
+            index for index, line in enumerate(call_lines)
+            if "bitbake:qemu-system-native -c patch" in line
+        )
+        source_index = next(
+            index for index, line in enumerate(call_lines)
+            if "security:" in line and " source " in line
+        )
+        populate_index = next(
+            index for index, line in enumerate(call_lines)
+            if "bitbake:qemu-system-native -c populate_sysroot" in line
+        )
+        helper_index = next(
+            index for index, line in enumerate(call_lines)
+            if "bitbake:qemu-helper-native -c addto_recipe_sysroot" in line
+        )
+        consumer_index = next(
+            index for index, line in enumerate(call_lines)
+            if "security:" in line and " consumer " in line
+        )
+        image_index = next(
+            index for index, line in enumerate(call_lines)
+            if line.startswith("bitbake:qemu-edu-image:")
+        )
+        self.assertLess(patch_index, source_index)
+        self.assertLess(source_index, populate_index)
+        self.assertLess(populate_index, helper_index)
+        self.assertLess(helper_index, consumer_index)
+        self.assertLess(consumer_index, image_index)
         testimage_call = next(
             line for line in calls.splitlines() if "-c testimage" in line
         )
@@ -327,6 +435,45 @@ esac
         self.assertIn("verify:", calls)
         self.assertNotIn("bitbake:", calls)
 
+    def test_security_failure_prevents_any_qemu_or_image_build(self) -> None:
+        result = self.run_wrapper(SECURITY_STATUS="5")
+        self.assertEqual(result.returncode, 5)
+        calls = self.log.read_text(encoding="utf-8")
+        self.assertIn("security:", calls)
+        self.assertNotIn("bitbake:", calls)
+
+    def test_qemu_preflight_task_failure_prevents_image_build(self) -> None:
+        result = self.run_wrapper(QEMU_TASK_STATUS="6")
+        self.assertEqual(result.returncode, 6)
+        calls = self.log.read_text(encoding="utf-8")
+        self.assertIn("bitbake:qemu-system-native -c patch", calls)
+        self.assertNotIn("bitbake:qemu-edu-image", calls)
+
+    def test_qemu_populate_failure_prevents_consumer_and_image(self) -> None:
+        result = self.run_wrapper(QEMU_POPULATE_STATUS="6")
+        self.assertEqual(result.returncode, 6)
+        calls = self.log.read_text(encoding="utf-8")
+        self.assertIn("bitbake:qemu-system-native -c populate_sysroot", calls)
+        self.assertNotIn("bitbake:qemu-helper-native", calls)
+        self.assertNotIn(" consumer ", calls)
+        self.assertNotIn("bitbake:qemu-edu-image", calls)
+
+    def test_native_consumer_failure_prevents_image_build(self) -> None:
+        result = self.run_wrapper(SECURITY_CONSUMER_STATUS="7")
+        self.assertEqual(result.returncode, 7)
+        calls = self.log.read_text(encoding="utf-8")
+        self.assertIn("bitbake:qemu-helper-native -c addto_recipe_sysroot", calls)
+        self.assertIn(" consumer ", calls)
+        self.assertNotIn("bitbake:qemu-edu-image", calls)
+
+    def test_patched_source_failure_prevents_sysroot_and_image_build(self) -> None:
+        result = self.run_wrapper(SECURITY_SOURCE_STATUS="7")
+        self.assertEqual(result.returncode, 7)
+        calls = self.log.read_text(encoding="utf-8")
+        self.assertIn("bitbake:qemu-system-native -c patch", calls)
+        self.assertNotIn("bitbake:qemu-system-native -c populate_sysroot", calls)
+        self.assertNotIn("bitbake:qemu-edu-image", calls)
+
     def test_testimage_exit_wins_over_collector_failure(self) -> None:
         result = self.run_wrapper(TESTIMAGE_STATUS="7", COLLECT_STATUS="9")
         self.assertEqual(result.returncode, 7)
@@ -337,6 +484,28 @@ esac
         self.log.unlink(missing_ok=True)
         validated = self.run_wrapper(VALIDATE_STATUS="8")
         self.assertEqual(validated.returncode, 8)
+
+    def test_manual_run_never_reaches_runqemu_after_preflight_failure(self) -> None:
+        for variable in (
+            "SECURITY_METADATA_STATUS",
+            "SECURITY_SOURCE_STATUS",
+            "QEMU_POPULATE_STATUS",
+            "QEMU_HELPER_STATUS",
+            "SECURITY_CONSUMER_STATUS",
+        ):
+            with self.subTest(variable=variable):
+                self.log.unlink(missing_ok=True)
+                result = self.run_manual_wrapper(**{variable: "9"})
+                self.assertEqual(result.returncode, 9, result.stderr)
+                calls = self.log.read_text(encoding="utf-8")
+                self.assertNotIn("runqemu:", calls)
+
+        self.log.unlink(missing_ok=True)
+        result = self.run_manual_wrapper()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        calls = self.log.read_text(encoding="utf-8")
+        self.assertIn(" consumer ", calls)
+        self.assertIn("runqemu:qemu-edu-x86-64 qemu-edu-image", calls)
 
 
 if __name__ == "__main__":

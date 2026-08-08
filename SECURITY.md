@@ -26,6 +26,11 @@ project.
 ## Security boundaries
 
 - The default QEMU path uses unprivileged SLIRP networking and snapshot mode.
+- QEMU remains a host process consuming guest-controlled device input. The EDU
+  machine requires the reviewed native-system recipe and upstream bounds
+  backport. Both public boot wrappers require the reviewed helper-native
+  executable and refuse host-`PATH` fallback; validation must not execute an
+  out-of-bounds exploit against an unpatched emulator.
 - Build scripts fetch declared public source and must never require embedded
   credentials.
 - Guest input reaches a kernel module and is treated as untrusted.

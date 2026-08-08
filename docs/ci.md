@@ -10,8 +10,8 @@ resource-constrained, or metadata-only checks into build or runtime claims.
 
 | Tier | Trigger and environment | Evidence | Not proved |
 |---|---|---|---|
-| Fast checks | Every PR, main push, or manual run on `ubuntu-24.04` | Lock schema, workflow/CI policy, unit tests, checksums, changed-line whitespace, ShellCheck, actionlint, REUSE | Upstream availability, BitBake parse, image build, guest runtime |
-| Yocto metadata | Relevant PR/main changes or manual run on `ubuntu-24.04` | Exact source resolution, cached offline recheck, layer order, `bitbake -p`, expanded image metadata, `yocto-check-layer` | Compiled image, QEMU boot, guest behavior, offline recipe fetches, bit-for-bit output |
+| Fast checks | Every PR, main push, or manual run on `ubuntu-24.04` | Lock schema, workflow/CI policy, unit tests, QEMU backport identity, checksums, changed-line whitespace, ShellCheck, actionlint, REUSE | Upstream availability, BitBake parse, image build, guest runtime |
+| Yocto metadata | Relevant PR/main changes or manual run on `ubuntu-24.04` | Exact source resolution, cached offline recheck, layer order, `bitbake -p`, expanded image metadata, exact QEMU append/recipe/dependency selection, `yocto-check-layer` | Patched source, compiled image or emulator, QEMU boot, guest behavior, offline recipe fetches, bit-for-bit output |
 | Full build/runtime | Local/manual on an adequately sized Linux host; no hosted runner currently configured | A completed `runtime-test.sh` run builds, boots, executes required OEQA cases, and emits the current version-2 evidence | Nothing until the command actually completes; metadata CI is not runtime proof |
 
 The stable fast job IDs are `repository`, `static`, and `licensing`. The metadata
@@ -21,7 +21,10 @@ For native layer checking, CI creates a separate core-only build directory with
 OE-Core's weak `qemux86-64` default. It proves that base composition before
 asking `yocto-check-layer` to add the project layer and test the project-provided
 `qemu-edu-x86-64` machine. The weak default allows the checker to select that
-machine during its BSP tests.
+machine during its BSP tests. The native QEMU append is an exact-machine
+conditional: adding the layer to the `qemux86-64` baseline must not change
+signatures, while the project-machine metadata check must still select the
+reviewed patch. Both conditions fail closed.
 
 ## Public-repository trust boundary
 
@@ -56,6 +59,7 @@ Run the dependency-free repository suite with Python 3.11 or newer:
 python3 scripts/source_lock.py validate
 python3 scripts/validate_workflow.py
 python3 scripts/validate_ci.py
+python3 scripts/verify_qemu_security.py static
 python3 -m unittest discover -s tests -p 'test_*.py' -v
 python3 scripts/update_checksums.py --check
 git diff --check
@@ -73,6 +77,12 @@ main-only Linux runner with at least 150 GB usable storage, preferably 32 GB
 RAM, no exposure to fork code, and bounded download/shared-state retention.
 M2 added OEQA/testimage runtime evidence; M3 extends it with MSI/INTx policy and
 cleanup coverage while retaining historical version-1 validation.
+A007 makes that full runtime command verify the selected host-emulator recipe,
+exact normalized patch and patched-source digests, guarded DMA-copy placement,
+and the executable in `qemu-helper-native`'s consumer sysroot before boot. The
+manual `run.sh` command shares that gate, so neither path can fall back to a
+host QEMU. The metadata lane proves only selection and the dependency chain;
+it does not claim the patch compiled.
 
 The project provides the executable runtime path and closed evidence formats, but does
 not weaken this capacity gate. The repository currently has no self-hosted or
