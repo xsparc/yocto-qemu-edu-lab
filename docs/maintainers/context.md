@@ -41,7 +41,10 @@ SPDX-License-Identifier: MIT
   through `qemu-helper-native`. Manual and OEQA boot paths share an exact
   patch/source and consumer-executable gate, refusing `runqemu` host fallback.
   Unsafe out-of-bounds input is never executed as a validation method.
-- Next safe action: complete the A007 patched-emulator build, M3 runtime
-  regression, licensing gate, and independent review. M4, M5, and M6 remain
-  Proposed and unapproved.
+- A007 clean commit `46e2280` passed patched-emulator compilation, exact
+  consumer verification, a warning-free image rebuild, all 14 project runtime
+  cases, licensing, and independent review.
+- Next safe action: publish the focused A007 pull request, pass hosted fast and
+  metadata checks, review, and merge. M4, M5, and M6 remain Proposed and
+  unapproved.
 - Public workflow state uses tool-neutral maintainer paths while preserving the same task, approval, validation, review, and handoff semantics.

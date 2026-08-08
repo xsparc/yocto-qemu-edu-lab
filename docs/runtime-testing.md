@@ -119,6 +119,16 @@ protects `run.sh`, and it rejects the locked script's otherwise-permitted host
 `PATH` fallback. Runtime schema 2 remains unchanged because the guest contract
 and its 14 cases do not change.
 
+A007 was qualified locally at clean commit
+`46e2280448cf2a857f8599f677f1b1bd0284fa13`. After clearing an inherited forced
+driver task, the final warning-free rebuild passed ping, SSH, and all 14 project
+cases with no skips, failures, or errors. The closed evidence SHA-256 is
+`861de3b963d0e2c89a17dc84f001914e7f1680a97fe476c04b7f3f00f971b5fe`; its
+native OEQA input SHA-256 is
+`c95ad4c9f7ec51b78d0c5b4db8a27c661c93f32745d8f7810f76f6300712089e`.
+This is a local software-QEMU result, not a hosted attestation, physical-hardware
+result, merge, tag, or release.
+
 Interrupt-path and negative-path completion flags are conservative claims: they
 become true only when the corresponding required case passes. A failure
 document therefore cannot claim that a mechanism completed merely because its
