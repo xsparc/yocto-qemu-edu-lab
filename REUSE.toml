@@ -22,6 +22,7 @@ path = [
   "meta-qemu-edu/conf/**",
   "meta-qemu-edu/lib/**",
   "meta-qemu-edu/recipes-core/**",
+  "meta-qemu-edu/recipes-devtools/qemu/*.bbappend",
   "meta-qemu-edu/recipes-kernel/qemu-edu-driver/qemu-edu-driver_1.0.bb",
   "meta-qemu-edu/recipes-support/**",
   "run.sh",
@@ -43,3 +44,11 @@ path = [
 precedence = "closest"
 SPDX-FileCopyrightText = "2026 Yocto QEMU EDU learning project contributors"
 SPDX-License-Identifier = "GPL-2.0-only"
+
+[[annotations]]
+path = [
+  "meta-qemu-edu/recipes-devtools/qemu/files/0001-hw-misc-edu-restrict-dma-access-to-dma-buffer.patch",
+]
+precedence = "closest"
+SPDX-FileCopyrightText = "2025 Torin Carey"
+SPDX-License-Identifier = "MIT"

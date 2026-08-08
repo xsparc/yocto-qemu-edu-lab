@@ -8,6 +8,8 @@ on:
       - "config/sources.lock.json"
       - "scripts/source_lock.py"
       - "scripts/configure_build.py"
+      - "scripts/qemu_security_preflight.sh"
+      - "scripts/verify_qemu_security.py"
       - "setup.sh"
       - "environment.sh"
       - "build.sh"
@@ -21,6 +23,8 @@ on:
       - "config/sources.lock.json"
       - "scripts/source_lock.py"
       - "scripts/configure_build.py"
+      - "scripts/qemu_security_preflight.sh"
+      - "scripts/verify_qemu_security.py"
       - "setup.sh"
       - "environment.sh"
       - "build.sh"
@@ -84,6 +88,23 @@ jobs:
           # shellcheck source=environment.sh
           source ./environment.sh
           bitbake -p
+          SHOW_APPENDS="$RUNNER_TEMP/qemu-system-native-appends.txt"
+          bitbake-layers show-appends qemu-system-native | tee "$SHOW_APPENDS"
+          QEMU_PN=$(bitbake-getvar --value --recipe qemu-system-native PN)
+          QEMU_PV=$(bitbake-getvar --value --recipe qemu-system-native PV)
+          QEMU_FILE=$(bitbake-getvar --value --recipe qemu-system-native FILE)
+          QEMU_SRC_URI=$(bitbake-getvar --value --recipe qemu-system-native SRC_URI)
+          TESTIMAGE_DEPENDS=$(bitbake-getvar --value --recipe qemu-edu-image TESTIMAGEDEPENDS)
+          HELPER_DEPENDS=$(bitbake-getvar --value --recipe qemu-helper-native DEPENDS)
+          python3 "$GITHUB_WORKSPACE/scripts/verify_qemu_security.py" \
+            --repo "$GITHUB_WORKSPACE" metadata \
+            --show-appends "$SHOW_APPENDS" \
+            --pn "$QEMU_PN" \
+            --pv "$QEMU_PV" \
+            --recipe-file "$QEMU_FILE" \
+            --src-uri "$QEMU_SRC_URI" \
+            --testimage-depends "$TESTIMAGE_DEPENDS" \
+            --helper-depends "$HELPER_DEPENDS"
       - name: Check the project layer
         run: |
           CHECK_LAYER_BUILD_DIR="$RUNNER_TEMP/yocto-check-layer-build"

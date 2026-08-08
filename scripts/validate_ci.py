@@ -28,6 +28,8 @@ METADATA_REQUIRED_PATHS = {
     "config/sources.lock.json",
     "scripts/source_lock.py",
     "scripts/configure_build.py",
+    "scripts/qemu_security_preflight.sh",
+    "scripts/verify_qemu_security.py",
     "setup.sh",
     "environment.sh",
     "build.sh",

@@ -22,7 +22,24 @@ The host must provide the OpenSSH `ssh` client used by OEQA. The wrapper checks
 for it before starting an expensive image build and reports the missing package
 directly.
 
-The wrapper builds the one locked image target, runs:
+Before any guest boot, the wrapper fails closed through five host-emulator
+checks:
+
+1. the exact `qemu-system-native_10.2.0.bbappend` is selected once;
+2. effective `PN`, `PV`, `FILE`, and `SRC_URI` identify the reviewed recipe and
+   backport;
+3. testimage reaches that recipe through `qemu-helper-native`;
+4. the normalized patch and post-patch `edu.c` match reviewed digests, and both
+   DMA copies remain inside their range guards;
+5. `do_populate_sysroot` and `qemu-helper-native:do_addto_recipe_sysroot`
+   complete, then `qemu-system-x86_64` is required to be an executable inside
+   that exact consumer sysroot before the image or tests run.
+
+The verifier intentionally inspects source instead of executing invalid-range
+input. An unpatched EDU DMA out-of-bounds test could corrupt the QEMU host
+process and is outside the supported validation boundary.
+
+After that preflight, the wrapper builds the one locked image target and runs:
 
 ```bash
 bitbake qemu-edu-image -c testimage
@@ -94,6 +111,13 @@ Evidence records only bounded facts:
 - explicit timeout fault-injection and PCI hot-removal mechanisms, including
   that the absence case is not a cold boot without the device;
 - required case IDs, statuses, durations, and summary counts.
+
+The project revision binds the runtime result to the committed A007 integration.
+The shared preflight output proves effective QEMU selection, exact patched
+source, and the native executable that locked `runqemu` selects. The same gate
+protects `run.sh`, and it rejects the locked script's otherwise-permitted host
+`PATH` fallback. Runtime schema 2 remains unchanged because the guest contract
+and its 14 cases do not change.
 
 Interrupt-path and negative-path completion flags are conservative claims: they
 become true only when the corresponding required case passes. A failure

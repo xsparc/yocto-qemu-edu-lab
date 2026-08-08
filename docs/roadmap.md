@@ -98,10 +98,38 @@ remains distinct from physical-hardware qualification.
 Rollback: load `interrupt_mode=intx`, or revert the focused M3 change. Retain
 the immutable version-1 schema and validator path for historical M2 evidence.
 
+## M3.1 — Host EDU DMA bounds hardening
+
+Outcome: the QEMU process used by the lab rejects guest-controlled EDU DMA
+ranges outside the device's internal buffer before the curriculum exposes DMA.
+
+Approved scope:
+
+- backport exact upstream commit
+  `42f599172ae023924f288e20af0ceed681674747` to
+  `qemu-system-native_10.2.0`;
+- fail closed if another host-emulator recipe version is selected;
+- verify append selection, exact patch and patched-source digests, guarded copy
+  placement, compilation, fail-closed native-sysroot consumption in both public
+  boot paths, and the existing 14-case runtime suite;
+- preserve upstream authorship and the MIT license of `hw/misc/edu.c`.
+
+Acceptance gate: A007 records a clean patched-emulator build and version-2
+runtime pass, exact upstream and patch identities, repository and metadata
+checks, REUSE compliance, and independent security review. Invalid DMA ranges
+are verified by source inspection, never by running an exploit against an
+unpatched QEMU process.
+
+Rollback: do not restore the vulnerable emulator. If the backport cannot be
+maintained, remove `-device edu` and suspend the runtime lab until a supported
+QEMU input containing the fix is qualified.
+
 ## M4 — Bounded DMA learning stage
 
 Outcome: the driver safely demonstrates both EDU DMA directions, coherent
 memory, the default 28-bit mask, transfer bounds, completion, and cleanup.
+
+Dependency: M3 and M3.1 are Done, and M4 still requires separate approval.
 
 Acceptance gate: automated round-trip, bounds, timeout, and teardown tests pass;
 the interface and real-hardware limitations are documented.

@@ -182,7 +182,7 @@ review_evidence = [
   "Quality, security, evidence, and licensing review found one restoration-boundary defect; tests 07-10 now install cleanup before every mode-changing unload, a failure-injection regression proves restoration, and final re-review approved with no P0-P2 findings.",
   "Independent frozen-diff review verified driver cleanup, all interrupt paths, closed conservative evidence v2 with immutable v1 compatibility, public-neutral documentation, and license coverage; it approved with no P0-P2 findings.",
 ]
-result = "Implemented, validated on exact clean commit 3ea020489152f4c0080a37c5a04918cf7c888b0f, and independently reviewed on the focused M3 branch; ready to propose through one pull request. No merge, tag, release, hosted provenance attestation, or physical-hardware claim has occurred."
+result = "Implemented, independently reviewed, and squash-merged through pull request #4 as commit 2daea1223775c8aff91a0a7db3b8cdd693f74195; no tag or release was published."
 
 [[tasks]]
 id = "A004"
@@ -197,11 +197,52 @@ acceptance_criteria = [
   "Bounds, mask, timeout, and cleanup behavior are explicit.",
   "The public interface remains small and versioned.",
 ]
-dependencies = ["A003"]
+dependencies = ["A003", "A007"]
 risks = ["kernel", "dma", "memory-safety", "compatibility"]
 validation = ["driver build", "QEMU runtime suite", "project fast-check suite"]
 approval = ""
 reviews_required = ["quality", "architecture", "security", "independent-diff"]
+reviews_completed = []
+validation_evidence = []
+review_evidence = []
+result = ""
+
+[[tasks]]
+id = "A007"
+status = "In Progress"
+milestone = "M3.1"
+title = "Backport QEMU EDU DMA bounds enforcement"
+outcome = "Prevent guest-controlled EDU DMA ranges from escaping the device buffer before the DMA curriculum begins."
+scope = [
+  "Backport exact upstream QEMU commit 42f599172ae023924f288e20af0ceed681674747 to qemu-system-native 10.2.0, which supplies runqemu through qemu-helper-native.",
+  "Fail closed if the selected host-emulator recipe is not the reviewed 10.2.0 input.",
+  "Verify append selection, exact patch and patched-source digests, guarded DMA copy placement, compilation, fail-closed native-sysroot consumption in both public boot paths, and the existing M3 runtime suite.",
+  "Record upstream provenance, compatible licensing, rollback, and the security evidence boundary.",
+]
+non_scope = [
+  "Adding guest driver DMA interfaces or M4 behavior.",
+  "Updating the Yocto source lock or QEMU release line.",
+  "Running an out-of-bounds exploit or negative test against an unpatched emulator.",
+  "Claiming a CVE, physical-hardware result, release, or merge.",
+]
+acceptance_criteria = [
+  "The exact qemu-system-native 10.2.0 append selects the attributed upstream patch exactly once.",
+  "The exact patched source keeps both DMA copies inside guards that abort when the device-buffer range is invalid.",
+  "The selected recipe compiles, populates qemu-helper-native's consumer sysroot, and supplies the executable selected by testimage/runqemu without host fallback.",
+  "A clean project revision passes all 14 M3 runtime cases under the patched software emulator with validated version-2 evidence.",
+  "Repository, metadata, licensing, checksum, and independent security review gates pass without executing unsafe out-of-bounds input.",
+]
+dependencies = ["A003"]
+risks = ["qemu", "security", "memory-safety", "supply-chain", "licensing", "runtime"]
+validation = [
+  "python3 scripts/verify_qemu_security.py static",
+  "project fast-check and licensing suite",
+  "Yocto metadata append and dependency verification",
+  "qemu-system-native do_patch, exact source and guard verification, compile, do_populate_sysroot, helper consumer population, and executable verification",
+  "clean version-2 QEMU runtime suite and qualified evidence",
+]
+approval = "Repository owner explicitly approved A007 on 2026-08-08."
+reviews_required = ["architecture", "quality", "devops", "security", "licensing", "independent-diff"]
 reviews_completed = []
 validation_evidence = []
 review_evidence = []

@@ -11,7 +11,7 @@ Device-Tree/platform-driver lab, and optional provider-neutral diagnostics. The
 core build and learning path will remain usable without an AI service. See
 [`docs/vision.md`](docs/vision.md) and [`docs/roadmap.md`](docs/roadmap.md).
 
-The current development identity is `0.3.0-dev`; no release is implied. Yocto
+The current development identity is `0.3.1-dev`; no release is implied. Yocto
 metadata inputs are locked to the 6.0.2 Wrynose point release.
 
 The virtual target is an x86-64 machine with QEMU's **EDU educational PCI
@@ -23,6 +23,7 @@ This first lab implements:
 
 - A derived Yocto machine: `qemu-edu-x86-64`
 - QEMU hardware selection through `QB_OPT_APPEND`
+- An exact upstream EDU DMA bounds backport for the native system emulator
 - An out-of-tree PCI kernel module
 - PCI ID matching and `probe()`
 - BAR/MMIO mapping
@@ -94,6 +95,7 @@ Look especially for:
 ```text
 MACHINE="qemu-edu-x86-64"
 QB_OPT_APPEND="... -device edu"
+REQUIRED_VERSION_qemu-system-native="10.2.0"
 ```
 
 ## 3. Build
@@ -119,7 +121,11 @@ build/tmp/deploy/images/qemu-edu-x86-64/
 ```
 
 The script uses unprivileged SLIRP networking, a serial console, and snapshot
-mode.  Log in as `root`; the development image has no password.
+mode. Before `runqemu`, it uses the same A007 security preflight as the
+automated runtime path: the exact patch and patched source must match their
+reviewed digests, the helper-native consumer sysroot is populated, and its
+executable must exist there. Host-QEMU fallback is refused for the EDU machine.
+Log in as `root`; the development image has no password.
 
 Inside the guest, run:
 
@@ -161,7 +167,11 @@ without an interactive guest login:
 ./runtime-test.sh
 ```
 
-This runs Yocto's native `testimage`/OEQA path over unprivileged SLIRP. It
+Before boot, the wrapper verifies the exact `qemu-system-native` append,
+normalized patch digest, effective recipe and dependency chain, the exact
+patched `edu.c` digest and both guarded copies, and the executable in
+`qemu-helper-native`'s consumer sysroot. It then runs Yocto's native
+`testimage`/OEQA path over unprivileged SLIRP. It
 asserts PCI discovery, identification, liveness, factorial boundaries, default
 and strict MSI, explicit INTx, real automatic fallback, strict-MSI failure,
 cleanup, invalid inputs, timeout handling, and the removed-device diagnostic. The
@@ -203,14 +213,15 @@ is software rather than RTL/silicon.
 Read files in this order:
 
 1. `meta-qemu-edu/conf/machine/qemu-edu-x86-64.conf`
-2. `meta-qemu-edu/recipes-kernel/qemu-edu-driver/qemu-edu-driver_1.0.bb`
-3. `meta-qemu-edu/recipes-kernel/qemu-edu-driver/files/qemu_edu.c`
-4. `meta-qemu-edu/recipes-support/qemu-edu-tools/qemu-edu-tools_1.0.bb`
-5. `meta-qemu-edu/recipes-core/images/qemu-edu-image.bb`
-6. `docs/architecture.md`
-7. `docs/guest-interface.md`
-8. `docs/runtime-testing.md`
-9. `docs/mapping-to-real-hardware.md`
+2. `meta-qemu-edu/recipes-devtools/qemu/qemu-system-native_10.2.0.bbappend`
+3. `meta-qemu-edu/recipes-kernel/qemu-edu-driver/qemu-edu-driver_1.0.bb`
+4. `meta-qemu-edu/recipes-kernel/qemu-edu-driver/files/qemu_edu.c`
+5. `meta-qemu-edu/recipes-support/qemu-edu-tools/qemu-edu-tools_1.0.bb`
+6. `meta-qemu-edu/recipes-core/images/qemu-edu-image.bb`
+7. `docs/architecture.md`
+8. `docs/guest-interface.md`
+9. `docs/runtime-testing.md`
+10. `docs/mapping-to-real-hardware.md`
 
 ## 8. Edit/rebuild loop
 
@@ -274,6 +285,9 @@ must not call `pci_free_irq_vectors()` itself.
 Implement the EDU DMA registers at offsets `0x80` through `0x98`.  Allocate
 coherent memory, honour the device's 28-bit DMA mask, copy data to the EDU's
 4 KiB internal buffer at offset `0x40000`, and verify the round trip.
+Keep the A007 host-emulator bounds backport enabled. Never probe invalid DMA
+ranges against an unpatched QEMU process; source verification is the safe gate
+for the host-side bound check.
 
 ### Exercise F: Move the driver in-tree
 
@@ -296,6 +310,8 @@ This repository is mixed-license:
 
 - Project scaffolding, documentation, Yocto layer metadata, helper scripts, and
   the user-space test utility are MIT-licensed. See `LICENSES/MIT.txt`.
+- The attributed QEMU EDU bounds patch changes MIT-licensed upstream source and
+  is mapped to MIT in `REUSE.toml`.
 - The example Linux kernel module source and its kernel-module build file are
   GPL-2.0-only. See `LICENSES/GPL-2.0-only.txt`.
 
