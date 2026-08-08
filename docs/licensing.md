@@ -14,6 +14,7 @@ having the right to submit their work.
 |---|---|---|
 | Documentation, scripts, tests, maintainer state, Yocto metadata, image recipe, test utility | MIT | Permissive reuse of educational and build material |
 | `qemu_edu.c` and its external-module `Makefile` | GPL-2.0-only | Linux kernel module implementation and build source |
+| QEMU EDU bounds backport | MIT | Upstream patch to MIT-licensed `hw/misc/edu.c`, retaining the original author and commit provenance |
 | Third-party checkouts and build output | Their own licenses; not vendored here | `layers/`, legacy `poky/`, downloads, shared state, and build output are ignored |
 
 The top-level `LICENSE` summarizes the mixed-license repository and `LICENSES/`
@@ -42,6 +43,10 @@ SPDX license. `qemu_edu.c` therefore retains the `GPL-2.0-only` SPDX identifier.
   or model response if its redistribution rights are unclear.
 - Preserve upstream notices and compatible license terms. Ask for a licensing
   decision when compatibility is uncertain.
+- Backported patches must retain their upstream author, commit message,
+  review/sign-off trailers, immutable source URL, and `Upstream-Status`. REUSE
+  metadata covers the patch under the license of the changed upstream file;
+  it does not replace those provenance fields.
 - Keep GPL-only kernel implementation out of MIT files unless the resulting
   file and repository boundary are deliberately relicensed and reviewed.
 

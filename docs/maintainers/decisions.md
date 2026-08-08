@@ -116,3 +116,23 @@ SPDX-License-Identifier: MIT
   control, and keeps old evidence consumable. The locked Linux 6.18 managed
   lifecycle installed after `pcim_enable_device()` means the driver must not
   manually free its allocated vector.
+
+## D-012: Backport the upstream EDU DMA bounds fix before M4
+
+- Status: Accepted on 2026-08-08 for A007; no merge, tag, or release is
+  authorized by this decision.
+- Decision: Backport QEMU commit
+  `42f599172ae023924f288e20af0ceed681674747` to the exact
+  `qemu-system-native_10.2.0` recipe consumed by `runqemu`. Require that
+  reviewed version for the EDU machine, verify both patched DMA guards before
+  boot, and advance the contract-preserving development identity to
+  `0.3.1-dev`. Never execute the out-of-bounds proof of concept as a gate.
+- Reason: The locked QEMU source only logs an invalid EDU device-buffer range
+  and then continues the DMA copy. The upstream fix makes the range check
+  return a boolean and skips both transfer directions on failure. The latest
+  released 10.2 point predates the fix, while M4 will intentionally exercise
+  the EDU DMA engine.
+- Revisit when: the supported QEMU recipe includes the fix upstream. Remove the
+  backport only after exact recipe selection, patch/source digests, guarded copy
+  placement, compilation, fail-closed native-sysroot consumption, and the full
+  runtime regression are reverified.

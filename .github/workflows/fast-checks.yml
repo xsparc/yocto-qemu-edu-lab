@@ -33,6 +33,7 @@ jobs:
           python3 scripts/source_lock.py validate
           python3 scripts/validate_workflow.py
           python3 scripts/validate_ci.py
+          python3 scripts/verify_qemu_security.py static
           python3 -m unittest discover -s tests -p 'test_*.py' -v
           python3 scripts/update_checksums.py --check
       - name: Patch whitespace
@@ -77,7 +78,8 @@ jobs:
       - name: Static analysis
         run: |
           "$RUNNER_TEMP/m1-tools/shellcheck/shellcheck" --severity=warning \
-            setup.sh environment.sh build.sh inspect.sh run.sh runtime-test.sh
+            setup.sh environment.sh build.sh inspect.sh run.sh runtime-test.sh \
+            scripts/qemu_security_preflight.sh
           "$RUNNER_TEMP/m1-tools/actionlint/actionlint" \
             -shellcheck="$RUNNER_TEMP/m1-tools/shellcheck/shellcheck"
 

@@ -5,11 +5,12 @@ SPDX-License-Identifier: MIT
 
 # Project context
 
-- Active task: none. A003, the M3 observable MSI learning stage, is Done on its focused branch.
-- Current branch: `milestone/m3-msi-learning`.
+- Active task: A007, the approved M3.1 host-emulator bounds hardening slice.
+- Current branch: focused A007 implementation branch.
 - Baseline: one x86-64 Yocto 6.0 (`wrynose`) learning machine using QEMU EDU PCI device `1234:11e8`.
-- Existing merged runtime features: PCI discovery, BAR0 MMIO, legacy INTx,
-  sysfs, factorial/liveness operations, and automated guest verification.
+- Existing merged runtime features: PCI discovery, BAR0 MMIO, managed MSI/INTx
+  selection, sysfs, factorial/liveness operations, and automated guest
+  verification.
 - Current license boundary: infrastructure and learning material are MIT; kernel module source and its module Makefile are GPL-2.0-only.
 - Yocto 6.0 uses separate BitBake, OE-Core, and meta-yocto repositories; the old Poky combo repository is not a valid Wrynose source.
 - M1 locks Yocto 6.0.2 source metadata through `config/sources.lock.json`; recipe downloads, full image output, and runtime evidence remain separate claims.
@@ -29,6 +30,27 @@ SPDX-License-Identifier: MIT
   passed the exact locked image path, software-QEMU boot, ping, SSH, and all 14
   project cases. Closed evidence version 2 records `dirty=false` and validates
   with every interrupt and negative-path completion claim true.
-- Next safe action: publish the one focused A003 pull request and observe its
-  hosted fast and metadata gates. M4, M5, and M6 remain Proposed and unapproved.
+- Pull request #4 passed its hosted fast and metadata gates, then squash-merged
+  as `2daea1223775c8aff91a0a7db3b8cdd693f74195`; no tag or release was
+  published.
+- Exact locked QEMU 10.2.0 only logs an invalid EDU DMA buffer range before
+  continuing the copy. Upstream commit
+  `42f599172ae023924f288e20af0ceed681674747` makes the check fail closed in
+  both directions. Released QEMU 10.2.4 predates that fix.
+- A007 backports the fix only to `qemu-system-native` when the configured
+  machine is `qemu-edu-x86-64`; adding the layer to an unrelated machine must
+  remain signature-neutral. The native recipe reaches testimage through
+  `qemu-helper-native`. Manual and OEQA boot paths share an exact append,
+  patch/source, and consumer-executable gate, refusing `runqemu` host fallback.
+  Unsafe out-of-bounds input is never executed as a validation method.
+- A007 clean commit `46e2280` passed patched-emulator compilation, exact
+  consumer verification, a warning-free image rebuild, all 14 project runtime
+  cases, licensing, and independent review.
+- Pull request #5 is the focused A007 review surface. Its first hosted metadata
+  run exposed an unconditional native-recipe signature change for unrelated
+  machines; the approved correction scopes the append to the EDU machine and
+  retains the full layer-signature check. Correction commit `93ed232` passes
+  hosted repository, static, licensing, exact project metadata, and all 13
+  native layer checks. The next gate is public review and separately authorized
+  merge. M4, M5, and M6 remain Proposed and unapproved.
 - Public workflow state uses tool-neutral maintainer paths while preserving the same task, approval, validation, review, and handoff semantics.

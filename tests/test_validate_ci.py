@@ -54,6 +54,14 @@ class CiValidationTests(unittest.TestCase):
             text.replace('      - "scripts/configure_build.py"\n', "", 1)
         )
         self.assertTrue(any("pull_request paths omit" in error for error in errors))
+        errors = MODULE.validate_metadata_paths(
+            text.replace('      - "scripts/verify_qemu_security.py"\n', "", 1)
+        )
+        self.assertTrue(any("pull_request paths omit" in error for error in errors))
+        errors = MODULE.validate_metadata_paths(
+            text.replace('      - "scripts/qemu_security_preflight.sh"\n', "", 1)
+        )
+        self.assertTrue(any("pull_request paths omit" in error for error in errors))
 
     def test_full_action_sha_is_required(self) -> None:
         path = self.workflow(SAFE.replace(

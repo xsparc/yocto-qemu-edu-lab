@@ -12,8 +12,8 @@ fi
 # shellcheck source=environment.sh
 source "$ROOT_DIR/environment.sh"
 LOCK_TOOL="$ROOT_DIR/scripts/source_lock.py"
-CONFIGURE_TOOL="$ROOT_DIR/scripts/configure_build.py"
 EVIDENCE_TOOL="$ROOT_DIR/scripts/runtime_evidence.py"
+QEMU_PREFLIGHT="$ROOT_DIR/scripts/qemu_security_preflight.sh"
 MACHINE=$(python3 "$LOCK_TOOL" --repo "$ROOT_DIR" get build.machine)
 TARGET_TEXT=$(python3 "$LOCK_TOOL" --repo "$ROOT_DIR" get build.targets --lines)
 mapfile -t TARGETS <<<"$TARGET_TEXT"
@@ -23,13 +23,7 @@ if [ "${#TARGETS[@]}" -ne 1 ]; then
 fi
 TARGET=${TARGETS[0]}
 
-ACTUAL_DISTRO=$(bitbake-getvar --value DISTRO)
-ACTUAL_MACHINE=$(bitbake-getvar --value MACHINE)
-ACTUAL_BBLAYERS=$(bitbake-getvar --value BBLAYERS)
-python3 "$CONFIGURE_TOOL" --repo "$ROOT_DIR" verify \
-    --distro "$ACTUAL_DISTRO" \
-    --machine "$ACTUAL_MACHINE" \
-    --bblayers "$ACTUAL_BBLAYERS"
+bash "$QEMU_PREFLIGHT" "$ROOT_DIR" "$TARGET"
 
 EVIDENCE_OUTPUT=${EVIDENCE_OUTPUT:-"$BUILD_DIR/evidence/qemu-edu-runtime-v2.json"}
 install -d "$BUILD_DIR/evidence"

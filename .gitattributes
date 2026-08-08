@@ -8,6 +8,7 @@
 *.c text eol=lf
 *.conf text eol=lf
 *.json text eol=lf
+*.patch text eol=lf whitespace=-blank-at-eol,-blank-at-eof
 *.py text eol=lf
 *.sh text eol=lf
 *.yml text eol=lf

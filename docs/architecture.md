@@ -10,6 +10,9 @@ qemu-edu-x86-64.conf
     |-- reuses qemux86-64 compiler settings and kernel BSP metadata
     |-- appends: -device edu
     |-- requires package: qemu-edu-driver
+    |-- requires reviewed qemu-system-native 10.2.0
+    v
+qemu-system-native append -> upstream EDU DMA bounds backport
     v
 runqemu -> qemu-system-x86_64 -> virtual PCI bus -> EDU device (1234:11e8)
                                                     |
@@ -56,6 +59,17 @@ qemu-edu-test
 - The driver defaults to automatic MSI-preferred allocation, exposes strict MSI
   and explicit INTx policies for comparison, and has not implemented the EDU
   DMA engine.
+- The host emulator is a build input as well as a teaching tool. The EDU
+  machine requires `qemu-system-native` 10.2.0 plus the exact upstream bounds
+  backport until a supported recipe includes that fix. The append evaluates the
+  configured machine explicitly and changes the native recipe only for
+  `qemu-edu-x86-64`, leaving unrelated machines signature-neutral. It is kept
+  separate from target and user-mode QEMU recipes because only the system-mode
+  native binary crosses the `runqemu` boundary. A shared preflight pins the
+  machine-scoped integration, normalized patch, and post-patch source,
+  populates `qemu-helper-native`'s consumer sysroot, and requires its executable
+  before either manual or OEQA boot; host-`PATH` fallback is outside the
+  project boundary.
 - The user-facing sysfs control surface is documented as guest-interface
   contract version 2. It remains pre-1.0 and may evolve only with an explicit
   project-version and compatibility decision.
@@ -94,6 +108,12 @@ fragments; caches remain replaceable performance aids, not source of truth.
 The current version-1 declaration is project-owned and intentionally maps to
 kas and upstream `bitbake-setup` concepts if the source graph later justifies a
 migration.
+
+Recipe-local backports are also explicit inputs. A version-specific append,
+upstream commit identity, patch digest, effective `SRC_URI`, patched-source
+guards, and compilation result are verified independently of the Git source
+lock. A future QEMU version update must prove that the fix is present before
+removing the append.
 
 ### Boundary 2: lab modules
 
@@ -152,6 +172,10 @@ transport, credentials, and hosted storage remain outside the core lab.
 - Existing source trees are never reset, cleaned, or silently replaced. Dirty,
   wrong-origin, attached, or unexpected checkouts fail closed.
 - QEMU runs unprivileged with SLIRP and snapshot mode by default.
+- QEMU is still a host process parsing untrusted guest-controlled device input.
+  The EDU DMA range check must abort both copies when the internal buffer range
+  is invalid. Source inspection and safe regression tests prove that invariant;
+  an out-of-bounds exploit is not a supported test technique.
 - Guest input is untrusted at kernel boundaries. Range, timeout, teardown, and
   concurrent removal behavior require tests as features expand.
 - Optional automation tools start read-only. Any state-changing capability must
