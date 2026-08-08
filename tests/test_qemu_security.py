@@ -104,6 +104,32 @@ static void edu_dma_timer(void)
         with self.assertRaisesRegex(MODULE.VerificationError, "commit header"):
             MODULE.static_checks(root)
 
+    def test_static_check_rejects_unscoped_or_wrong_machine_append(self) -> None:
+        cases = {
+            "unconditional": (
+                "# SPDX-License-" "Identifier: MIT\n\n"
+                'FILESEXTRAPATHS:prepend := "${THISDIR}/files:"\n\n'
+                f'SRC_URI:append = " file://{MODULE.PATCH_NAME}"\n'
+            ),
+            "wrong machine": MODULE.EXPECTED_APPEND_TEXT.replace(
+                MODULE.QEMU_MACHINE, "qemux86-64"
+            ),
+            "additional global entry": (
+                MODULE.EXPECTED_APPEND_TEXT
+                + f'\nSRC_URI:append = " file://{MODULE.PATCH_NAME}"\n'
+            ),
+        }
+        for name, append_text in cases.items():
+            with self.subTest(name=name):
+                root = self.repository_copy()
+                (root / MODULE.APPEND_RELATIVE).write_text(
+                    append_text, encoding="utf-8"
+                )
+                with self.assertRaisesRegex(
+                    MODULE.VerificationError, "scoped backport integration"
+                ):
+                    MODULE.static_checks(root)
+
     def test_static_check_rejects_extra_file_or_tampered_hunk(self) -> None:
         for name in ("extra file", "tampered hunk"):
             with self.subTest(name=name):

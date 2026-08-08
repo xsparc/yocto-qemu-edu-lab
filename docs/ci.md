@@ -21,7 +21,10 @@ For native layer checking, CI creates a separate core-only build directory with
 OE-Core's weak `qemux86-64` default. It proves that base composition before
 asking `yocto-check-layer` to add the project layer and test the project-provided
 `qemu-edu-x86-64` machine. The weak default allows the checker to select that
-machine during its BSP tests.
+machine during its BSP tests. The native QEMU append is an exact-machine
+conditional: adding the layer to the `qemux86-64` baseline must not change
+signatures, while the project-machine metadata check must still select the
+reviewed patch. Both conditions fail closed.
 
 ## Public-repository trust boundary
 

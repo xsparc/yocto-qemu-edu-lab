@@ -61,12 +61,15 @@ qemu-edu-test
   DMA engine.
 - The host emulator is a build input as well as a teaching tool. The EDU
   machine requires `qemu-system-native` 10.2.0 plus the exact upstream bounds
-  backport until a supported recipe includes that fix. The append is kept
+  backport until a supported recipe includes that fix. The append evaluates the
+  configured machine explicitly and changes the native recipe only for
+  `qemu-edu-x86-64`, leaving unrelated machines signature-neutral. It is kept
   separate from target and user-mode QEMU recipes because only the system-mode
   native binary crosses the `runqemu` boundary. A shared preflight pins the
-  normalized patch and post-patch source, populates `qemu-helper-native`'s
-  consumer sysroot, and requires its executable before either manual or OEQA
-  boot; host-`PATH` fallback is outside the project boundary.
+  machine-scoped integration, normalized patch, and post-patch source,
+  populates `qemu-helper-native`'s consumer sysroot, and requires its executable
+  before either manual or OEQA boot; host-`PATH` fallback is outside the
+  project boundary.
 - The user-facing sysfs control surface is documented as guest-interface
   contract version 2. It remains pre-1.0 and may evolve only with an explicit
   project-version and compatibility decision.

@@ -17,6 +17,7 @@ from typing import Any
 
 QEMU_RECIPE = "qemu-system-native"
 QEMU_VERSION = "10.2.0"
+QEMU_MACHINE = "qemu-edu-x86-64"
 UPSTREAM_COMMIT = "42f599172ae023924f288e20af0ceed681674747"
 UPSTREAM_URL = (
     "https://gitlab.com/qemu-project/qemu/-/commit/"
@@ -27,7 +28,18 @@ APPEND_RELATIVE = Path(
 )
 PATCH_NAME = "0001-hw-misc-edu-restrict-dma-access-to-dma-buffer.patch"
 PATCH_RELATIVE = Path("meta-qemu-edu/recipes-devtools/qemu/files") / PATCH_NAME
-MACHINE_RELATIVE = Path("meta-qemu-edu/conf/machine/qemu-edu-x86-64.conf")
+MACHINE_RELATIVE = Path(f"meta-qemu-edu/conf/machine/{QEMU_MACHINE}.conf")
+EXPECTED_APPEND_TEXT = f"""# SPDX-License-Identifier: MIT
+
+QEMU_EDU_BACKPORT_FILESPATH := "${{THISDIR}}/files:"
+
+python __anonymous() {{
+    if d.getVar("MACHINE") != "{QEMU_MACHINE}":
+        return
+    d.prependVar("FILESEXTRAPATHS", d.getVar("QEMU_EDU_BACKPORT_FILESPATH"))
+    d.appendVar("SRC_URI", " file://{PATCH_NAME}")
+}}
+"""
 EXPECTED_RECIPE_SUFFIX = (
     "/layers/openembedded-core/meta/recipes-devtools/qemu/"
     "qemu-system-native_10.2.0.bb"
@@ -108,17 +120,12 @@ def static_checks(root: Path) -> dict[str, Any]:
             "qemu-system-native must have one exact 10.2.0 append; found " + rendered
         )
 
-    append_text = read_text(append_path)
-    require_once(
-        append_text,
-        'FILESEXTRAPATHS:prepend := "${THISDIR}/files:"',
-        "exact file search path",
-    )
-    require_once(
-        append_text,
-        f'SRC_URI:append = " file://{PATCH_NAME}"',
-        "backport SRC_URI entry",
-    )
+    append_text = read_text(append_path).replace("\r\n", "\n").replace("\r", "\n")
+    if append_text != EXPECTED_APPEND_TEXT:
+        raise VerificationError(
+            "qemu-system-native append must exactly match the reviewed "
+            f"{QEMU_MACHINE}-scoped backport integration"
+        )
 
     machine_text = read_text(machine_path)
     require_once(
@@ -170,8 +177,10 @@ def static_checks(root: Path) -> dict[str, Any]:
         "check": "static",
         "qemu_recipe": QEMU_RECIPE,
         "qemu_version": QEMU_VERSION,
+        "qemu_machine": QEMU_MACHINE,
         "upstream_commit": UPSTREAM_COMMIT,
         "patch_sha256": patch_sha256,
+        "machine_scope_verified": True,
         "selected": False,
         "source_guard_verified": False,
     }

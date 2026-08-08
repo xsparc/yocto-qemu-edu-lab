@@ -37,14 +37,19 @@ SPDX-License-Identifier: MIT
   continuing the copy. Upstream commit
   `42f599172ae023924f288e20af0ceed681674747` makes the check fail closed in
   both directions. Released QEMU 10.2.4 predates that fix.
-- A007 backports the fix only to `qemu-system-native`, which reaches testimage
-  through `qemu-helper-native`. Manual and OEQA boot paths share an exact
-  patch/source and consumer-executable gate, refusing `runqemu` host fallback.
+- A007 backports the fix only to `qemu-system-native` when the configured
+  machine is `qemu-edu-x86-64`; adding the layer to an unrelated machine must
+  remain signature-neutral. The native recipe reaches testimage through
+  `qemu-helper-native`. Manual and OEQA boot paths share an exact append,
+  patch/source, and consumer-executable gate, refusing `runqemu` host fallback.
   Unsafe out-of-bounds input is never executed as a validation method.
 - A007 clean commit `46e2280` passed patched-emulator compilation, exact
   consumer verification, a warning-free image rebuild, all 14 project runtime
   cases, licensing, and independent review.
-- Next safe action: publish the focused A007 pull request, pass hosted fast and
-  metadata checks, review, and merge. M4, M5, and M6 remain Proposed and
+- Pull request #5 is the focused A007 review surface. Its first hosted metadata
+  run exposed an unconditional native-recipe signature change for unrelated
+  machines; the approved correction scopes the append to the EDU machine and
+  retains the full layer-signature check. The next gate is a green hosted rerun,
+  review, and separately authorized merge. M4, M5, and M6 remain Proposed and
   unapproved.
 - Public workflow state uses tool-neutral maintainer paths while preserving the same task, approval, validation, review, and handoff semantics.

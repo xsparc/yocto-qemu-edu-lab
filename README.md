@@ -23,7 +23,8 @@ This first lab implements:
 
 - A derived Yocto machine: `qemu-edu-x86-64`
 - QEMU hardware selection through `QB_OPT_APPEND`
-- An exact upstream EDU DMA bounds backport for the native system emulator
+- An exact upstream EDU DMA bounds backport for the native system emulator,
+  scoped to the `qemu-edu-x86-64` machine
 - An out-of-tree PCI kernel module
 - PCI ID matching and `probe()`
 - BAR/MMIO mapping
