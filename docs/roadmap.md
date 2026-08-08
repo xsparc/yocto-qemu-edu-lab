@@ -121,9 +121,10 @@ are verified by source inspection, never by running an exploit against an
 unpatched QEMU process.
 
 Qualification status: clean commit `46e2280` satisfies the local build,
-consumer, runtime, licensing, and independent-review gates. The milestone
-remains in progress until its focused public pull request passes hosted checks
-and is merged; no tag or release is implied.
+consumer, runtime, licensing, and independent-review gates. Pull request #5
+passes hosted fast and native metadata/layer gates at correction commit
+`93ed232`. The milestone remains in progress until public review and merge; no
+tag or release is implied.
 
 Rollback: do not restore the vulnerable emulator. If the backport cannot be
 maintained, remove `-device edu` and suspend the runtime lab until a supported

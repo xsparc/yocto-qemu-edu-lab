@@ -49,7 +49,8 @@ SPDX-License-Identifier: MIT
 - Pull request #5 is the focused A007 review surface. Its first hosted metadata
   run exposed an unconditional native-recipe signature change for unrelated
   machines; the approved correction scopes the append to the EDU machine and
-  retains the full layer-signature check. The next gate is a green hosted rerun,
-  review, and separately authorized merge. M4, M5, and M6 remain Proposed and
-  unapproved.
+  retains the full layer-signature check. Correction commit `93ed232` passes
+  hosted repository, static, licensing, exact project metadata, and all 13
+  native layer checks. The next gate is public review and separately authorized
+  merge. M4, M5, and M6 remain Proposed and unapproved.
 - Public workflow state uses tool-neutral maintainer paths while preserving the same task, approval, validation, review, and handoff semantics.

@@ -24,11 +24,11 @@ e353c0036fed1f880ffbf1b67f1928090104cf7f5c13347c1fb21e4ed80c86d1  ./docs/ci.md
 e60a797e641210a8dde3c34fe82d76dff1464a6f935e0fa925b06eac07dc170d  ./docs/licensing.md
 ab3a763550768ff8de2574f4b528fdbf60ad8e8fe24245e80cf52f562c201496  ./docs/maintainers/README.md
 2454e8119dc6350c89834bfc5b97a9cff980b830410a1c00a173a8d7e4dd3c0c  ./docs/maintainers/config.toml
-b3d5d51fd92da42f4d48c8105dc39c07e252d428a37e983bfb6e8279d88b3b31  ./docs/maintainers/context.md
+157d296ac15c45caebb8ded8af4fcf516f517e185a85ae5e3b8386b8f7fa1f2e  ./docs/maintainers/context.md
 5a5e787021077b015c6d2b08a0114287a84c59186b925c9f40528e7bbfd63fa1  ./docs/maintainers/decisions.md
 65f879644273c7431ccb2f132ea19e67491a5a0b9b948e729b877e4692908d3b  ./docs/maintainers/intake.md
-596a681489bc899bc65cae31a2b8523ed728c8d6fd702f60768925642fb81274  ./docs/maintainers/ledger.md
-207e2bd6209b8cbef30989b74c9814a52db8c3dad6ec682ddcc8bf37df4c3490  ./docs/maintainers/tasks.toml
+d89396d2210950fa1fb6b7d9988d47af1e4ffb84f4180adcec9ce00b47d3cab3  ./docs/maintainers/ledger.md
+f5272c9c6f0789f331b95f984380aea68681129c8af3ebf73acc18e4afbfbc73  ./docs/maintainers/tasks.toml
 72cba1904c804f972fcc776e6c7c4d78f6a8d149839bc8cf38241df521d3c2d0  ./docs/maintenance-workflow.md
 2d2670239afbd12d27199d6c45bb2908234b67a9b7b995673781d6232aad1f56  ./docs/mapping-to-real-hardware.md
 c8f0440c7c8df8f6cae97f670575e073f90fe2672de99908606e45683722cffd  ./docs/research/2026-08-07-m1-reproducibility.md
@@ -36,10 +36,10 @@ e74353e0045211709c74b606084e68a681fbd7af0d56d959f202703011b5dfef  ./docs/researc
 6ff042f84d470993074db8ee4b9b848ab7a1b1287874aadaf5e070659e7126f6  ./docs/research/2026-08-08-m2-runtime-testing.md
 b4771fd6e821c086a6d3f12ca22e5188d186516ba1356c9d73915684df8e3029  ./docs/research/2026-08-08-m3-msi.md
 698ac5766270becc3ebf8f1e0a6557f225a48643431fe6e51db144545699b56f  ./docs/research/2026-08-08-qemu-edu-dma-bounds.md
-759b121f6c849dae5b1eb145059dd3f1857d0c3001f0af1dac41d6202b3f83a7  ./docs/roadmap.md
+bc9654bc15e5bbe42f267de9603a5c4c2538862906d1ff890ea706ae691e7643  ./docs/roadmap.md
 e4b379f21620057a7c88327b7a60ebce7cb290a7c06e0d348d9d69c29099c300  ./docs/runtime-testing.md
 690830fc5fe8a199494791a645e928f2015fa212bd3abeb59179081eef139a21  ./docs/source-lock.md
-0d256db1f751211593cedba061f590cad687b51b407c386bbf395074b9fc9184  ./docs/versioning.md
+8b1210e0e066b1969bafb82368bce725e3da0fdcf483342937e8f4a7e19f8593  ./docs/versioning.md
 0d79747066a5edc3f22efdf0ff60e72cec7252b6c5f458cd466e8df6e09a4b5c  ./docs/vision.md
 8f5e67017a4861bb1e8719a3e5256f3db101735715e59730f659560b01ee788a  ./environment.sh
 b2c4c1ee7d80794df3dbbdbd66291a34a5385b38fa8100614ccb93f4e811fc1a  ./inspect.sh
