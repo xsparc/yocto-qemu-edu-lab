@@ -237,9 +237,11 @@ validation_evidence = [
   "An isolated OE-Core-only yocto-check-layer run used the exact source lock and passed all 13 applicable BSP/common checks in 197.190 seconds; meta-qemu-edu reported PASS, with only the expected distro-class skip for a BSP layer.",
   "The clean software-QEMU run passed ping, SSH, and all 19 project cases in 165.509 seconds: 21/21 total tests passed with no skips, failures, or errors.",
   "Closed version-3 evidence validated with dirty=false and testimage exit 0; evidence SHA-256 is f97b24335cd9579eaf825cf1c06e54ae1742f069f1afa2a4c8e6fa2f162856c2, native OEQA SHA-256 is 1f8b1756faf079a0996070846f4e4aee5535e71d205f5e232c9cbeff395e07c5, and all five conservative DMA completion claims are true.",
+  "Hosted Fast checks run 31312516815 passed repository, static, and REUSE licensing jobs at fbb2cab55ea6fc6a9000a1e172d71ef82a892a4b on 2026-08-09.",
+  "Hosted Yocto metadata run 31312516778 passed locked source resolution, metadata parse and inspection, and the project layer check at fbb2cab55ea6fc6a9000a1e172d71ef82a892a4b on 2026-08-09.",
 ]
 review_evidence = []
-result = "Implementation and clean local Linux qualification are complete at 8574eaffe206f8235a5da57461ded0ecbdbbf60b; draft pull request #6 is open, while required reviews, final hosted gates, merge, tag, and release remain pending."
+result = "Implementation and clean local Linux qualification are complete at 8574eaffe206f8235a5da57461ded0ecbdbbf60b; draft pull request #6 passed hosted Fast checks and Yocto metadata at fbb2cab55ea6fc6a9000a1e172d71ef82a892a4b, while required reviews, merge, tag, and release remain pending."
 
 [[tasks]]
 id = "A007"
