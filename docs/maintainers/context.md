@@ -6,7 +6,7 @@ SPDX-License-Identifier: MIT
 # Project context
 
 - Active task: A004, the approved M4 bounded DMA learning slice.
-- Current branch: `feature/a004-bounded-dma`.
+- Current branch: `docs/a004-merge-record`.
 - Baseline: one x86-64 Yocto 6.0 (`wrynose`) learning machine using QEMU EDU PCI device `1234:11e8`.
 - Existing merged runtime features: PCI discovery, BAR0 MMIO, managed MSI/INTx
   selection, sysfs, factorial/liveness operations, and automated guest
@@ -65,6 +65,9 @@ SPDX-License-Identifier: MIT
   `f97b24335cd9579eaf825cf1c06e54ae1742f069f1afa2a4c8e6fa2f162856c2`; the
   bound native OEQA SHA-256 is
   `1f8b1756faf079a0996070846f4e4aee5535e71d205f5e232c9cbeff395e07c5`.
-  Draft pull request #6 is open from `feature/a004-bounded-dma`. Required
-  reviews, final hosted gates, merge, tag, and release remain pending.
+  Pull request #6 passed Hosted Fast checks run `31312516815` and Yocto
+  metadata run `31312516778` at
+  `fbb2cab55ea6fc6a9000a1e172d71ef82a892a4b`, then squash-merged as
+  `918efaa392486af73f03ac9d1e216c2a2ed421da`. Required reviews, tag, and
+  release remain pending.
 - Public workflow state uses tool-neutral maintainer paths while preserving the same task, approval, validation, review, and handoff semantics.

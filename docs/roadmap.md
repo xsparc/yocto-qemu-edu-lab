@@ -160,9 +160,11 @@ records a clean tree and successful testimage exit; its SHA-256 is
 `f97b24335cd9579eaf825cf1c06e54ae1742f069f1afa2a4c8e6fa2f162856c2`, and
 the bound native OEQA SHA-256 is
 `1f8b1756faf079a0996070846f4e4aee5535e71d205f5e232c9cbeff395e07c5`.
-Draft pull request #6 is open. A004 remains In Progress until required reviews
-and hosted gates pass. This local result is not a hosted attestation,
-physical-hardware result, merge, tag, or release.
+Pull request #6 passed hosted Fast checks run `31312516815` and Yocto metadata
+run `31312516778` at `fbb2cab55ea6fc6a9000a1e172d71ef82a892a4b`, then
+squash-merged as `918efaa392486af73f03ac9d1e216c2a2ed421da`. A004 remains
+In Progress until the required reviews pass. The local runtime result is not a
+hosted attestation, physical-hardware result, tag, or release.
 
 Rollback: keep DMA opt-in and preserve the M3 image as a known-good stage.
 

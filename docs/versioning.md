@@ -42,7 +42,7 @@ automatically public APIs.
 | `0.2.0-dev` | 6.0.2 | `wrynose` | Repository, static, licensing, exact-source, parse, inspection, and native layer CI; clean commit `6479681` completed the full image build and passed all 11 project runtime cases under software QEMU with validated version-1 evidence |
 | `0.3.0-dev` | 6.0.2 | `wrynose` | Clean commit `3ea0204` completed the exact locked image path and passed ping, SSH, and all 14 project cases under software QEMU with validated version-2 evidence; no physical-hardware or release claim is implied |
 | `0.3.1-dev` | 6.0.2 | `wrynose` | Clean commit `46e2280` compiled and staged the exact patched native emulator, rebuilt the driver/image without taint, and passed ping, SSH, and all 14 project cases with validated version-2 evidence; pull request #5 passed hosted gates and squash-merged as `083ddf5`, with no tag or release |
-| `0.4.0-dev` | 6.0.2 | `wrynose` | Clean commit `8574eaf` completed the exact locked image path and passed ping, SSH, and all 19 project cases under software QEMU with validated version-3 evidence; required review, hosted gates, publication, and release remain pending |
+| `0.4.0-dev` | 6.0.2 | `wrynose` | Clean commit `8574eaf` completed the exact locked image path and passed ping, SSH, and all 19 project cases under software QEMU with validated version-3 evidence; pull request #6 passed hosted Fast checks and Yocto metadata at `fbb2cab` and squash-merged as `918efaa`; required reviews, tag, and release remain pending |
 
 Runtime documents are unsigned local reports. Their task records state whether
 a digest was independently recomputed; A004 independent review remains pending.
