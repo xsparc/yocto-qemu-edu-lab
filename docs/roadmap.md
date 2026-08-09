@@ -122,9 +122,8 @@ unpatched QEMU process.
 
 Qualification status: clean commit `46e2280` satisfies the local build,
 consumer, runtime, licensing, and independent-review gates. Pull request #5
-passes hosted fast and native metadata/layer gates at correction commit
-`93ed232`. The milestone remains in progress until public review and merge; no
-tag or release is implied.
+passed hosted fast and native metadata/layer gates and squash-merged as
+`083ddf5e1207dac34bdaf12e04a41f1f1faa8d7f`; no tag or release was published.
 
 Rollback: do not restore the vulnerable emulator. If the backport cannot be
 maintained, remove `-device edu` and suspend the runtime lab until a supported
@@ -135,10 +134,21 @@ QEMU input containing the fix is qualified.
 Outcome: the driver safely demonstrates both EDU DMA directions, coherent
 memory, the default 28-bit mask, transfer bounds, completion, and cleanup.
 
-Dependency: M3 and M3.1 are Done, and M4 still requires separate approval.
+Dependency: M3 and M3.1 are Done. A004 received separate implementation
+approval on 2026-08-09 and is In Progress.
 
-Acceptance gate: automated round-trip, bounds, timeout, and teardown tests pass;
-the interface and real-hardware limitations are documented.
+Approved boundary: one managed 4,096-byte coherent buffer under the EDU 28-bit
+mask; a length-only 1..4096 sysfs request; fixed device-buffer addressing; a
+verified RAM-to-EDU-to-RAM transfer; DMA-interrupt completion and exact
+acknowledgement; bounded timeout; and bus-master quiescence before managed
+memory release. The guest never provides or receives a DMA address.
+
+Acceptance gate: lengths 1, an odd value, and 4096 pass both directions with
+two exact DMA completion interrupts; 0, 4097, negative, and malformed inputs
+fail without corrupting state; the missing-completion seam times out and a
+default reload recovers; unload/rebind restores the default MSI and DMA paths;
+all prior cases remain green; closed version-3 evidence is clean and complete;
+and repository, metadata, licensing, build, runtime, and review gates pass.
 
 Rollback: keep DMA opt-in and preserve the M3 image as a known-good stage.
 

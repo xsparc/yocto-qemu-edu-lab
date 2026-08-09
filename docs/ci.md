@@ -12,7 +12,7 @@ resource-constrained, or metadata-only checks into build or runtime claims.
 |---|---|---|---|
 | Fast checks | Every PR, main push, or manual run on `ubuntu-24.04` | Lock schema, workflow/CI policy, unit tests, QEMU backport identity, checksums, changed-line whitespace, ShellCheck, actionlint, REUSE | Upstream availability, BitBake parse, image build, guest runtime |
 | Yocto metadata | Relevant PR/main changes or manual run on `ubuntu-24.04` | Exact source resolution, cached offline recheck, layer order, `bitbake -p`, expanded image metadata, exact QEMU append/recipe/dependency selection, `yocto-check-layer` | Patched source, compiled image or emulator, QEMU boot, guest behavior, offline recipe fetches, bit-for-bit output |
-| Full build/runtime | Local/manual on an adequately sized Linux host; no hosted runner currently configured | A completed `runtime-test.sh` run builds, boots, executes required OEQA cases, and emits the current version-2 evidence | Nothing until the command actually completes; metadata CI is not runtime proof |
+| Full build/runtime | Local/manual on an adequately sized Linux host; no hosted runner currently configured | A completed `runtime-test.sh` run builds, boots, executes required OEQA cases, and emits the current version-3 evidence | Nothing until the command actually completes; metadata CI is not runtime proof |
 
 The stable fast job IDs are `repository`, `static`, and `licensing`. The metadata
 job is path-scoped and initially advisory; path-filtered checks should not be

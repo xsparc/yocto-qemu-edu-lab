@@ -56,4 +56,17 @@ printf 'interrupts total:  '
 cat "$DEVICE/irq_count"
 echo
 
+echo "== Bounded coherent DMA round trip =="
+printf 'DMA mask bits:    '
+cat "$DEVICE/dma_mask_bits"
+printf 'DMA buffer bytes: '
+cat "$DEVICE/dma_buffer_size"
+echo 64 > "$DEVICE/dma_roundtrip"
+cat "$DEVICE/dma_roundtrip"
+printf 'interrupts total: '
+cat "$DEVICE/irq_count"
+printf 'last IRQ status:  '
+cat "$DEVICE/last_irq_status"
+echo
+
 echo "All EDU driver checks completed."

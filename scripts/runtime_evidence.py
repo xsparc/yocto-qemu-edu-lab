@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # SPDX-FileCopyrightText: 2026 Yocto QEMU EDU learning project contributors
 # SPDX-License-Identifier: MIT
-"""Collect version-2 and validate supported QEMU EDU runtime evidence."""
+"""Collect version-3 and validate supported QEMU EDU runtime evidence."""
 
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Any
 
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 KIND = "qemu-edu-runtime"
 PROJECT_NAME = "yocto-qemu-edu-lab"
 MAX_JSON_BYTES = 4 * 1024 * 1024
@@ -37,7 +37,7 @@ V1_EXPECTED_TESTS = (
     "qemu_edu.QemuEduRuntimeTests.test_09_factorial_timeout",
     "qemu_edu.QemuEduRuntimeTests.test_10_removed_device_diagnostic",
 )
-EXPECTED_TESTS = (
+V2_EXPECTED_TESTS = (
     "qemu_edu.QemuEduRuntimeTests.test_00_driver_registered",
     "qemu_edu.QemuEduRuntimeTests.test_01_pci_device_bound",
     "qemu_edu.QemuEduRuntimeTests.test_02_identification_register",
@@ -53,7 +53,18 @@ EXPECTED_TESTS = (
     "qemu_edu.QemuEduRuntimeTests.test_12_factorial_timeout",
     "qemu_edu.QemuEduRuntimeTests.test_13_removed_device_diagnostic",
 )
-SUPPORTED_TESTS = {1: V1_EXPECTED_TESTS, 2: EXPECTED_TESTS}
+EXPECTED_TESTS = V2_EXPECTED_TESTS + (
+    "qemu_edu.QemuEduRuntimeTests.test_14_dma_contract",
+    "qemu_edu.QemuEduRuntimeTests.test_15_dma_roundtrip_boundaries",
+    "qemu_edu.QemuEduRuntimeTests.test_16_invalid_dma_inputs",
+    "qemu_edu.QemuEduRuntimeTests.test_17_dma_timeout_and_recovery",
+    "qemu_edu.QemuEduRuntimeTests.test_18_dma_teardown_and_rebind",
+)
+SUPPORTED_TESTS = {
+    1: V1_EXPECTED_TESTS,
+    2: V2_EXPECTED_TESTS,
+    3: EXPECTED_TESTS,
+}
 OEQA_STATUSES = {
     "PASSED",
     "FAILED",
@@ -239,11 +250,11 @@ def build_evidence(
         "contract": {
             "guest_interface": {
                 "name": GUEST_CONTRACT_NAME,
-                "version": 2,
+                "version": SCHEMA_VERSION,
             },
             "suite": {
                 "name": SUITE_NAME,
-                "version": 2,
+                "version": SCHEMA_VERSION,
                 "test_type": require_string(
                     configuration.get("TEST_TYPE"), "TEST_TYPE"
                 ),
@@ -293,6 +304,43 @@ def build_evidence(
                     "exercised": status_by_id[EXPECTED_TESTS[13]] == "PASSED",
                     "mechanism": "linux-pci-hot-remove",
                     "cold_boot_without_device": False,
+                },
+            },
+            "dma_paths": {
+                "bounded_interface": {
+                    "case_id": EXPECTED_TESTS[14],
+                    "exercised": status_by_id[EXPECTED_TESTS[14]] == "PASSED",
+                    "mask_bits": 28,
+                    "buffer_size_bytes": 4096,
+                    "length_only": True,
+                    "address_exposed": False,
+                },
+                "roundtrip_boundaries": {
+                    "case_id": EXPECTED_TESTS[15],
+                    "exercised": status_by_id[EXPECTED_TESTS[15]] == "PASSED",
+                    "minimum_length": 1,
+                    "maximum_length": 4096,
+                    "directions": ["ram-to-edu", "edu-to-ram"],
+                    "completion_irq_status": "0x00000100",
+                    "interrupts_per_roundtrip": 2,
+                },
+                "input_rejection": {
+                    "case_id": EXPECTED_TESTS[16],
+                    "exercised": status_by_id[EXPECTED_TESTS[16]] == "PASSED",
+                    "classes": ["zero", "over-limit", "negative", "malformed"],
+                    "preserves_last_result": True,
+                },
+                "timeout_recovery": {
+                    "case_id": EXPECTED_TESTS[17],
+                    "exercised": status_by_id[EXPECTED_TESTS[17]] == "PASSED",
+                    "fault_injected": status_by_id[EXPECTED_TESTS[17]] == "PASSED",
+                    "mechanism": "module-parameter:force_dma_timeout",
+                    "restored": "default-auto-msi-and-dma",
+                },
+                "teardown_rebind": {
+                    "case_id": EXPECTED_TESTS[18],
+                    "exercised": status_by_id[EXPECTED_TESTS[18]] == "PASSED",
+                    "restored": "default-auto-msi-and-dma",
                 },
             },
         },
@@ -358,8 +406,10 @@ def validate_evidence(evidence: dict[str, Any], *, require_pass: bool = False) -
     if not isinstance(contract, dict):
         raise EvidenceError("contract must be an object")
     contract_keys = {"guest_interface", "suite", "negative_paths"}
-    if schema_version == 2:
+    if schema_version >= 2:
         contract_keys.add("interrupt_paths")
+    if schema_version == 3:
+        contract_keys.add("dma_paths")
     require_exact_keys(contract, contract_keys, "contract")
     guest = contract["guest_interface"]
     if not isinstance(guest, dict):
@@ -508,7 +558,7 @@ def validate_evidence(evidence: dict[str, Any], *, require_pass: bool = False) -
         raise EvidenceError("device-absence semantics do not match the suite")
 
     interrupt_paths = None
-    if schema_version == 2:
+    if schema_version >= 2:
         interrupt_paths = contract["interrupt_paths"]
         if not isinstance(interrupt_paths, dict):
             raise EvidenceError("contract.interrupt_paths must be an object")
@@ -587,6 +637,110 @@ def validate_evidence(evidence: dict[str, Any], *, require_pass: bool = False) -
         if interrupt_paths != expected_interrupt_paths:
             raise EvidenceError("interrupt-path semantics do not match the suite")
 
+    dma_paths = None
+    if schema_version == 3:
+        dma_paths = contract["dma_paths"]
+        if not isinstance(dma_paths, dict):
+            raise EvidenceError("contract.dma_paths must be an object")
+        require_exact_keys(
+            dma_paths,
+            {
+                "bounded_interface",
+                "roundtrip_boundaries",
+                "input_rejection",
+                "timeout_recovery",
+                "teardown_rebind",
+            },
+            "dma_paths",
+        )
+        for name, expected_keys in {
+            "bounded_interface": {
+                "case_id", "exercised", "mask_bits", "buffer_size_bytes",
+                "length_only", "address_exposed",
+            },
+            "roundtrip_boundaries": {
+                "case_id", "exercised", "minimum_length", "maximum_length",
+                "directions", "completion_irq_status", "interrupts_per_roundtrip",
+            },
+            "input_rejection": {
+                "case_id", "exercised", "classes", "preserves_last_result",
+            },
+            "timeout_recovery": {
+                "case_id", "exercised", "fault_injected", "mechanism", "restored",
+            },
+            "teardown_rebind": {"case_id", "exercised", "restored"},
+        }.items():
+            path = dma_paths[name]
+            if not isinstance(path, dict):
+                raise EvidenceError(f"dma_paths.{name} must be an object")
+            require_exact_keys(path, expected_keys, f"dma_paths.{name}")
+            require_boolean(path["exercised"], f"dma_paths.{name}.exercised")
+        require_boolean(
+            dma_paths["bounded_interface"]["length_only"],
+            "dma_paths.bounded_interface.length_only",
+        )
+        require_boolean(
+            dma_paths["bounded_interface"]["address_exposed"],
+            "dma_paths.bounded_interface.address_exposed",
+        )
+        require_boolean(
+            dma_paths["input_rejection"]["preserves_last_result"],
+            "dma_paths.input_rejection.preserves_last_result",
+        )
+        require_boolean(
+            dma_paths["timeout_recovery"]["fault_injected"],
+            "dma_paths.timeout_recovery.fault_injected",
+        )
+        for path_name, key in (
+            ("bounded_interface", "mask_bits"),
+            ("bounded_interface", "buffer_size_bytes"),
+            ("roundtrip_boundaries", "minimum_length"),
+            ("roundtrip_boundaries", "maximum_length"),
+            ("roundtrip_boundaries", "interrupts_per_roundtrip"),
+        ):
+            require_integer(
+                dma_paths[path_name][key], f"dma_paths.{path_name}.{key}"
+            )
+        expected_dma_paths = {
+            "bounded_interface": {
+                "case_id": expected_tests[14],
+                "exercised": statuses[14] == "PASSED",
+                "mask_bits": 28,
+                "buffer_size_bytes": 4096,
+                "length_only": True,
+                "address_exposed": False,
+            },
+            "roundtrip_boundaries": {
+                "case_id": expected_tests[15],
+                "exercised": statuses[15] == "PASSED",
+                "minimum_length": 1,
+                "maximum_length": 4096,
+                "directions": ["ram-to-edu", "edu-to-ram"],
+                "completion_irq_status": "0x00000100",
+                "interrupts_per_roundtrip": 2,
+            },
+            "input_rejection": {
+                "case_id": expected_tests[16],
+                "exercised": statuses[16] == "PASSED",
+                "classes": ["zero", "over-limit", "negative", "malformed"],
+                "preserves_last_result": True,
+            },
+            "timeout_recovery": {
+                "case_id": expected_tests[17],
+                "exercised": statuses[17] == "PASSED",
+                "fault_injected": statuses[17] == "PASSED",
+                "mechanism": "module-parameter:force_dma_timeout",
+                "restored": "default-auto-msi-and-dma",
+            },
+            "teardown_rebind": {
+                "case_id": expected_tests[18],
+                "exercised": statuses[18] == "PASSED",
+                "restored": "default-auto-msi-and-dma",
+            },
+        }
+        if dma_paths != expected_dma_paths:
+            raise EvidenceError("DMA-path semantics do not match the suite")
+
     summary = evidence["summary"]
     if not isinstance(summary, dict):
         raise EvidenceError("summary must be an object")
@@ -618,6 +772,10 @@ def validate_evidence(evidence: dict[str, Any], *, require_pass: bool = False) -
         path["exercised"] for path in interrupt_paths.values()
     ):
         raise EvidenceError("passing runtime evidence requires every interrupt path")
+    if require_pass and dma_paths is not None and not all(
+        path["exercised"] for path in dma_paths.values()
+    ):
+        raise EvidenceError("passing runtime evidence requires every DMA path")
 
 
 def write_evidence(path: Path, evidence: dict[str, Any]) -> None:

@@ -12,6 +12,7 @@
 #include <linux/dma-mapping.h>
 #include <linux/interrupt.h>
 #include <linux/io.h>
+#include <linux/iopoll.h>
 #include <linux/jiffies.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
@@ -31,10 +32,22 @@
 #define EDU_REG_IRQ_STATUS          0x24
 #define EDU_REG_IRQ_RAISE           0x60
 #define EDU_REG_IRQ_ACK             0x64
+#define EDU_REG_DMA_SOURCE          0x80
+#define EDU_REG_DMA_DESTINATION     0x88
+#define EDU_REG_DMA_COUNT           0x90
+#define EDU_REG_DMA_COMMAND         0x98
 
 #define EDU_STATUS_COMPUTING        BIT(0)
 #define EDU_STATUS_IRQ_FACTORIAL    BIT(7)
 #define EDU_IRQ_FACTORIAL           BIT(0)
+#define EDU_IRQ_DMA                 BIT(8)
+
+#define EDU_DMA_RUN                 BIT(0)
+#define EDU_DMA_TO_RAM              BIT(1)
+#define EDU_DMA_IRQ_ENABLE          BIT(2)
+#define EDU_DMA_DEVICE_BUFFER       0x40000
+#define EDU_DMA_BUFFER_SIZE         4096
+#define EDU_DMA_MASK_BITS           28
 
 #define EDU_OPERATION_TIMEOUT_MS    2000
 
@@ -42,6 +55,11 @@ static bool force_factorial_timeout;
 module_param(force_factorial_timeout, bool, 0400);
 MODULE_PARM_DESC(force_factorial_timeout,
 		 "suppress factorial IRQ requests to exercise timeout handling");
+
+static bool force_dma_timeout;
+module_param(force_dma_timeout, bool, 0400);
+MODULE_PARM_DESC(force_dma_timeout,
+		 "suppress DMA completion IRQ requests to exercise timeout handling");
 
 static char *interrupt_mode = "auto";
 module_param(interrupt_mode, charp, 0400);
@@ -53,12 +71,21 @@ enum qemu_edu_interrupt_mode {
 	QEMU_EDU_INTERRUPT_INTX,
 };
 
+enum qemu_edu_dma_result {
+	QEMU_EDU_DMA_NOT_RUN,
+	QEMU_EDU_DMA_PASSED,
+	QEMU_EDU_DMA_TIMEOUT,
+	QEMU_EDU_DMA_VERIFY_FAILED,
+	QEMU_EDU_DMA_FAULTED,
+};
+
 struct qemu_edu {
 	struct pci_dev *pdev;
 	void __iomem *bar0;
 	struct mutex operation_lock;
 	struct completion factorial_done;
 	struct completion any_irq_done;
+	struct completion dma_done;
 	atomic_t irq_count;
 	u32 last_irq_status;
 	unsigned int irq;
@@ -71,6 +98,12 @@ struct qemu_edu {
 	bool factorial_valid;
 	u32 factorial_input;
 	u32 factorial_result;
+
+	u8 *dma_buffer;
+	dma_addr_t dma_handle;
+	size_t dma_last_length;
+	enum qemu_edu_dma_result dma_result;
+	bool dma_faulted;
 };
 
 static void qemu_edu_ack_pending_irqs(struct qemu_edu *edu)
@@ -97,6 +130,8 @@ static irqreturn_t qemu_edu_irq(int irq, void *data)
 
 	if (status & EDU_IRQ_FACTORIAL)
 		complete(&edu->factorial_done);
+	if (status & EDU_IRQ_DMA)
+		complete(&edu->dma_done);
 
 	complete(&edu->any_irq_done);
 	return IRQ_HANDLED;
@@ -294,6 +329,159 @@ static ssize_t interrupt_mode_show(struct device *dev,
 }
 static DEVICE_ATTR_RO(interrupt_mode);
 
+static ssize_t dma_buffer_size_show(struct device *dev,
+				    struct device_attribute *attr, char *buf)
+{
+	return sysfs_emit(buf, "%u\n", EDU_DMA_BUFFER_SIZE);
+}
+static DEVICE_ATTR_RO(dma_buffer_size);
+
+static const char *qemu_edu_dma_result_name(enum qemu_edu_dma_result result)
+{
+	switch (result) {
+	case QEMU_EDU_DMA_PASSED:
+		return "passed";
+	case QEMU_EDU_DMA_TIMEOUT:
+		return "timeout";
+	case QEMU_EDU_DMA_VERIFY_FAILED:
+		return "verify-failed";
+	case QEMU_EDU_DMA_FAULTED:
+		return "faulted";
+	case QEMU_EDU_DMA_NOT_RUN:
+	default:
+		return "not-run";
+	}
+}
+
+static u8 qemu_edu_dma_pattern(size_t index, size_t length)
+{
+	return (u8)((index * 131U) ^ length ^ 0xa5U);
+}
+
+static int qemu_edu_wait_for_dma(struct qemu_edu *edu)
+{
+	unsigned long waited;
+	u32 command;
+
+	waited = wait_for_completion_timeout(
+			&edu->dma_done,
+			msecs_to_jiffies(EDU_OPERATION_TIMEOUT_MS));
+	command = ioread32(edu->bar0 + EDU_REG_DMA_COMMAND);
+	if (waited && !(command & EDU_DMA_RUN)) {
+		if (READ_ONCE(edu->last_irq_status) == EDU_IRQ_DMA)
+			return 0;
+	}
+
+	/* A failed completion must not leak stale IRQ state into a later request. */
+	pci_clear_master(edu->pdev);
+	edu->dma_faulted = true;
+	qemu_edu_ack_pending_irqs(edu);
+	synchronize_irq(edu->irq);
+
+	return !waited && !(command & EDU_DMA_RUN) ? -ETIMEDOUT : -EIO;
+}
+
+static int qemu_edu_dma_transfer(struct qemu_edu *edu, u32 source,
+				 u32 destination, size_t length, u32 direction)
+{
+	u32 command = EDU_DMA_RUN | direction;
+
+	qemu_edu_ack_pending_irqs(edu);
+	reinit_completion(&edu->dma_done);
+	iowrite32(source, edu->bar0 + EDU_REG_DMA_SOURCE);
+	iowrite32(destination, edu->bar0 + EDU_REG_DMA_DESTINATION);
+	iowrite32(length, edu->bar0 + EDU_REG_DMA_COUNT);
+	if (!force_dma_timeout)
+		command |= EDU_DMA_IRQ_ENABLE;
+	iowrite32(command, edu->bar0 + EDU_REG_DMA_COMMAND);
+
+	return qemu_edu_wait_for_dma(edu);
+}
+
+static ssize_t dma_roundtrip_show(struct device *dev,
+				  struct device_attribute *attr, char *buf)
+{
+	struct qemu_edu *edu = dev_get_drvdata(dev);
+	ssize_t len;
+
+	mutex_lock(&edu->operation_lock);
+	if (edu->dma_result == QEMU_EDU_DMA_NOT_RUN)
+		len = sysfs_emit(buf, "not-run\n");
+	else
+		len = sysfs_emit(buf, "length=%zu result=%s\n",
+				 edu->dma_last_length,
+				 qemu_edu_dma_result_name(edu->dma_result));
+	mutex_unlock(&edu->operation_lock);
+
+	return len;
+}
+
+static ssize_t dma_roundtrip_store(struct device *dev,
+				   struct device_attribute *attr,
+				   const char *buf, size_t count)
+{
+	struct qemu_edu *edu = dev_get_drvdata(dev);
+	u32 length;
+	size_t index;
+	int ret;
+
+	ret = kstrtou32(buf, 0, &length);
+	if (ret)
+		return ret;
+	if (!length || length > EDU_DMA_BUFFER_SIZE)
+		return -ERANGE;
+
+	mutex_lock(&edu->operation_lock);
+	if (edu->dma_faulted) {
+		ret = -EIO;
+		goto out_unlock;
+	}
+
+	for (index = 0; index < length; index++)
+		edu->dma_buffer[index] = qemu_edu_dma_pattern(index, length);
+	dma_wmb();
+
+	ret = qemu_edu_dma_transfer(edu, (u32)edu->dma_handle,
+				    EDU_DMA_DEVICE_BUFFER, length, 0);
+	if (ret)
+		goto out_record_failure;
+
+	/* A sentinel proves the reverse transfer, rather than retained CPU bytes. */
+	for (index = 0; index < length; index++)
+		edu->dma_buffer[index] = ~qemu_edu_dma_pattern(index, length);
+	dma_wmb();
+
+	ret = qemu_edu_dma_transfer(edu, EDU_DMA_DEVICE_BUFFER,
+				    (u32)edu->dma_handle, length, EDU_DMA_TO_RAM);
+	if (ret)
+		goto out_record_failure;
+	dma_rmb();
+
+	for (index = 0; index < length; index++) {
+		if (edu->dma_buffer[index] !=
+		    qemu_edu_dma_pattern(index, length)) {
+			edu->dma_last_length = length;
+			edu->dma_result = QEMU_EDU_DMA_VERIFY_FAILED;
+			ret = -EIO;
+			goto out_unlock;
+		}
+	}
+
+	edu->dma_last_length = length;
+	edu->dma_result = QEMU_EDU_DMA_PASSED;
+	ret = count;
+	goto out_unlock;
+
+out_record_failure:
+	edu->dma_last_length = length;
+	edu->dma_result = ret == -ETIMEDOUT ? QEMU_EDU_DMA_TIMEOUT :
+					       QEMU_EDU_DMA_FAULTED;
+out_unlock:
+	mutex_unlock(&edu->operation_lock);
+	return ret;
+}
+static DEVICE_ATTR_RW(dma_roundtrip);
+
 static struct attribute *qemu_edu_attrs[] = {
 	&dev_attr_identification.attr,
 	&dev_attr_liveness.attr,
@@ -302,6 +490,8 @@ static struct attribute *qemu_edu_attrs[] = {
 	&dev_attr_irq_count.attr,
 	&dev_attr_last_irq_status.attr,
 	&dev_attr_interrupt_mode.attr,
+	&dev_attr_dma_buffer_size.attr,
+	&dev_attr_dma_roundtrip.attr,
 	NULL,
 };
 
@@ -321,6 +511,11 @@ static int qemu_edu_interrupt_flags(struct device *dev)
 	dev_err(dev, "invalid interrupt_mode=%s; expected auto, msi, or intx\n",
 		interrupt_mode);
 	return -EINVAL;
+}
+
+static void qemu_edu_clear_bus_master(void *data)
+{
+	pci_clear_master(data);
 }
 
 static int qemu_edu_probe(struct pci_dev *pdev,
@@ -353,15 +548,28 @@ static int qemu_edu_probe(struct pci_dev *pdev,
 	mutex_init(&edu->operation_lock);
 	init_completion(&edu->factorial_done);
 	init_completion(&edu->any_irq_done);
+	init_completion(&edu->dma_done);
 	atomic_set(&edu->irq_count, 0);
 	pci_set_drvdata(pdev, edu);
 
 	/* The EDU specification defaults to a 28-bit DMA mask. */
-	ret = dma_set_mask_and_coherent(dev, DMA_BIT_MASK(28));
+	ret = dma_set_mask_and_coherent(dev, DMA_BIT_MASK(EDU_DMA_MASK_BITS));
 	if (ret)
 		return dev_err_probe(dev, ret, "could not set 28-bit DMA mask\n");
+	edu->dma_buffer = dmam_alloc_coherent(dev, EDU_DMA_BUFFER_SIZE,
+					      &edu->dma_handle, GFP_KERNEL);
+	if (!edu->dma_buffer)
+		return dev_err_probe(dev, -ENOMEM,
+				     "could not allocate coherent DMA buffer\n");
+	if (edu->dma_handle >
+	    DMA_BIT_MASK(EDU_DMA_MASK_BITS) - (EDU_DMA_BUFFER_SIZE - 1))
+		return dev_err_probe(dev, -ERANGE,
+				     "coherent DMA buffer exceeds 28-bit mask\n");
 
 	pci_set_master(pdev);
+	ret = devm_add_action_or_reset(dev, qemu_edu_clear_bus_master, pdev);
+	if (ret)
+		return ret;
 	iowrite32(0, edu->bar0 + EDU_REG_STATUS);
 	qemu_edu_ack_pending_irqs(edu);
 
@@ -407,11 +615,23 @@ static int qemu_edu_probe(struct pci_dev *pdev,
 static void qemu_edu_remove(struct pci_dev *pdev)
 {
 	struct qemu_edu *edu = pci_get_drvdata(pdev);
+	u32 command;
+	int ret;
 
 	sysfs_remove_group(&pdev->dev.kobj, &qemu_edu_attr_group);
+	mutex_lock(&edu->operation_lock);
 	iowrite32(0, edu->bar0 + EDU_REG_STATUS);
 	qemu_edu_ack_pending_irqs(edu);
 	pci_clear_master(pdev);
+	ret = readl_poll_timeout(edu->bar0 + EDU_REG_DMA_COMMAND, command,
+				 !(command & EDU_DMA_RUN), 1000,
+				 EDU_OPERATION_TIMEOUT_MS * 1000);
+	if (ret)
+		dev_warn(&pdev->dev,
+			 "DMA engine remained active after bus mastering stopped\n");
+	qemu_edu_ack_pending_irqs(edu);
+	synchronize_irq(edu->irq);
+	mutex_unlock(&edu->operation_lock);
 }
 
 static const struct pci_device_id qemu_edu_ids[] = {

@@ -186,30 +186,58 @@ result = "Implemented, independently reviewed, and squash-merged through pull re
 
 [[tasks]]
 id = "A004"
-status = "Proposed"
+status = "In Progress"
 milestone = "M4"
 title = "Add bounded EDU DMA learning support"
 outcome = "Teach coherent DMA mapping, the 28-bit mask, transfer direction, and safe cleanup."
-scope = ["Implement bounded DMA round trips.", "Add negative and timeout tests.", "Document real-hardware caveats."]
-non_scope = ["Zero-copy APIs", "Production DMA performance", "IOMMU validation on physical hardware"]
+scope = [
+  "Allocate one managed 4,096-byte coherent DMA buffer under the EDU device's 28-bit mask.",
+  "Expose a length-only 1..4096 sysfs round trip that uses the fixed EDU device buffer for RAM-to-EDU and EDU-to-RAM transfers without exposing DMA addresses.",
+  "Use DMA completion interrupts, exact acknowledgement, barriers, bounded waits, and fail-closed teardown before managed memory release.",
+  "Add boundary, malformed-input, missing-completion, recovery, and unload/rebind runtime coverage while preserving all M3 cases.",
+  "Publish guest-interface and runtime-evidence contract version 3 while retaining immutable version-1 and version-2 validation.",
+  "Document the teaching boundary, physical-hardware caveats, rollback, licensing, and reproducible qualification evidence.",
+]
+non_scope = [
+  "Accepting user-provided DMA addresses or EDU device offsets.",
+  "Zero-copy or mmap interfaces.",
+  "Scatter-gather, streaming DMA, queues, or production performance claims.",
+  "IOMMU or physical-hardware validation.",
+  "Updating the locked Yocto or QEMU release line.",
+  "Publishing, merging, tagging, or releasing the implementation.",
+]
 acceptance_criteria = [
-  "Both transfer directions pass automated tests.",
-  "Bounds, mask, timeout, and cleanup behavior are explicit.",
-  "The public interface remains small and versioned.",
+  "Lengths 1, an odd length, and 4096 complete a verified RAM-to-EDU-to-RAM pattern round trip with exactly two 0x00000100 DMA completion interrupts each.",
+  "Lengths 0, 4097, negative text, and malformed text are rejected without changing the last successful result.",
+  "A read-only missing-completion fault seam produces a bounded timeout and a default reload restores a successful DMA round trip.",
+  "Unload/rebind quiesces bus mastering before managed buffer release and restores the default MSI plus DMA path.",
+  "The driver never accepts or reports a DMA address, uses only the fixed 4,096-byte EDU buffer, and records the 28-bit mask explicitly.",
+  "All prior 14 M3 cases and the closed version-3 DMA cases pass without skips on a clean exact revision, with immutable version-1 and version-2 evidence still accepted.",
+  "Repository, metadata, licensing, checksum, qualified Linux build/runtime, and required reviews pass.",
 ]
 dependencies = ["A003", "A007"]
 risks = ["kernel", "dma", "memory-safety", "compatibility"]
-validation = ["driver build", "QEMU runtime suite", "project fast-check suite"]
-approval = ""
+validation = [
+  "project fast-check and licensing suite",
+  "Yocto metadata parse and layer checks",
+  "clean qemu-edu-driver and image build",
+  "software-QEMU runtime suite with closed version-3 evidence",
+  "historical version-1 and version-2 evidence validation",
+]
+approval = "Repository owner confirmed the A007 squash merge and explicitly approved A004/M4 bounded DMA implementation on 2026-08-09."
 reviews_required = ["quality", "architecture", "security", "independent-diff"]
 reviews_completed = []
-validation_evidence = []
+validation_evidence = [
+  "Repository-local validation on 2026-08-09 passed workflow, CI-policy, pinned A007 security, Bash syntax, whitespace, and all 92 Python tests; 11 Linux-only wrapper/environment cases were explicitly skipped on Windows rather than claimed.",
+  "Checksum-verified ShellCheck 0.11.0 passed every public shell entry point including qemu-edu-test; pinned network-disabled REUSE 3.3 validation covered 76/76 files with only MIT and GPL-2.0-only licenses.",
+  "A disposable upstream Linux 6.18.24 modules_prepare tree compiled qemu_edu.c to qemu_edu.o without a C/API error. Modpost was not claimed because that partial tree has no full-kernel Module.symvers; the exact BitBake driver/image build remains required.",
+]
 review_evidence = []
 result = ""
 
 [[tasks]]
 id = "A007"
-status = "In Progress"
+status = "Done"
 milestone = "M3.1"
 title = "Backport QEMU EDU DMA bounds enforcement"
 outcome = "Prevent guest-controlled EDU DMA ranges from escaping the device buffer before the DMA curriculum begins."
@@ -257,7 +285,7 @@ review_evidence = [
   "Architecture re-review verified the exact qemu-helper-native/runqemu consumer boundary, shared manual and OEQA preflight, patch/source pinning, compatibility, and rollback with no P0-P2 findings.",
   "Quality, DevOps, security, licensing, and final frozen-index review verified crafted false-positive regressions, host-fallback rejection, CI trust boundaries, public-neutral content, staged checksums, and REUSE coverage with no P0-P2 findings.",
 ]
-result = "A007 implementation and clean local Linux qualification are complete at commit 46e2280448cf2a857f8599f677f1b1bd0284fa13, and pull request #5 passes hosted fast and metadata gates at correction commit 93ed2320c2200bb1b0812532e493b99a5f91e95b; public review, merge, and any release remain pending."
+result = "Implemented, independently reviewed, and squash-merged through pull request #5 as commit 083ddf5e1207dac34bdaf12e04a41f1f1faa8d7f; no tag or release was published."
 
 [[tasks]]
 id = "A005"

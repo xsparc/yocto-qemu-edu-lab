@@ -77,9 +77,13 @@ jobs:
             --directory "$RUNNER_TEMP/m1-tools/actionlint" actionlint
       - name: Static analysis
         run: |
+          bash -n setup.sh environment.sh build.sh inspect.sh run.sh \
+            runtime-test.sh scripts/qemu_security_preflight.sh
+          sh -n meta-qemu-edu/recipes-support/qemu-edu-tools/files/qemu-edu-test
           "$RUNNER_TEMP/m1-tools/shellcheck/shellcheck" --severity=warning \
             setup.sh environment.sh build.sh inspect.sh run.sh runtime-test.sh \
-            scripts/qemu_security_preflight.sh
+            scripts/qemu_security_preflight.sh \
+            meta-qemu-edu/recipes-support/qemu-edu-tools/files/qemu-edu-test
           "$RUNNER_TEMP/m1-tools/actionlint/actionlint" \
             -shellcheck="$RUNNER_TEMP/m1-tools/shellcheck/shellcheck"
 

@@ -6,7 +6,7 @@ SPDX-License-Identifier: MIT
 # Versioning and compatibility
 
 The project follows Semantic Versioning 2.0.0 for tagged releases. `VERSION`
-currently contains `0.3.1-dev`, a development identity rather than a published
+currently contains `0.4.0-dev`, a development identity rather than a published
 release. Creating a tag, release, or artifact remains a separate maintainer
 decision.
 
@@ -41,17 +41,18 @@ automatically public APIs.
 |---|---|---|---|
 | `0.2.0-dev` | 6.0.2 | `wrynose` | Repository, static, licensing, exact-source, parse, inspection, and native layer CI; clean commit `6479681` completed the full image build and passed all 11 project runtime cases under software QEMU with validated version-1 evidence |
 | `0.3.0-dev` | 6.0.2 | `wrynose` | Clean commit `3ea0204` completed the exact locked image path and passed ping, SSH, and all 14 project cases under software QEMU with validated version-2 evidence; no physical-hardware or release claim is implied |
-| `0.3.1-dev` | 6.0.2 | `wrynose` | Clean commit `46e2280` compiled and staged the exact patched native emulator, rebuilt the driver/image without taint, and passed ping, SSH, and all 14 project cases with validated version-2 evidence; pull request #5 also passes hosted fast and native metadata/layer gates at `93ed232`, while public review/merge and any release remain pending |
+| `0.3.1-dev` | 6.0.2 | `wrynose` | Clean commit `46e2280` compiled and staged the exact patched native emulator, rebuilt the driver/image without taint, and passed ping, SSH, and all 14 project cases with validated version-2 evidence; pull request #5 passed hosted gates and squash-merged as `083ddf5`, with no tag or release |
+| `0.4.0-dev` | 6.0.2 | `wrynose` | A004 adds the approved bounded coherent-DMA curriculum and version-3 contracts; exact clean Linux build/runtime qualification remains pending and must not be inferred from repository-local checks |
 
 The runtime document is an unsigned local report whose SHA-256 was independently
 recomputed. It is not a hosted provenance attestation or a physical-hardware
 result.
 
-`0.3.1-dev` is a pre-release patch line because A007 corrects the host emulator
+`0.3.1-dev` was a pre-release patch line because A007 corrected the host emulator
 without changing the guest contract, runtime evidence schema, or curriculum
-interface. It does not imply a tag or release. M4 remains a future `0.4.0-dev`
-minor line because bounded DMA adds a new curriculum stage and guest-visible
-contract.
+interface. `0.4.0-dev` is the current minor development line because bounded
+DMA adds a curriculum stage, guest-interface version 3, five required runtime
+cases, and evidence schema 3. Neither identity implies a tag or release.
 
 Compatibility is declared only after evidence. A newer Wrynose point release
 can be proposed with source-resolution, metadata, build, and regression results.
@@ -61,8 +62,9 @@ review, migration notes, and the full relevant gates; changing only
 
 Schema versioning is independent of project SemVer. Unknown source-lock and
 runtime-evidence schema versions fail closed. Runtime evidence version 1 is an
-immutable M2 contract; the current validator accepts versions 1 and 2, while
-the collector emits only version 2. Version-1 readers reject version 2 and can
-roll back to the M2 revision without translating claims. Any later schema
-change must state whether old readers can continue safely and provide a
-deterministic migration or rollback.
+immutable M2 contract and version 2 is an immutable M3 contract. The current
+validator accepts versions 1, 2, and 3, while the collector emits only version
+3. Older readers reject unknown versions and can roll back to their matching
+project revision without translating claims. Any later schema change must state
+whether old readers can continue safely and provide a deterministic migration
+or rollback.

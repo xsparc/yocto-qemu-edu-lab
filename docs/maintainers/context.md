@@ -5,8 +5,8 @@ SPDX-License-Identifier: MIT
 
 # Project context
 
-- Active task: A007, the approved M3.1 host-emulator bounds hardening slice.
-- Current branch: focused A007 implementation branch.
+- Active task: A004, the approved M4 bounded DMA learning slice.
+- Current branch: focused A004 implementation branch.
 - Baseline: one x86-64 Yocto 6.0 (`wrynose`) learning machine using QEMU EDU PCI device `1234:11e8`.
 - Existing merged runtime features: PCI discovery, BAR0 MMIO, managed MSI/INTx
   selection, sysfs, factorial/liveness operations, and automated guest
@@ -46,11 +46,19 @@ SPDX-License-Identifier: MIT
 - A007 clean commit `46e2280` passed patched-emulator compilation, exact
   consumer verification, a warning-free image rebuild, all 14 project runtime
   cases, licensing, and independent review.
-- Pull request #5 is the focused A007 review surface. Its first hosted metadata
-  run exposed an unconditional native-recipe signature change for unrelated
-  machines; the approved correction scopes the append to the EDU machine and
-  retains the full layer-signature check. Correction commit `93ed232` passes
-  hosted repository, static, licensing, exact project metadata, and all 13
-  native layer checks. The next gate is public review and separately authorized
-  merge. M4, M5, and M6 remain Proposed and unapproved.
+- Pull request #5 passed its hosted fast and metadata gates, then squash-merged
+  as `083ddf5e1207dac34bdaf12e04a41f1f1faa8d7f`; no tag or release was
+  published.
+- A004 is approved as a length-only bounded DMA curriculum. It adds one managed
+  4,096-byte coherent buffer under the 28-bit mask, a fixed-offset two-direction
+  round trip, DMA completion and timeout handling, fail-closed teardown, guest
+  interface version 3, and closed runtime evidence version 3. Arbitrary DMA
+  addresses, streaming DMA, physical-hardware claims, and source-lock updates
+  remain out of scope. M5 and M6 remain Proposed and unapproved.
+- The current A004 worktree passes 92 repository tests with 11 explicit
+  Windows-only skips, workflow/CI/security validation, Bash syntax, pinned
+  ShellCheck 0.11.0, and REUSE 3.3 coverage for 76/76 files. Upstream Linux
+  6.18.24 compiled the module source to an object; exact BitBake build, complete
+  Linux-only tests, 19-case runtime evidence, required reviews, publication,
+  merge, and any release remain pending.
 - Public workflow state uses tool-neutral maintainer paths while preserving the same task, approval, validation, review, and handoff semantics.

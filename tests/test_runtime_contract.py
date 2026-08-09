@@ -3,9 +3,11 @@
 
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -97,6 +99,31 @@ class RuntimeContractTests(unittest.TestCase):
         self.assertIn("static bool force_factorial_timeout;", source)
         self.assertIn("module_param(force_factorial_timeout, bool, 0400);", source)
         self.assertNotIn("force_factorial_timeout = true", source)
+        self.assertIn("static bool force_dma_timeout;", source)
+        self.assertIn("module_param(force_dma_timeout, bool, 0400);", source)
+        self.assertNotIn("force_dma_timeout = true", source)
+
+    def test_dma_interface_is_coherent_bounded_and_address_free(self) -> None:
+        source = (
+            ROOT
+            / "meta-qemu-edu/recipes-kernel/qemu-edu-driver/files/qemu_edu.c"
+        ).read_text(encoding="utf-8")
+        self.assertIn("EDU_DMA_BUFFER_SIZE         4096", source)
+        self.assertIn("EDU_DMA_MASK_BITS           28", source)
+        self.assertIn("dmam_alloc_coherent", source)
+        self.assertIn("dma_set_mask_and_coherent", source)
+        self.assertIn("if (!length || length > EDU_DMA_BUFFER_SIZE)", source)
+        self.assertIn("dma_wmb();", source)
+        self.assertIn("dma_rmb();", source)
+        self.assertIn("READ_ONCE(edu->last_irq_status) == EDU_IRQ_DMA", source)
+        self.assertIn("edu->dma_faulted = true;", source)
+        self.assertIn("pci_clear_master(edu->pdev);", source)
+        self.assertIn("synchronize_irq(edu->irq);", source)
+        self.assertIn("readl_poll_timeout", source)
+        self.assertNotIn("DEVICE_ATTR_RO(dma_mask_bits)", source)
+        self.assertNotIn("dma_address", source)
+        self.assertNotIn("DEVICE_ATTR_RW(dma_source", source)
+        self.assertNotIn("DEVICE_ATTR_RW(dma_destination", source)
 
     def test_interrupt_policy_uses_managed_modern_pci_vectors(self) -> None:
         source = (
@@ -131,6 +158,38 @@ class RuntimeContractTests(unittest.TestCase):
         self.assertIn("${CC} ${CFLAGS} ${CPPFLAGS} ${LDFLAGS}", recipe)
         self.assertIn("errno=%d", helper)
 
+    def test_guest_tool_license_checksums_match_selected_lines(self) -> None:
+        recipe_dir = ROOT / "meta-qemu-edu/recipes-support/qemu-edu-tools"
+        recipe = (recipe_dir / "qemu-edu-tools_1.0.bb").read_text(encoding="utf-8")
+        entries = re.findall(
+            r"file://([^;\s]+);beginline=(\d+);endline=(\d+);md5=([0-9a-f]{32})",
+            recipe,
+        )
+        self.assertEqual(len(entries), 2)
+        for filename, begin_text, end_text, expected in entries:
+            with self.subTest(filename=filename):
+                begin = int(begin_text)
+                end = int(end_text)
+                lines = (recipe_dir / "files" / filename).read_bytes().splitlines(
+                    keepends=True
+                )
+                selected = b"".join(lines[begin - 1 : end])
+                self.assertEqual(
+                    hashlib.md5(selected, usedforsecurity=False).hexdigest(),
+                    expected,
+                )
+
+    def test_extensionless_guest_tool_is_lf_normalized_and_syntax_checked(self) -> None:
+        guest_tool = (
+            "meta-qemu-edu/recipes-support/qemu-edu-tools/files/qemu-edu-test"
+        )
+        attributes = (ROOT / ".gitattributes").read_text(encoding="utf-8")
+        workflow = (ROOT / ".github/workflows/fast-checks.yml").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn(f"{guest_tool} text eol=lf", attributes)
+        self.assertIn(f"sh -n {guest_tool}", workflow)
+
     def test_schema_is_closed_and_covers_every_case(self) -> None:
         evidence = load_runtime_evidence()
 
@@ -144,7 +203,11 @@ class RuntimeContractTests(unittest.TestCase):
                 for child in value:
                     yield from string_schemas(child)
 
-        for version, count in ((1, 11), (2, len(evidence.EXPECTED_TESTS))):
+        for version, count in (
+            (1, 11),
+            (2, len(evidence.V2_EXPECTED_TESTS)),
+            (3, len(evidence.EXPECTED_TESTS)),
+        ):
             with self.subTest(version=version):
                 schema = json.loads(
                     (
@@ -203,6 +266,32 @@ class RuntimeContractTests(unittest.TestCase):
         with self.assertRaisesRegex(AssertionError, "cleanup assertion"):
             cleanup.test_10_required_msi_failure_and_cleanup()
         cleanup.restore_msi_bus_and_default.assert_called_once_with(bdf, "1")
+
+    def test_dma_mode_failures_still_attempt_restoration(self) -> None:
+        oeqa_case = load_oeqa_case()
+
+        timeout = oeqa_case.QemuEduRuntimeTests(
+            "test_17_dma_timeout_and_recovery"
+        )
+        timeout.unload_module = MagicMock(side_effect=AssertionError("unload"))
+        timeout.restore_default_module = MagicMock()
+        with self.assertRaisesRegex(AssertionError, "unload"):
+            timeout.test_17_dma_timeout_and_recovery()
+        timeout.restore_default_module.assert_called_once_with()
+
+        teardown = oeqa_case.QemuEduRuntimeTests(
+            "test_18_dma_teardown_and_rebind"
+        )
+        teardown.assert_default_msi = MagicMock(return_value="0000:00:05.0")
+        teardown.assert_dma_roundtrip = MagicMock()
+        teardown.run_ok = MagicMock(
+            side_effect=("34", AssertionError("post-unload assertion"))
+        )
+        teardown.unload_module = MagicMock()
+        teardown.restore_default_module = MagicMock()
+        with self.assertRaisesRegex(AssertionError, "post-unload assertion"):
+            teardown.test_18_dma_teardown_and_rebind()
+        teardown.restore_default_module.assert_called_once_with()
 
 
 @unittest.skipIf(sys.platform == "win32", "requires a native Linux Bash environment")

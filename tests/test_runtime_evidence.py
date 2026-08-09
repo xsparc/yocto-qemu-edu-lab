@@ -61,6 +61,9 @@ class RuntimeEvidenceTests(unittest.TestCase):
         self.assertTrue(
             evidence["contract"]["negative_paths"]["factorial_timeout"]["exercised"]
         )
+        self.assertTrue(
+            evidence["contract"]["dma_paths"]["roundtrip_boundaries"]["exercised"]
+        )
 
     def test_latest_matching_oeqa_result_is_selected(self) -> None:
         older = oeqa_record("20260808010203")
@@ -129,6 +132,16 @@ class RuntimeEvidenceTests(unittest.TestCase):
         self.assertFalse(fallback["exercised"])
         MODULE.validate_evidence(evidence)
 
+    def test_failed_dma_path_does_not_claim_completion(self) -> None:
+        oeqa = oeqa_record()
+        record = next(iter(oeqa.values()))
+        record["result"][MODULE.EXPECTED_TESTS[17]]["status"] = "FAILED"
+        evidence = self.build(oeqa)
+        timeout = evidence["contract"]["dma_paths"]["timeout_recovery"]
+        self.assertFalse(timeout["exercised"])
+        self.assertFalse(timeout["fault_injected"])
+        MODULE.validate_evidence(evidence)
+
     def test_boolean_integer_aliases_are_rejected(self) -> None:
         mutations = (
             (("schema_version",), True),
@@ -157,6 +170,11 @@ class RuntimeEvidenceTests(unittest.TestCase):
                 ),
                 1,
             ),
+            (("contract", "dma_paths", "bounded_interface", "exercised"), 1),
+            (("contract", "dma_paths", "bounded_interface", "mask_bits"), True),
+            (("contract", "dma_paths", "bounded_interface", "length_only"), 1),
+            (("contract", "dma_paths", "bounded_interface", "address_exposed"), 0),
+            (("contract", "dma_paths", "timeout_recovery", "fault_injected"), 1),
         )
         for path, replacement in mutations:
             with self.subTest(path=path):
@@ -215,6 +233,7 @@ class RuntimeEvidenceTests(unittest.TestCase):
         evidence["contract"]["guest_interface"]["version"] = 1
         evidence["contract"]["suite"]["version"] = 1
         del evidence["contract"]["interrupt_paths"]
+        del evidence["contract"]["dma_paths"]
         evidence["tests"] = [
             {"id": test_id, "status": "PASSED", "duration_seconds": 0.1}
             for test_id in MODULE.V1_EXPECTED_TESTS
@@ -235,6 +254,21 @@ class RuntimeEvidenceTests(unittest.TestCase):
                 "cold_boot_without_device": False,
             },
         }
+        evidence["project"]["dirty"] = False
+        MODULE.validate_evidence(evidence, require_pass=True)
+
+    def test_historical_version_2_evidence_remains_valid(self) -> None:
+        evidence = self.build()
+        evidence["schema_version"] = 2
+        evidence["contract"]["guest_interface"]["version"] = 2
+        evidence["contract"]["suite"]["version"] = 2
+        del evidence["contract"]["dma_paths"]
+        evidence["tests"] = [
+            {"id": test_id, "status": "PASSED", "duration_seconds": 0.1}
+            for test_id in MODULE.V2_EXPECTED_TESTS
+        ]
+        evidence["summary"]["total"] = len(MODULE.V2_EXPECTED_TESTS)
+        evidence["summary"]["passed"] = len(MODULE.V2_EXPECTED_TESTS)
         evidence["project"]["dirty"] = False
         MODULE.validate_evidence(evidence, require_pass=True)
 
