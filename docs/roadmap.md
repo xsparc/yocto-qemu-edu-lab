@@ -165,9 +165,14 @@ run `31312516778` at `fbb2cab55ea6fc6a9000a1e172d71ef82a892a4b`, then
 squash-merged as `918efaa392486af73f03ac9d1e216c2a2ed421da`. A004 remains
 In Progress until the required reviews pass. A post-merge correction strengthens
 the address-free oracle with an exact source allowlist and a bound-versus-unbound
-sysfs comparison; the historical result does not qualify that stricter check,
-so a clean exact-revision runtime rerun remains required. The local runtime
-result is not a hosted attestation, physical-hardware result, tag, or release.
+sysfs comparison. Clean correction commit `fe08e73` passed the complete 94-test
+Linux suite, locked setup and QEMU-consumer preflight, all 4,738 cached image
+tasks, and a fresh software-QEMU run containing ping, SSH, and all 19 project
+cases. All 21 tests passed in 172.305 seconds with no skips, failures, or errors.
+The corrected evidence SHA-256 is `c51de37dc60c69e5f697fb0ae8ab74fbc1c0520724554b73904783533ca2b4ea`, and
+the bound native OEQA SHA-256 is `918a7ade794afbc958c428eff358e2f5740e6e89bb63f8bb90d063b014a419a9`.
+The local runtime result is not a hosted attestation, physical-hardware result,
+independent review, tag, or release.
 
 Rollback: keep DMA opt-in and preserve the M3 image as a known-good stage.
 

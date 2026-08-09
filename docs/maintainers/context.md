@@ -71,6 +71,11 @@ SPDX-License-Identifier: MIT
   `918efaa392486af73f03ac9d1e216c2a2ed421da`. Required reviews, tag, and
   release remain pending. The focused post-merge correction strengthens
   `test_14_dma_contract` so an added driver-created sysfs file invalidates the
-  address-free evidence claim. Its clean exact-revision runtime rerun is still
-  pending and must not be inferred from the historical version-3 artifact.
+  address-free evidence claim. Clean correction commit `fe08e73` passed all 94
+  Linux repository tests, locked setup and QEMU-consumer preflight, all 4,738
+  cached image tasks, and a fresh software-QEMU run containing ping, SSH, and
+  all 19 project cases. The result was 21/21 in 172.305 seconds with no skips,
+  failures, or errors. Its evidence SHA-256 is `c51de37dc60c69e5f697fb0ae8ab74fbc1c0520724554b73904783533ca2b4ea`;
+  the bound native OEQA SHA-256 is `918a7ade794afbc958c428eff358e2f5740e6e89bb63f8bb90d063b014a419a9`.
+  A004 remains In Progress for the required reviews and pull request #7 merge.
 - Public workflow state uses tool-neutral maintainer paths while preserving the same task, approval, validation, review, and handoff semantics.

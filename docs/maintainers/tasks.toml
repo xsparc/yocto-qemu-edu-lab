@@ -3,7 +3,7 @@
 
 schema_version = 1
 task_id_prefix = "A"
-updated_on = "2026-08-09"
+updated_on = "2026-08-10"
 
 [[tasks]]
 id = "A000"
@@ -239,10 +239,15 @@ validation_evidence = [
   "Closed version-3 evidence validated with dirty=false and testimage exit 0; evidence SHA-256 is f97b24335cd9579eaf825cf1c06e54ae1742f069f1afa2a4c8e6fa2f162856c2, native OEQA SHA-256 is 1f8b1756faf079a0996070846f4e4aee5535e71d205f5e232c9cbeff395e07c5, and all five conservative DMA completion claims are true.",
   "Hosted Fast checks run 31312516815 passed repository, static, and REUSE licensing jobs at fbb2cab55ea6fc6a9000a1e172d71ef82a892a4b on 2026-08-09.",
   "Hosted Yocto metadata run 31312516778 passed locked source resolution, metadata parse and inspection, and the project layer check at fbb2cab55ea6fc6a9000a1e172d71ef82a892a4b on 2026-08-09.",
-  "The post-merge A004 evidence-oracle correction adds an exact source attribute allowlist and a bound-versus-unbound runtime comparison so a future driver-created DMA-address file cannot inherit the historical address-free claim; a clean exact-revision runtime rerun remains required for this strengthened case.",
+  "The post-merge A004 evidence-oracle correction adds an exact source attribute allowlist and a bound-versus-unbound runtime comparison so a future driver-created DMA-address file cannot inherit the historical address-free claim.",
+  "Hosted Fast checks run 31316477405 passed repository, static, and REUSE licensing jobs at fe08e738107b9f69567e95d547e8b81de9a92444.",
+  "Hosted Yocto metadata run 31316477432 passed locked source resolution, metadata parse and inspection, and the project layer check at fe08e738107b9f69567e95d547e8b81de9a92444.",
+  "Clean correction commit fe08e738107b9f69567e95d547e8b81de9a92444 passed the complete 94-test Linux repository suite, offline locked-source and effective-build verification, the A007 metadata/source/consumer preflight, and all 4,738 cached exact-image tasks on 2026-08-10. The implementation inputs were unchanged from the clean 8574eaf build, so this run does not claim a new driver or image rebuild.",
+  "The fresh software-QEMU testimage run at fe08e738107b9f69567e95d547e8b81de9a92444 passed ping, SSH, and all 19 project cases in 172.305 seconds with no skips, failures, or errors; the strengthened test_14_dma_contract passed its live bound-versus-unbound sysfs comparison.",
+  "The correction's closed version-3 evidence validates with dirty=false and testimage exit 0; evidence SHA-256 is c51de37dc60c69e5f697fb0ae8ab74fbc1c0520724554b73904783533ca2b4ea, native OEQA SHA-256 is 918a7ade794afbc958c428eff358e2f5740e6e89bb63f8bb90d063b014a419a9, and both ignored artifacts are retained under build/evidence for independent recomputation.",
 ]
 review_evidence = []
-result = "Implementation and clean local Linux qualification are complete at 8574eaffe206f8235a5da57461ded0ecbdbbf60b; pull request #6 passed hosted Fast checks and Yocto metadata at fbb2cab55ea6fc6a9000a1e172d71ef82a892a4b and squash-merged as 918efaa392486af73f03ac9d1e216c2a2ed421da, while required reviews, tag, and release remain pending."
+result = "Implementation qualification is complete at 8574eaffe206f8235a5da57461ded0ecbdbbf60b and the strengthened evidence oracle is requalified at fe08e738107b9f69567e95d547e8b81de9a92444. Pull request #6 squash-merged as 918efaa392486af73f03ac9d1e216c2a2ed421da; draft pull request #7 has green hosted and local runtime gates, while required reviews, merge, tag, and release remain pending."
 
 [[tasks]]
 id = "A007"
