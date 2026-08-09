@@ -69,5 +69,8 @@ SPDX-License-Identifier: MIT
   metadata run `31312516778` at
   `fbb2cab55ea6fc6a9000a1e172d71ef82a892a4b`, then squash-merged as
   `918efaa392486af73f03ac9d1e216c2a2ed421da`. Required reviews, tag, and
-  release remain pending.
+  release remain pending. The focused post-merge correction strengthens
+  `test_14_dma_contract` so an added driver-created sysfs file invalidates the
+  address-free evidence claim. Its clean exact-revision runtime rerun is still
+  pending and must not be inferred from the historical version-3 artifact.
 - Public workflow state uses tool-neutral maintainer paths while preserving the same task, approval, validation, review, and handoff semantics.

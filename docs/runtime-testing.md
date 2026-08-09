@@ -82,7 +82,10 @@ The project layer supplies `qemu_edu.QemuEduRuntimeTests`, which asserts:
 - PCI removal, the resulting missing-device diagnostic, and successful PCI
   rescan/rebinding. This uses Linux hot removal rather than a second QEMU boot.
 - the reported 28-bit mask, 4,096-byte buffer, length-only sysfs mode, and
-  disabled-by-default missing-completion seam;
+  disabled-by-default missing-completion seam. A bound-versus-unbound sysfs
+  comparison requires the exact documented driver attribute set, so an added
+  driver-created DMA-address file fails the contract rather than escaping the
+  evidence projection;
 - verified RAM-to-EDU-to-RAM transfers at lengths 1, 3, and 4096, with exactly
   two handled `0x00000100` completion interrupts per round trip;
 - rejection of zero, over-limit, negative, and malformed lengths without

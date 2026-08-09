@@ -163,8 +163,11 @@ the bound native OEQA SHA-256 is
 Pull request #6 passed hosted Fast checks run `31312516815` and Yocto metadata
 run `31312516778` at `fbb2cab55ea6fc6a9000a1e172d71ef82a892a4b`, then
 squash-merged as `918efaa392486af73f03ac9d1e216c2a2ed421da`. A004 remains
-In Progress until the required reviews pass. The local runtime result is not a
-hosted attestation, physical-hardware result, tag, or release.
+In Progress until the required reviews pass. A post-merge correction strengthens
+the address-free oracle with an exact source allowlist and a bound-versus-unbound
+sysfs comparison; the historical result does not qualify that stricter check,
+so a clean exact-revision runtime rerun remains required. The local runtime
+result is not a hosted attestation, physical-hardware result, tag, or release.
 
 Rollback: keep DMA opt-in and preserve the M3 image as a known-good stage.
 

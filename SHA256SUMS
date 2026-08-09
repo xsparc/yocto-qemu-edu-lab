@@ -24,11 +24,11 @@ b4f80d6b5cc4567b375ebfddd0a904fa2bd2cdb5feed21bd794722436b54139c  ./docs/ci.md
 e60a797e641210a8dde3c34fe82d76dff1464a6f935e0fa925b06eac07dc170d  ./docs/licensing.md
 ab3a763550768ff8de2574f4b528fdbf60ad8e8fe24245e80cf52f562c201496  ./docs/maintainers/README.md
 cc30bad3aae0f941bf9d18a6bc2bfcb83ed5019eb9f3d5fcf172b73b3028fa11  ./docs/maintainers/config.toml
-6bdaf1ec5b8c70a42d081c10a22f48c183cd79580190b15c76333cc1e089f999  ./docs/maintainers/context.md
+88c977bfd62a4d6f48f399aca31e5f951f7064a36051ac176dbf7d6325bda61e  ./docs/maintainers/context.md
 ce0c23d287d352910770fc4c804c475fcd1370988b36c4a93a81bedac7c09eab  ./docs/maintainers/decisions.md
 65f879644273c7431ccb2f132ea19e67491a5a0b9b948e729b877e4692908d3b  ./docs/maintainers/intake.md
 6773c447928b8f98174ef72962b92bb8365e5832035e3d4a69fc53453fe54937  ./docs/maintainers/ledger.md
-cbc084ebf60bba4d9a930b330d9772e950e75855433788ebe82b34d861e69640  ./docs/maintainers/tasks.toml
+fbdc7fa4d673d630783bffaf02312bf4b94675fe9b1b307b30e4959865527f1a  ./docs/maintainers/tasks.toml
 72cba1904c804f972fcc776e6c7c4d78f6a8d149839bc8cf38241df521d3c2d0  ./docs/maintenance-workflow.md
 5faba99f9eceef19dd3dd330beb4ffdf4cbba516e93c994b174e9a29f2deb7f4  ./docs/mapping-to-real-hardware.md
 c8f0440c7c8df8f6cae97f670575e073f90fe2672de99908606e45683722cffd  ./docs/research/2026-08-07-m1-reproducibility.md
@@ -37,8 +37,8 @@ e74353e0045211709c74b606084e68a681fbd7af0d56d959f202703011b5dfef  ./docs/researc
 b4771fd6e821c086a6d3f12ca22e5188d186516ba1356c9d73915684df8e3029  ./docs/research/2026-08-08-m3-msi.md
 698ac5766270becc3ebf8f1e0a6557f225a48643431fe6e51db144545699b56f  ./docs/research/2026-08-08-qemu-edu-dma-bounds.md
 36db8b2590ce5da2167f5a05c6d64d82caf1f294497f5821ea48401d3ce50df3  ./docs/research/2026-08-09-m4-bounded-dma.md
-b110bb8838a4186cfbf1ad4f87593dc514790f193fed4daea4b4c571f5b50238  ./docs/roadmap.md
-62ee6fa7203dcdb31dc2056903d5a07eb012689efa01333ce68a55c7240b191b  ./docs/runtime-testing.md
+3639c0336a7215d7e3c998cc578dfa68ed27a782f2d4a223d1dd553d322fb081  ./docs/roadmap.md
+a2f5d06876a28e023aaee5a94a70022ebbd0ed73780250462e685183e333d3b4  ./docs/runtime-testing.md
 690830fc5fe8a199494791a645e928f2015fa212bd3abeb59179081eef139a21  ./docs/source-lock.md
 72113082ae9ede77fa45f7627ffc5cd5c56bb5568ddb5fe8c36000946b013672  ./docs/versioning.md
 0d79747066a5edc3f22efdf0ff60e72cec7252b6c5f458cd466e8df6e09a4b5c  ./docs/vision.md
@@ -47,7 +47,7 @@ b2c4c1ee7d80794df3dbbdbd66291a34a5385b38fa8100614ccb93f4e811fc1a  ./inspect.sh
 4fd293bf917420b1b49913e3727351687d7fc5eb78181c4779629483a02ebaf6  ./meta-qemu-edu/README.md
 2dd0bba9dd70d1d97b06f2c853bcc8e7dd2a78c492fa46acdacf8bd6638b0343  ./meta-qemu-edu/conf/layer.conf
 8cee4ff7dd25a839a92f0b7c5c977ca62ac5b0792bc252f9fe4108e1be7ce6d6  ./meta-qemu-edu/conf/machine/qemu-edu-x86-64.conf
-d25780e59a13b9020d8cb3a3fb99f47dc6b4fc78ff347068d3f97e976affd840  ./meta-qemu-edu/lib/oeqa/runtime/cases/qemu_edu.py
+a772a183510092dc4ab7b48c878e237592fb38dd493501397d7ddac331e939ae  ./meta-qemu-edu/lib/oeqa/runtime/cases/qemu_edu.py
 3d1d0dbf6c1af4a9b1000cb4d5f9fa4e16b054fb5479f52061bf172860fb3fa5  ./meta-qemu-edu/recipes-core/images/qemu-edu-image.bb
 73689608fcf9d8826ca95a105562c9962c79f207fb11a65e1a7451ab6085a72c  ./meta-qemu-edu/recipes-devtools/qemu/files/0001-hw-misc-edu-restrict-dma-access-to-dma-buffer.patch
 7775d87629cc287a05e9efe9fe11cc05b409caf59f9a9d2131d7547e2cdcf741  ./meta-qemu-edu/recipes-devtools/qemu/qemu-system-native_10.2.0.bbappend
@@ -74,7 +74,7 @@ d254ec5f2b1a104654a78e87254f52f487f2f4103055678a441ebd475c215392  ./setup.sh
 c8470125bdc369de36f6ad6bd11a0915bf17a329c3afb886d5add1e20f6d239d  ./tests/test_configure_build.py
 90febb26e9651ade3abf710e260faefb62227fcb867f7fc0e56d3acac3474e41  ./tests/test_environment.py
 490dd65fb61e5dff8c8b35e4b8026eedd08b4520713cc168aca288d7a6c312a7  ./tests/test_qemu_security.py
-46bad34e87326fb314fcab296a20d08c5baef26cb748cb1b61cf3a573ebc3bd2  ./tests/test_runtime_contract.py
+443583af0ea8ac7f44d532ba0bef273f0ecae3db93c1494e8b3842f1816acbe6  ./tests/test_runtime_contract.py
 63498edae7bcce6e12c265d8d18aa6570b74b6af1091e48ee5b9f40c20b41ce7  ./tests/test_runtime_evidence.py
 7b61ce129f9c73d56cfaddf78cb9b35efe23f37cf6f10daef51f1e0b6b181563  ./tests/test_source_lock.py
 417fc3c3edbecd3881ace46103073dbb93b6c6a7987ab24916545177e1a09a5b  ./tests/test_update_checksums.py
