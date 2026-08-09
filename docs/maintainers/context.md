@@ -65,6 +65,6 @@ SPDX-License-Identifier: MIT
   `f97b24335cd9579eaf825cf1c06e54ae1742f069f1afa2a4c8e6fa2f162856c2`; the
   bound native OEQA SHA-256 is
   `1f8b1756faf079a0996070846f4e4aee5535e71d205f5e232c9cbeff395e07c5`.
-  Required reviews, hosted gates, publication, merge, tag, and release remain
-  pending.
+  Draft pull request #6 is open from `feature/a004-bounded-dma`. Required
+  reviews, final hosted gates, merge, tag, and release remain pending.
 - Public workflow state uses tool-neutral maintainer paths while preserving the same task, approval, validation, review, and handoff semantics.

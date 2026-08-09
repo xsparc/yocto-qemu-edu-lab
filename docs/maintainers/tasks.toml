@@ -239,7 +239,7 @@ validation_evidence = [
   "Closed version-3 evidence validated with dirty=false and testimage exit 0; evidence SHA-256 is f97b24335cd9579eaf825cf1c06e54ae1742f069f1afa2a4c8e6fa2f162856c2, native OEQA SHA-256 is 1f8b1756faf079a0996070846f4e4aee5535e71d205f5e232c9cbeff395e07c5, and all five conservative DMA completion claims are true.",
 ]
 review_evidence = []
-result = "Implementation and clean local Linux qualification are complete at 8574eaffe206f8235a5da57461ded0ecbdbbf60b; required reviews, hosted gates, publication, merge, tag, and release remain pending."
+result = "Implementation and clean local Linux qualification are complete at 8574eaffe206f8235a5da57461ded0ecbdbbf60b; draft pull request #6 is open, while required reviews, final hosted gates, merge, tag, and release remain pending."
 
 [[tasks]]
 id = "A007"
