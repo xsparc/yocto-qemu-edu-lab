@@ -60,7 +60,8 @@ SPDX-License-Identifier: MIT
   repository suite, the exact Yocto 6.0.2 driver and image build, software-QEMU
   boot, ping, SSH, and all 19 project cases. Closed version-3 evidence records
   `dirty=false`, `testimage_exit_code=0`, 19/19 project passes, and all five DMA
-  completion claims true. Its SHA-256 is
+  completion claims true. The isolated exact-lock layer check also passed all
+  13 applicable BSP/common checks. The evidence SHA-256 is
   `f97b24335cd9579eaf825cf1c06e54ae1742f069f1afa2a4c8e6fa2f162856c2`; the
   bound native OEQA SHA-256 is
   `1f8b1756faf079a0996070846f4e4aee5535e71d205f5e232c9cbeff395e07c5`.

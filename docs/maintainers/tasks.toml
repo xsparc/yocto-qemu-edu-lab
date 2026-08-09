@@ -234,6 +234,7 @@ validation_evidence = [
   "Clean implementation commit 8574eaffe206f8235a5da57461ded0ecbdbbf60b passed effective locked-build verification and all 4,738 exact Yocto 6.0.2 image tasks on a resource-capped Debian 12 worker using BB_NUMBER_THREADS=4, PARALLEL_MAKE=-j 4, software QEMU, and no /dev/kvm.",
   "Exact Linux 6.18.24 built and packaged the final driver without a warning or error; qemu_edu.ko SHA-256 is e1ca2f44abbdf119f0e7e94c80b0b1d326e824e2b54bb9bd9d6b4e84382a04c4.",
   "The final A007 preflight reverified patch SHA-256 73689608fcf9d8826ca95a105562c9962c79f207fb11a65e1a7451ab6085a72c, patched edu.c SHA-256 32e2a035df36c25410d843e902cb4057aa43e83c047f682589d6f8539036ca2a, and the selected qemu-helper-native executable SHA-256 3ae484111806713b61f3da034f215737df64faf17865c36cec192c5064e88c56.",
+  "An isolated OE-Core-only yocto-check-layer run used the exact source lock and passed all 13 applicable BSP/common checks in 197.190 seconds; meta-qemu-edu reported PASS, with only the expected distro-class skip for a BSP layer.",
   "The clean software-QEMU run passed ping, SSH, and all 19 project cases in 165.509 seconds: 21/21 total tests passed with no skips, failures, or errors.",
   "Closed version-3 evidence validated with dirty=false and testimage exit 0; evidence SHA-256 is f97b24335cd9579eaf825cf1c06e54ae1742f069f1afa2a4c8e6fa2f162856c2, native OEQA SHA-256 is 1f8b1756faf079a0996070846f4e4aee5535e71d205f5e232c9cbeff395e07c5, and all five conservative DMA completion claims are true.",
 ]
