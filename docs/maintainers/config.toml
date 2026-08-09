@@ -14,7 +14,7 @@ ci_policy_path = "docs/ci.md"
 versioning_path = "docs/versioning.md"
 guest_interface_path = "docs/guest-interface.md"
 runtime_testing_path = "docs/runtime-testing.md"
-runtime_evidence_schema_path = "schemas/qemu-edu-runtime-evidence-v2.schema.json"
+runtime_evidence_schema_path = "schemas/qemu-edu-runtime-evidence-v3.schema.json"
 
 validation_commands = [
   "python3 scripts/source_lock.py validate",

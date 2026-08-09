@@ -25,7 +25,7 @@ TARGET=${TARGETS[0]}
 
 bash "$QEMU_PREFLIGHT" "$ROOT_DIR" "$TARGET"
 
-EVIDENCE_OUTPUT=${EVIDENCE_OUTPUT:-"$BUILD_DIR/evidence/qemu-edu-runtime-v2.json"}
+EVIDENCE_OUTPUT=${EVIDENCE_OUTPUT:-"$BUILD_DIR/evidence/qemu-edu-runtime-v3.json"}
 install -d "$BUILD_DIR/evidence"
 OEQA_JSON_RESULT_DIR=$(mktemp -d "$BUILD_DIR/evidence/oeqa.XXXXXXXX")
 export OEQA_JSON_RESULT_DIR

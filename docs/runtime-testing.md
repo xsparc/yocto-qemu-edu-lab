@@ -5,7 +5,7 @@ SPDX-License-Identifier: MIT
 
 # Automated runtime testing and evidence
 
-The M3 suite uses the Yocto Project's native `testimage` and OEQA runtime framework. The
+The M4 suite uses the Yocto Project's native `testimage` and OEQA runtime framework. The
 image inherits `testimage`, enables Dropbear for the development-only empty-root
 login, selects `ping ssh qemu_edu`, uses unprivileged SLIRP networking, and
 disables KVM for portable evidence. Under SLIRP, OEQA's `ping` bootstrap sees a
@@ -49,7 +49,7 @@ and converts the matching result from that invocation's fresh OEQA directory
 into:
 
 ```text
-build/evidence/qemu-edu-runtime-v2.json
+build/evidence/qemu-edu-runtime-v3.json
 ```
 
 Set `BUILD_DIR` to relocate build products or `EVIDENCE_OUTPUT` to choose a
@@ -81,18 +81,29 @@ The project layer supplies `qemu_edu.QemuEduRuntimeTests`, which asserts:
 - the real factorial timeout path through bounded module-load fault injection;
 - PCI removal, the resulting missing-device diagnostic, and successful PCI
   rescan/rebinding. This uses Linux hot removal rather than a second QEMU boot.
+- the reported 28-bit mask, 4,096-byte buffer, length-only sysfs mode, and
+  disabled-by-default missing-completion seam;
+- verified RAM-to-EDU-to-RAM transfers at lengths 1, 3, and 4096, with exactly
+  two handled `0x00000100` completion interrupts per round trip;
+- rejection of zero, over-limit, negative, and malformed lengths without
+  changing the last successful result;
+- a bounded missing-completion timeout, followed by default module, MSI, and
+  DMA recovery; and
+- unload cleanup and a known-good default MSI plus DMA rebind.
 
 Policy and negative tests use `try/finally` restoration. A failed unload,
-`msi_bus` restore, or default-MSI rebind is a test error, not a skip. DMA,
-multiple devices, and real hardware remain outside M3.
+`msi_bus` restore, or default-MSI rebind is a test error, not a skip. Arbitrary
+DMA addresses, streaming DMA, multiple devices, and real hardware remain out of
+scope.
 
 ## Evidence versions
 
-The collector emits the closed version-2 schema at
-`schemas/qemu-edu-runtime-evidence-v2.schema.json`. The version-1 schema remains
-unchanged, and the validator continues to accept historical M2 documents. Old
-version-1 readers correctly reject version 2; use the current dependency-free
-validator or retain the M2 revision as the rollback path.
+The collector emits the closed version-3 schema at
+`schemas/qemu-edu-runtime-evidence-v3.schema.json`. Version-1 and version-2
+schemas remain unchanged, and the validator continues to accept historical M2
+and M3 documents. Old readers correctly reject unknown versions; use the
+current dependency-free validator or retain the corresponding historical
+revision as the rollback path.
 
 The collector additionally enforces semantic invariants that JSON Schema alone
 does not express: every required case appears once and in order, summary counts
@@ -106,18 +117,21 @@ Evidence records only bounded facts:
 - guest-interface and suite contract names/versions plus `TEST_TYPE=runtime`;
 - conservative, case-bound claims for default MSI, explicit INTx, automatic
   fallback, required-MSI failure, and cleanup recovery;
+- conservative, case-bound claims for the length-only DMA interface, both
+  transfer directions and bounds, exact completion status, rejected input,
+  missing-completion recovery, and teardown/rebind;
 - machine, image, distro, host distro, OEQA start identifier, and native
   `testimage` exit code;
 - explicit timeout fault-injection and PCI hot-removal mechanisms, including
   that the absence case is not a cold boot without the device;
 - required case IDs, statuses, durations, and summary counts.
 
-The project revision binds the runtime result to the committed A007 integration.
+The project revision binds the runtime result to the exact committed implementation.
 The shared preflight output proves effective QEMU selection, exact patched
 source, and the native executable that locked `runqemu` selects. The same gate
 protects `run.sh`, and it rejects the locked script's otherwise-permitted host
-`PATH` fallback. Runtime schema 2 remains unchanged because the guest contract
-and its 14 cases do not change.
+`PATH` fallback. Historical runtime schemas 1 and 2 remain unchanged; M4 uses a
+new version because the guest contract and required case list change.
 
 A007 was qualified locally at clean commit
 `46e2280448cf2a857f8599f677f1b1bd0284fa13`. After clearing an inherited forced
@@ -129,7 +143,25 @@ native OEQA input SHA-256 is
 This is a local software-QEMU result, not a hosted attestation, physical-hardware
 result, merge, tag, or release.
 
-Interrupt-path and negative-path completion flags are conservative claims: they
+That A007 record remains the known-good pre-DMA baseline. A004/M4 was qualified
+locally at clean implementation commit
+`8574eaffe206f8235a5da57461ded0ecbdbbf60b`. A Debian 12 worker used
+`BB_NUMBER_THREADS=4`, `PARALLEL_MAKE=-j 4`, software QEMU, and no `/dev/kvm`.
+The exact Yocto 6.0.2 build completed all 4,738 image tasks, and the final run
+passed ping, SSH, and all 19 project cases in 165.509 seconds. The complete
+result was 21/21 with no skips, failures, or errors.
+
+The closed version-3 evidence records `dirty=false`, `testimage_exit_code=0`,
+19/19 project passes, and all five conservative DMA completion claims true.
+Its SHA-256 is
+`f97b24335cd9579eaf825cf1c06e54ae1742f069f1afa2a4c8e6fa2f162856c2`; the
+bound native OEQA input SHA-256 is
+`1f8b1756faf079a0996070846f4e4aee5535e71d205f5e232c9cbeff395e07c5`.
+This is local software-QEMU qualification, not a hosted attestation,
+physical-hardware result, independent review, publication, merge, tag, or
+release.
+
+Interrupt-path, negative-path, and DMA-path completion flags are conservative claims: they
 become true only when the corresponding required case passes. A failure
 document therefore cannot claim that a mechanism completed merely because its
 test was selected or began running.
@@ -142,7 +174,7 @@ Validate an existing document with:
 
 ```bash
 python3 scripts/runtime_evidence.py validate \
-  build/evidence/qemu-edu-runtime-v2.json --require-pass
+  build/evidence/qemu-edu-runtime-v3.json --require-pass
 ```
 
 ## Host and CI boundary

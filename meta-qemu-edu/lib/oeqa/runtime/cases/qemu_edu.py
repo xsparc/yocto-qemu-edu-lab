@@ -15,7 +15,7 @@ BDF_PATTERN = re.compile(r"^[0-9a-f]{4}:[0-9a-f]{2}:[0-9a-f]{2}\.[0-7]$")
 
 
 class QemuEduRuntimeTests(OERuntimeTestCase):
-    """Exercise the documented PCI, MMIO, MSI/INTx, and failure contract."""
+    """Exercise the documented PCI, MMIO, IRQ, and bounded DMA contract."""
 
     def run_ok(self, command: str, timeout: int = 30) -> str:
         status, output = self.target.run(command, timeout=timeout)
@@ -91,6 +91,20 @@ class QemuEduRuntimeTests(OERuntimeTestCase):
         )
         return self.assert_interrupt_mode("msi")
 
+    def assert_dma_roundtrip(self, length: int) -> None:
+        bdf = self.device_bdf()
+        count_path = f"{DRIVER_DIR}/{bdf}/irq_count"
+        status_path = f"{DRIVER_DIR}/{bdf}/last_irq_status"
+        roundtrip_path = f"{DRIVER_DIR}/{bdf}/dma_roundtrip"
+        before = int(self.run_ok(f"cat {count_path}"))
+        self.run_ok(f"printf '{length}\\n' > {roundtrip_path}", timeout=10)
+        self.assertEqual(
+            self.run_ok(f"cat {roundtrip_path}"),
+            f"length={length} result=passed",
+        )
+        self.assertEqual(int(self.run_ok(f"cat {count_path}")), before + 2)
+        self.assertEqual(self.run_ok(f"cat {status_path}"), "0x00000100")
+
     def unload_module(self) -> None:
         self.run_ok("modprobe -r qemu_edu")
 
@@ -162,6 +176,9 @@ class QemuEduRuntimeTests(OERuntimeTestCase):
     def test_03_initial_operation_state(self) -> None:
         self.assertEqual(self.run_ok(f"cat {self.attribute('liveness')}"), "not-run")
         self.assertEqual(self.run_ok(f"cat {self.attribute('factorial')}"), "not-run")
+        self.assertEqual(
+            self.run_ok(f"cat {self.attribute('dma_roundtrip')}"), "not-run"
+        )
         self.assertEqual(self.run_ok(f"cat {self.attribute('irq_count')}"), "0")
         bdf = self.device_bdf()
         attributes = (
@@ -172,6 +189,9 @@ class QemuEduRuntimeTests(OERuntimeTestCase):
             "irq_count",
             "last_irq_status",
             "interrupt_mode",
+            "dma_mask_bits",
+            "dma_buffer_size",
+            "dma_roundtrip",
         )
         attribute_paths = " ".join(
             f"{DRIVER_DIR}/{bdf}/{name}" for name in attributes
@@ -187,6 +207,9 @@ class QemuEduRuntimeTests(OERuntimeTestCase):
                 f"444 {DRIVER_DIR}/{bdf}/irq_count",
                 f"444 {DRIVER_DIR}/{bdf}/last_irq_status",
                 f"444 {DRIVER_DIR}/{bdf}/interrupt_mode",
+                f"444 {DRIVER_DIR}/{bdf}/dma_mask_bits",
+                f"444 {DRIVER_DIR}/{bdf}/dma_buffer_size",
+                f"644 {DRIVER_DIR}/{bdf}/dma_roundtrip",
             ],
         )
 
@@ -365,3 +388,82 @@ class QemuEduRuntimeTests(OERuntimeTestCase):
         finally:
             self.run_ok("printf '1\\n' > /sys/bus/pci/rescan")
         self.assertEqual(self.assert_default_msi(), bdf)
+
+    def test_14_dma_contract(self) -> None:
+        self.assertEqual(self.run_ok(f"cat {self.attribute('dma_mask_bits')}"), "28")
+        self.assertEqual(
+            self.run_ok(f"cat {self.attribute('dma_buffer_size')}"), "4096"
+        )
+        parameter = self.run_ok(
+            "cat /sys/module/qemu_edu/parameters/force_dma_timeout"
+        )
+        self.assertIn(parameter, ("N", "0"))
+        self.assertEqual(
+            self.run_ok(f"cat {self.attribute('dma_roundtrip')}"), "not-run"
+        )
+
+    def test_15_dma_roundtrip_boundaries(self) -> None:
+        for length in (1, 3, 4096):
+            self.assert_dma_roundtrip(length)
+
+    def test_16_invalid_dma_inputs(self) -> None:
+        path = self.attribute("dma_roundtrip")
+        self.assert_dma_roundtrip(17)
+        expected_state = "length=17 result=passed"
+        for value, expected_errno in (
+            ("0", 34),
+            ("4097", 34),
+            ("-1", 22),
+            ("invalid", 22),
+        ):
+            status, output = self.target.run(
+                f"qemu-edu-write {path} '{value}'", timeout=10
+            )
+            self.assertNotEqual(status, 0, msg=f"{value!r} was unexpectedly accepted")
+            self.assertIn(f"errno={expected_errno}", output)
+            self.assertEqual(self.run_ok(f"cat {path}"), expected_state)
+
+    def test_17_dma_timeout_and_recovery(self) -> None:
+        try:
+            self.unload_module()
+            self.run_ok("modprobe qemu_edu force_dma_timeout=1")
+            bdf = self.device_bdf()
+            path = f"{DRIVER_DIR}/{bdf}/dma_roundtrip"
+            count_path = f"{DRIVER_DIR}/{bdf}/irq_count"
+            before = self.run_ok(f"cat {count_path}")
+            status, output = self.target.run(
+                f"qemu-edu-write {path} 64", timeout=10
+            )
+            self.assertNotEqual(status, 0, msg="missing DMA completion did not time out")
+            self.assertIn("errno=110", output)
+            self.assertEqual(
+                self.run_ok(f"cat {path}"), "length=64 result=timeout"
+            )
+            self.assertEqual(self.run_ok(f"cat {count_path}"), before)
+        finally:
+            self.restore_default_module()
+        parameter = self.run_ok(
+            "cat /sys/module/qemu_edu/parameters/force_dma_timeout"
+        )
+        self.assertIn(parameter, ("N", "0"))
+        self.assert_dma_roundtrip(64)
+
+    def test_18_dma_teardown_and_rebind(self) -> None:
+        bdf = self.assert_default_msi()
+        irq = self.run_ok(f"cat /sys/bus/pci/devices/{bdf}/irq")
+        self.assert_dma_roundtrip(32)
+        try:
+            self.unload_module()
+            self.run_ok(f"test ! -e /sys/bus/pci/devices/{bdf}/driver")
+            self.run_ok(f"test ! -e {DRIVER_DIR}/{bdf}/dma_roundtrip")
+            self.run_ok(
+                f'test ! -d /sys/bus/pci/devices/{bdf}/msi_irqs || '
+                f'test -z "$(ls -A /sys/bus/pci/devices/{bdf}/msi_irqs)"'
+            )
+            self.run_ok(
+                f"! grep -E '^[[:space:]]*{irq}:' /proc/interrupts | "
+                "grep -w qemu_edu"
+            )
+        finally:
+            self.restore_default_module()
+        self.assert_dma_roundtrip(32)

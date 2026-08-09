@@ -136,3 +136,23 @@ SPDX-License-Identifier: MIT
   backport only after exact recipe selection, patch/source digests, guarded copy
   placement, compilation, fail-closed native-sysroot consumption, and the full
   runtime regression are reverified.
+
+## D-013: Keep the DMA curriculum length-only and bounded
+
+- Status: Accepted on 2026-08-09 for A004; no publication, merge, tag, or
+  release is authorized by this decision.
+- Decision: Advance the development identity to `0.4.0-dev`, guest interface
+  to version 3, and runtime evidence to schema 3 while retaining validation of
+  immutable schema 1 and 2 records. Allocate one managed 4,096-byte coherent
+  buffer under the EDU 28-bit mask. Accept only a transfer length from 1
+  through 4096, use the fixed EDU buffer offset, and perform a verified
+  RAM-to-EDU-to-RAM round trip under one operation lock. Never expose or accept
+  a DMA address. Require exact DMA-interrupt acknowledgement, bounded waits,
+  barriers, and bus-master quiescence before managed memory release.
+- Reason: A length-only teaching interface demonstrates coherent allocation,
+  mask negotiation, both transfer directions, interrupt completion, bounds,
+  and teardown without turning sysfs into an arbitrary DMA primitive. The
+  already-qualified A007 host-emulator guard remains a mandatory prerequisite.
+- Revisit when: a later curriculum stage has a separately reviewed need for
+  streaming mappings or physical hardware. Such work must use a new interface
+  version and must not weaken this bounded contract.

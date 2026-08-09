@@ -5,8 +5,8 @@ SPDX-License-Identifier: MIT
 
 # Project context
 
-- Active task: A007, the approved M3.1 host-emulator bounds hardening slice.
-- Current branch: focused A007 implementation branch.
+- Active task: A004, the approved M4 bounded DMA learning slice.
+- Current branch: `feature/a004-bounded-dma`.
 - Baseline: one x86-64 Yocto 6.0 (`wrynose`) learning machine using QEMU EDU PCI device `1234:11e8`.
 - Existing merged runtime features: PCI discovery, BAR0 MMIO, managed MSI/INTx
   selection, sysfs, factorial/liveness operations, and automated guest
@@ -46,11 +46,25 @@ SPDX-License-Identifier: MIT
 - A007 clean commit `46e2280` passed patched-emulator compilation, exact
   consumer verification, a warning-free image rebuild, all 14 project runtime
   cases, licensing, and independent review.
-- Pull request #5 is the focused A007 review surface. Its first hosted metadata
-  run exposed an unconditional native-recipe signature change for unrelated
-  machines; the approved correction scopes the append to the EDU machine and
-  retains the full layer-signature check. Correction commit `93ed232` passes
-  hosted repository, static, licensing, exact project metadata, and all 13
-  native layer checks. The next gate is public review and separately authorized
-  merge. M4, M5, and M6 remain Proposed and unapproved.
+- Pull request #5 passed its hosted fast and metadata gates, then squash-merged
+  as `083ddf5e1207dac34bdaf12e04a41f1f1faa8d7f`; no tag or release was
+  published.
+- A004 is approved as a length-only bounded DMA curriculum. It adds one managed
+  4,096-byte coherent buffer under the 28-bit mask, a fixed-offset two-direction
+  round trip, DMA completion and timeout handling, fail-closed teardown, guest
+  interface version 3, and closed runtime evidence version 3. Arbitrary DMA
+  addresses, streaming DMA, physical-hardware claims, and source-lock updates
+  remain out of scope. M5 and M6 remain Proposed and unapproved.
+- A004 clean implementation commit
+  `8574eaffe206f8235a5da57461ded0ecbdbbf60b` passed the complete 94-test Linux
+  repository suite, the exact Yocto 6.0.2 driver and image build, software-QEMU
+  boot, ping, SSH, and all 19 project cases. Closed version-3 evidence records
+  `dirty=false`, `testimage_exit_code=0`, 19/19 project passes, and all five DMA
+  completion claims true. The isolated exact-lock layer check also passed all
+  13 applicable BSP/common checks. The evidence SHA-256 is
+  `f97b24335cd9579eaf825cf1c06e54ae1742f069f1afa2a4c8e6fa2f162856c2`; the
+  bound native OEQA SHA-256 is
+  `1f8b1756faf079a0996070846f4e4aee5535e71d205f5e232c9cbeff395e07c5`.
+  Draft pull request #6 is open from `feature/a004-bounded-dma`. Required
+  reviews, final hosted gates, merge, tag, and release remain pending.
 - Public workflow state uses tool-neutral maintainer paths while preserving the same task, approval, validation, review, and handoff semantics.

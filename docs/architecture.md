@@ -22,6 +22,7 @@ Linux PCI core -> qemu_edu.ko -> probe()
                                   |
                                   |-- maps BAR0 (MMIO)
                                   |-- allocates one managed MSI/INTx vector
+                                  |-- allocates one managed 4 KiB coherent buffer
                                   |-- creates sysfs attributes
                                   v
 /sys/bus/pci/drivers/qemu_edu/<PCI-address>/
@@ -41,7 +42,9 @@ qemu-edu-test
 6. **MMIO** accesses the device's register file through BAR0.
 7. **Interrupt handling** acknowledges the device and wakes a waiting operation.
 8. **sysfs** provides a deliberately small user-space control surface.
-9. **The image recipe** chooses diagnostic tools, independently of hardware support.
+9. **Coherent DMA** demonstrates a 28-bit mask, fixed device-buffer addressing,
+   two transfer directions, completion, verification, and quiescence.
+10. **The image recipe** chooses diagnostic tools, independently of hardware support.
 
 ## Current constraints
 
@@ -53,12 +56,14 @@ qemu-edu-test
   availability, authenticated upstream origin, bit-for-bit output, or runtime
   behavior.
 - M2 added a native OEQA/testimage suite and a closed version-1 result schema;
-  M3 retains its validator while adding version 2 for interrupt-mode evidence.
+  M3 retained its validator while adding version 2 for interrupt-mode evidence;
+  M4 retains both while adding version 3 for bounded DMA evidence.
   A full build/runtime pass remains an evidence claim only after it executes on
   an adequate Linux host; the manual guest script remains the teaching path.
 - The driver defaults to automatic MSI-preferred allocation, exposes strict MSI
-  and explicit INTx policies for comparison, and has not implemented the EDU
-  DMA engine.
+  and explicit INTx policies for comparison, and implements only a length-only
+  1..4096 coherent DMA round trip. It does not expose DMA addresses, arbitrary
+  device offsets, streaming mappings, scatter-gather, or queues.
 - The host emulator is a build input as well as a teaching tool. The EDU
   machine requires `qemu-system-native` 10.2.0 plus the exact upstream bounds
   backport until a supported recipe includes that fix. The append evaluates the
@@ -71,7 +76,7 @@ qemu-edu-test
   before either manual or OEQA boot; host-`PATH` fallback is outside the
   project boundary.
 - The user-facing sysfs control surface is documented as guest-interface
-  contract version 2. It remains pre-1.0 and may evolve only with an explicit
+  contract version 3. It remains pre-1.0 and may evolve only with an explicit
   project-version and compatibility decision.
 - The repository has no physical-hardware target and must not imply QEMU
   validates electrical or silicon behavior.
@@ -135,10 +140,13 @@ as evidence. Evidence records the source revision, machine, image, test suite,
 result, and environment needed to interpret it. It never upgrades “unknown” to
 “pass.”
 
-Runtime evidence versions 1 and 2 are lossy, allowlisted projections of native
+Runtime evidence versions 1, 2, and 3 are lossy, allowlisted projections of native
 OEQA JSON. Version 1 remains immutable for the M2 INTx baseline. Version 2 adds
 conservative, case-bound claims for MSI, explicit INTx, automatic fallback,
-strict-MSI failure, and cleanup recovery. Both record exact required case
+strict-MSI failure, and cleanup recovery. Version 3 preserves those claims and
+adds case-bound facts for the length-only interface, both DMA directions,
+boundary and negative input, exact completion status, missing-completion
+timeout recovery, and teardown/rebind. All versions record exact required case
 statuses, durations, source-lock identity, project revision/dirty state, and the
 native task exit. Raw logs and arbitrary upstream fields remain diagnostic
 inputs rather than public schema fields.
@@ -178,6 +186,10 @@ transport, credentials, and hosted storage remain outside the core lab.
   an out-of-bounds exploit is not a supported test technique.
 - Guest input is untrusted at kernel boundaries. Range, timeout, teardown, and
   concurrent removal behavior require tests as features expand.
+- DMA input is deliberately length-only. The driver owns the coherent address,
+  validates the complete allocation under the 28-bit mask, uses only the fixed
+  EDU buffer, serializes the round trip, and clears bus mastering before managed
+  memory release.
 - Optional automation tools start read-only. Any state-changing capability must
   be separately named, approval-gated, and safe against path or argument
   injection.

@@ -5,7 +5,7 @@ SPDX-License-Identifier: MIT
 
 # QEMU EDU guest interface contract
 
-This document defines version 2 of the pre-1.0 guest-visible contract for the
+This document defines version 3 of the pre-1.0 guest-visible contract for the
 `qemu_edu` learning driver. It describes the current stage; it is not a
 promise that a later pre-1.0 minor version will never change the interface.
 
@@ -16,9 +16,9 @@ one symbolic link under:
 /sys/bus/pci/drivers/qemu_edu/<domain:bus:slot.function>/
 ```
 
-The PCI address is discovered at runtime and must not be hard-coded. The M2
-baseline expects exactly one device, but the path shape remains valid if a
-future lab deliberately adds multi-device coverage.
+The PCI address is discovered at runtime and must not be hard-coded. The
+current automated baseline expects exactly one device, but the path shape
+remains valid if a future lab deliberately adds multi-device coverage.
 
 ## Attributes
 
@@ -35,12 +35,34 @@ hexadecimal values are accepted, while malformed or out-of-range unsigned
 | `irq_count` | read | Decimal count of handled device interrupts since this binding began |
 | `last_irq_status` | read | Last acknowledged EDU interrupt status as eight-digit hexadecimal |
 | `interrupt_mode` | read | Resolved interrupt mode: `msi` or `intx`; this is never the requested policy value `auto` |
+| `dma_mask_bits` | read | Decimal `28`, the negotiated EDU DMA-address width; this file is provided by the Linux DMA core rather than duplicated by the driver group |
+| `dma_buffer_size` | read | Decimal `4096`, the size of both the managed coherent allocation and EDU's fixed internal DMA buffer |
+| `dma_roundtrip` | read/write | Before a request: `not-run`. Writing a length from 1 through 4096 performs a verified RAM-to-EDU-to-RAM transfer. Readback is `length=N result=passed`, `timeout`, `verify-failed`, or `faulted` |
 
-Factorial and explicit-interrupt writes use a 2000 ms kernel wait budget; the
-system call can return later because of scheduling and teardown overhead. If
-the expected interrupt does not arrive, the write fails with `ETIMEDOUT`. An
-interrupted wait returns the signal error. All operation paths disable
-factorial interrupt requests before returning.
+Factorial, explicit-interrupt, and each DMA completion use a 2000 ms kernel
+wait budget; the system call can return later because of scheduling and
+teardown overhead. If the expected interrupt does not arrive, the write fails
+with `ETIMEDOUT`. Factorial and explicit-interrupt waits are interruptible and
+return the signal error; the DMA wait is bounded but uninterruptible. All
+factorial operation paths disable factorial interrupt requests before
+returning.
+
+`dma_roundtrip` accepts only a length. The guest never provides or reads a DMA
+address or EDU buffer offset. The driver allocates one managed 4,096-byte
+coherent buffer after negotiating the 28-bit mask, and always uses EDU's fixed
+internal buffer at offset `0x40000`. A successful request fills a deterministic
+pattern, transfers it RAM-to-EDU, overwrites the CPU buffer with a sentinel,
+transfers EDU-to-RAM, and verifies every requested byte. Each successful round
+trip handles exactly two DMA completion interrupts with EDU status
+`0x00000100`. Zero and lengths above 4096 fail with `ERANGE`; negative,
+malformed, and unsigned-overflow text fails through the unsigned parser. Input
+validation happens before state changes, so rejected input preserves the last
+successful result.
+
+Linux publishes the negotiated mask through the PCI device's generic
+`dma_mask_bits` attribute after `dma_set_mask_and_coherent()`. The driver uses
+that existing file in the guest contract and does not create a colliding sysfs
+attribute of its own.
 
 The module-load-only Boolean parameter `force_factorial_timeout` is a bounded
 test seam. Its default is false and its sysfs permission is read-only. When the
@@ -48,6 +70,16 @@ module is loaded with `force_factorial_timeout=1`, the driver starts the real
 factorial computation without requesting its completion interrupt, allowing
 the automated suite to prove the existing timeout path. It is not an
 application feature and must be restored to its default after the test.
+
+The read-only module-load Boolean `force_dma_timeout` is the corresponding DMA
+test seam. When true, the driver starts the real first-direction transfer but
+does not request its completion interrupt. The device normally finishes the
+copy, while the bounded wait proves the missing-completion path and reports
+`length=N result=timeout`. This does not claim stuck hardware. Tests unload the
+fault-selected module and prove that the default false value, MSI binding, and
+round trip recover. A missing or malformed completion clears bus mastering and
+faults that binding's DMA path, so another DMA request is rejected until the
+module is reloaded.
 
 The module-load-only string parameter `interrupt_mode` selects the interrupt
 policy. It is read-only after load and accepts only `auto`, `msi`, or `intx`:
@@ -62,9 +94,9 @@ The requested policy is visible at
 is the `interrupt_mode` attribute in the table above. An invalid policy fails
 probe with `EINVAL` and does not bind the device.
 
-## Interrupt lifecycle
+## Interrupt and DMA lifecycle
 
-Version 2 allocates exactly one PCI IRQ vector. The locked QEMU EDU device
+The driver allocates exactly one PCI IRQ vector. The locked QEMU EDU device
 supports one MSI vector, so the default `auto` policy resolves to MSI. Both MSI
 and INTx report `qemu_edu` in `/proc/interrupts`, increment `irq_count`, and
 acknowledge each device status in `last_irq_status`. A resolved MSI binding has
@@ -75,6 +107,15 @@ The driver uses the managed vector lifecycle installed by
 `pcim_enable_device()` in the locked Linux 6.18 kernel. It requests the handler
 after vector allocation, quiesces and acknowledges the device before request
 and during removal, and does not manually free the managed vector.
+
+The coherent buffer is device-managed, but hardware is quiesced explicitly:
+removal first removes the sysfs entry, serializes with any operation, disables
+factorial interrupt requests, acknowledges pending status, clears PCI bus
+mastering, and waits a bounded interval for the DMA run bit to clear. A
+persistent active engine is warned and remains fail-closed; the bound instance
+does not resume DMA. Pending completion state is acknowledged and the IRQ is
+synchronized before managed cleanup. The normal timeout seam completes the copy
+before removal and does not exercise a permanently stuck device.
 
 OEQA temporarily uses Linux's root-only, endpoint-scoped `msi_bus` testing ABI
 while the driver is unbound to prove real PCI-core fallback and strict-MSI
@@ -99,4 +140,6 @@ not a privileged bypass: normal file permissions and kernel validation apply.
 Only root can write the writable attributes in the development image. Sysfs input is
 untrusted kernel input: range checks, serialized operations, bounded waits,
 interrupt acknowledgement, and safe teardown remain required. QEMU evidence
-does not imply electrical, timing, coherency, or physical-hardware behavior.
+does not imply electrical, timing, cache-coherency, IOMMU, or physical-hardware
+behavior. Contract versions 1 and 2 remain historical evidence inputs; the
+current driver and collector emit version 3.

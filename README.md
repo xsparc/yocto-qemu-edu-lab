@@ -11,7 +11,7 @@ Device-Tree/platform-driver lab, and optional provider-neutral diagnostics. The
 core build and learning path will remain usable without an AI service. See
 [`docs/vision.md`](docs/vision.md) and [`docs/roadmap.md`](docs/roadmap.md).
 
-The current development identity is `0.3.1-dev`; no release is implied. Yocto
+The current development identity is `0.4.0-dev`; no release is implied. Yocto
 metadata inputs are locked to the 6.0.2 Wrynose point release.
 
 The virtual target is an x86-64 machine with QEMU's **EDU educational PCI
@@ -30,6 +30,8 @@ This first lab implements:
 - BAR/MMIO mapping
 - One managed PCI interrupt vector with MSI-preferred, strict-MSI, and explicit
   INTx learning policies
+- One managed 4 KiB coherent buffer and a length-only, two-direction bounded
+  DMA round trip under the EDU 28-bit mask
 - sysfs controls
 - Automatic module loading
 - A user-space test package
@@ -140,6 +142,7 @@ Expected highlights resemble:
 1234:11e8
 input=0x12345678 result=0xedcba987 expected=0xedcba987
 5! = 120
+length=64 result=passed
 All EDU driver checks completed.
 ```
 
@@ -175,13 +178,15 @@ patched `edu.c` digest and both guarded copies, and the executable in
 `testimage`/OEQA path over unprivileged SLIRP. It
 asserts PCI discovery, identification, liveness, factorial boundaries, default
 and strict MSI, explicit INTx, real automatic fallback, strict-MSI failure,
-cleanup, invalid inputs, timeout handling, and the removed-device diagnostic. The
+cleanup, invalid inputs, timeout handling, the removed-device diagnostic,
+bounded DMA in both directions, DMA completion, timeout recovery, and
+unload/rebind cleanup. The
 manual `qemu-edu-test` command remains available for teaching and rollback.
 
 A successful run creates a closed, versioned result document at:
 
 ```text
-build/evidence/qemu-edu-runtime-v2.json
+build/evidence/qemu-edu-runtime-v3.json
 ```
 
 See [`docs/guest-interface.md`](docs/guest-interface.md) for the sysfs contract
@@ -281,14 +286,23 @@ must acknowledge the EDU interrupt status. Because this driver combines
 `pcim_enable_device()` with the locked Linux 6.18 managed-vector lifecycle, it
 must not call `pci_free_irq_vectors()` itself.
 
-### Exercise E: Add DMA
+### Exercise E: Trace bounded DMA
 
-Implement the EDU DMA registers at offsets `0x80` through `0x98`.  Allocate
-coherent memory, honour the device's 28-bit DMA mask, copy data to the EDU's
-4 KiB internal buffer at offset `0x40000`, and verify the round trip.
-Keep the A007 host-emulator bounds backport enabled. Never probe invalid DMA
-ranges against an unpatched QEMU process; source verification is the safe gate
-for the host-side bound check.
+Write a length from 1 through 4096 to `dma_roundtrip`, then read the result,
+interrupt count, and last status:
+
+```bash
+DEVICE=/sys/bus/pci/drivers/qemu_edu/*:*
+cat $DEVICE/dma_mask_bits $DEVICE/dma_buffer_size
+echo 64 > $DEVICE/dma_roundtrip
+cat $DEVICE/dma_roundtrip $DEVICE/irq_count $DEVICE/last_irq_status
+```
+
+Follow the fixed registers at offsets `0x80` through `0x98`, the coherent
+allocation, the 28-bit mask, the sentinel overwrite, and both completion IRQs
+in `qemu_edu.c`. The interface intentionally accepts no DMA address. Keep the
+A007 host-emulator bounds backport enabled; source verification, not unsafe
+out-of-bounds input, is the host-side security gate.
 
 ### Exercise F: Move the driver in-tree
 
