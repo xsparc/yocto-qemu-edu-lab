@@ -143,10 +143,23 @@ native OEQA input SHA-256 is
 This is a local software-QEMU result, not a hosted attestation, physical-hardware
 result, merge, tag, or release.
 
-That A007 record remains the known-good pre-DMA baseline. A004/M4 does not have
-passing build or runtime evidence until an exact clean revision completes the
-expanded 19-case version-3 suite; repository-local tests and metadata checks do
-not substitute for that qualification.
+That A007 record remains the known-good pre-DMA baseline. A004/M4 was qualified
+locally at clean implementation commit
+`8574eaffe206f8235a5da57461ded0ecbdbbf60b`. A Debian 12 worker used
+`BB_NUMBER_THREADS=4`, `PARALLEL_MAKE=-j 4`, software QEMU, and no `/dev/kvm`.
+The exact Yocto 6.0.2 build completed all 4,738 image tasks, and the final run
+passed ping, SSH, and all 19 project cases in 165.509 seconds. The complete
+result was 21/21 with no skips, failures, or errors.
+
+The closed version-3 evidence records `dirty=false`, `testimage_exit_code=0`,
+19/19 project passes, and all five conservative DMA completion claims true.
+Its SHA-256 is
+`f97b24335cd9579eaf825cf1c06e54ae1742f069f1afa2a4c8e6fa2f162856c2`; the
+bound native OEQA input SHA-256 is
+`1f8b1756faf079a0996070846f4e4aee5535e71d205f5e232c9cbeff395e07c5`.
+This is local software-QEMU qualification, not a hosted attestation,
+physical-hardware result, independent review, publication, merge, tag, or
+release.
 
 Interrupt-path, negative-path, and DMA-path completion flags are conservative claims: they
 become true only when the corresponding required case passes. A failure

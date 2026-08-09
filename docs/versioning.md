@@ -42,11 +42,11 @@ automatically public APIs.
 | `0.2.0-dev` | 6.0.2 | `wrynose` | Repository, static, licensing, exact-source, parse, inspection, and native layer CI; clean commit `6479681` completed the full image build and passed all 11 project runtime cases under software QEMU with validated version-1 evidence |
 | `0.3.0-dev` | 6.0.2 | `wrynose` | Clean commit `3ea0204` completed the exact locked image path and passed ping, SSH, and all 14 project cases under software QEMU with validated version-2 evidence; no physical-hardware or release claim is implied |
 | `0.3.1-dev` | 6.0.2 | `wrynose` | Clean commit `46e2280` compiled and staged the exact patched native emulator, rebuilt the driver/image without taint, and passed ping, SSH, and all 14 project cases with validated version-2 evidence; pull request #5 passed hosted gates and squash-merged as `083ddf5`, with no tag or release |
-| `0.4.0-dev` | 6.0.2 | `wrynose` | A004 adds the approved bounded coherent-DMA curriculum and version-3 contracts; exact clean Linux build/runtime qualification remains pending and must not be inferred from repository-local checks |
+| `0.4.0-dev` | 6.0.2 | `wrynose` | Clean commit `8574eaf` completed the exact locked image path and passed ping, SSH, and all 19 project cases under software QEMU with validated version-3 evidence; required review, hosted gates, publication, and release remain pending |
 
-The runtime document is an unsigned local report whose SHA-256 was independently
-recomputed. It is not a hosted provenance attestation or a physical-hardware
-result.
+Runtime documents are unsigned local reports. Their task records state whether
+a digest was independently recomputed; A004 independent review remains pending.
+They are not hosted provenance attestations or physical-hardware results.
 
 `0.3.1-dev` was a pre-release patch line because A007 corrected the host emulator
 without changing the guest contract, runtime evidence schema, or curriculum

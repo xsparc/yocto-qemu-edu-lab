@@ -6,7 +6,7 @@ SPDX-License-Identifier: MIT
 # Project context
 
 - Active task: A004, the approved M4 bounded DMA learning slice.
-- Current branch: focused A004 implementation branch.
+- Current branch: `feature/a004-bounded-dma`.
 - Baseline: one x86-64 Yocto 6.0 (`wrynose`) learning machine using QEMU EDU PCI device `1234:11e8`.
 - Existing merged runtime features: PCI discovery, BAR0 MMIO, managed MSI/INTx
   selection, sysfs, factorial/liveness operations, and automated guest
@@ -55,10 +55,15 @@ SPDX-License-Identifier: MIT
   interface version 3, and closed runtime evidence version 3. Arbitrary DMA
   addresses, streaming DMA, physical-hardware claims, and source-lock updates
   remain out of scope. M5 and M6 remain Proposed and unapproved.
-- The current A004 worktree passes 92 repository tests with 11 explicit
-  Windows-only skips, workflow/CI/security validation, Bash syntax, pinned
-  ShellCheck 0.11.0, and REUSE 3.3 coverage for 76/76 files. Upstream Linux
-  6.18.24 compiled the module source to an object; exact BitBake build, complete
-  Linux-only tests, 19-case runtime evidence, required reviews, publication,
-  merge, and any release remain pending.
+- A004 clean implementation commit
+  `8574eaffe206f8235a5da57461ded0ecbdbbf60b` passed the complete 94-test Linux
+  repository suite, the exact Yocto 6.0.2 driver and image build, software-QEMU
+  boot, ping, SSH, and all 19 project cases. Closed version-3 evidence records
+  `dirty=false`, `testimage_exit_code=0`, 19/19 project passes, and all five DMA
+  completion claims true. Its SHA-256 is
+  `f97b24335cd9579eaf825cf1c06e54ae1742f069f1afa2a4c8e6fa2f162856c2`; the
+  bound native OEQA SHA-256 is
+  `1f8b1756faf079a0996070846f4e4aee5535e71d205f5e232c9cbeff395e07c5`.
+  Required reviews, hosted gates, publication, merge, tag, and release remain
+  pending.
 - Public workflow state uses tool-neutral maintainer paths while preserving the same task, approval, validation, review, and handoff semantics.

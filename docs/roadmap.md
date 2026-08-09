@@ -150,6 +150,18 @@ default reload recovers; unload/rebind restores the default MSI and DMA paths;
 all prior cases remain green; closed version-3 evidence is clean and complete;
 and repository, metadata, licensing, build, runtime, and review gates pass.
 
+Qualification status: clean implementation commit `8574eaf` passed the full
+94-test Linux repository suite, all 4,738 exact Yocto 6.0.2 image tasks, and a
+software-QEMU run containing ping, SSH, and all 19 project cases. All 21 tests
+passed without skips, failures, or errors. Closed version-3 evidence records a
+clean tree and successful testimage exit; its SHA-256 is
+`f97b24335cd9579eaf825cf1c06e54ae1742f069f1afa2a4c8e6fa2f162856c2`, and
+the bound native OEQA SHA-256 is
+`1f8b1756faf079a0996070846f4e4aee5535e71d205f5e232c9cbeff395e07c5`.
+A004 remains In Progress until required review and hosted gates pass and a
+separate publication decision is made. This local result is not a hosted
+attestation, physical-hardware result, merge, tag, or release.
+
 Rollback: keep DMA opt-in and preserve the M3 image as a known-good stage.
 
 ## M5 — Portable platform-driver lab
