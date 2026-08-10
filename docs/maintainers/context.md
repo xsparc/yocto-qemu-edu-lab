@@ -68,8 +68,8 @@ SPDX-License-Identifier: MIT
   Pull request #6 passed Hosted Fast checks run `31312516815` and Yocto
   metadata run `31312516778` at
   `fbb2cab55ea6fc6a9000a1e172d71ef82a892a4b`, then squash-merged as
-  `918efaa392486af73f03ac9d1e216c2a2ed421da`. Required reviews, tag, and
-  release remain pending. The focused post-merge correction strengthens
+  `918efaa392486af73f03ac9d1e216c2a2ed421da` without a tag or release. The
+  focused post-merge correction strengthens
   `test_14_dma_contract` so an added driver-created sysfs file invalidates the
   address-free evidence claim. Clean correction commit `fe08e73` passed all 94
   Linux repository tests, locked setup and QEMU-consumer preflight, all 4,738
@@ -78,6 +78,8 @@ SPDX-License-Identifier: MIT
   failures, or errors. Its evidence SHA-256 is `c51de37dc60c69e5f697fb0ae8ab74fbc1c0520724554b73904783533ca2b4ea`;
   the bound native OEQA SHA-256 is `918a7ade794afbc958c428eff358e2f5740e6e89bb63f8bb90d063b014a419a9`.
   Quality, architecture, security, and independent frozen-diff reviews approved
-  the correction with no P0-P2 findings. A004 remains In Progress for the final
-  hosted rerun after the closeout-record push and pull request #7 merge.
+  the correction with no P0-P2 findings. Review-record commit `a3a42b6` passed
+  hosted Fast checks run `31397396385` and Yocto metadata run `31397396470`.
+  A004 remains In Progress until pull request #7 merges; GitHub's check state
+  for the then-current merge head is the authoritative final hosted gate.
 - Public workflow state uses tool-neutral maintainer paths while preserving the same task, approval, validation, review, and handoff semantics.

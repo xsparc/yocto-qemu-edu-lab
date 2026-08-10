@@ -39,6 +39,10 @@ regardless of how a change is prepared.
 - Commit subject: imperative, specific, and free of unsupported claims.
 - Pull-request body: problem, outcome, scope, non-scope, architecture and license
   impact, tests actually run, gaps, rollback, and follow-up milestone.
+- A commit cannot record checks that run only after it is pushed. Record the
+  latest completed evidence-bearing head, treat GitHub's check state for the
+  then-current merge head as the final hosted gate, and reconcile merge identity
+  only after the merge in the next authorized closeout transition.
 - Keep generated evidence out of git unless it is stable, reviewable, useful to
   learners, and covered by the licensing policy.
 - A dependent milestone waits until the prerequisite PR is merged or a human
