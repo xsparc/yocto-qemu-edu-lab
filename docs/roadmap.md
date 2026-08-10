@@ -171,8 +171,10 @@ tasks, and a fresh software-QEMU run containing ping, SSH, and all 19 project
 cases. All 21 tests passed in 172.305 seconds with no skips, failures, or errors.
 The corrected evidence SHA-256 is `c51de37dc60c69e5f697fb0ae8ab74fbc1c0520724554b73904783533ca2b4ea`, and
 the bound native OEQA SHA-256 is `918a7ade794afbc958c428eff358e2f5740e6e89bb63f8bb90d063b014a419a9`.
-The local runtime result is not a hosted attestation, physical-hardware result,
-independent review, tag, or release.
+Quality, architecture, security, and independent frozen-diff reviews approved
+the correction with no P0-P2 findings. The final hosted rerun after the
+closeout-record push and pull request #7 merge remain pending. The local runtime
+result is not a hosted attestation, physical-hardware result, tag, or release.
 
 Rollback: keep DMA opt-in and preserve the M3 image as a known-good stage.
 

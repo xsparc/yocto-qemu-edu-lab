@@ -42,11 +42,11 @@ automatically public APIs.
 | `0.2.0-dev` | 6.0.2 | `wrynose` | Repository, static, licensing, exact-source, parse, inspection, and native layer CI; clean commit `6479681` completed the full image build and passed all 11 project runtime cases under software QEMU with validated version-1 evidence |
 | `0.3.0-dev` | 6.0.2 | `wrynose` | Clean commit `3ea0204` completed the exact locked image path and passed ping, SSH, and all 14 project cases under software QEMU with validated version-2 evidence; no physical-hardware or release claim is implied |
 | `0.3.1-dev` | 6.0.2 | `wrynose` | Clean commit `46e2280` compiled and staged the exact patched native emulator, rebuilt the driver/image without taint, and passed ping, SSH, and all 14 project cases with validated version-2 evidence; pull request #5 passed hosted gates and squash-merged as `083ddf5`, with no tag or release |
-| `0.4.0-dev` | 6.0.2 | `wrynose` | Clean implementation commit `8574eaf` completed the exact locked image path and passed all 19 project cases; clean correction commit `fe08e73` then passed the strengthened sysfs oracle and complete 19-case suite with validated version-3 evidence. Pull request #6 squash-merged as `918efaa`; pull request #7 has green hosted and runtime gates, while required reviews, merge, tag, and release remain pending |
+| `0.4.0-dev` | 6.0.2 | `wrynose` | Clean implementation commit `8574eaf` completed the exact locked image path and passed all 19 project cases; clean correction commit `fe08e73` then passed the strengthened sysfs oracle and complete 19-case suite with validated version-3 evidence. Pull request #6 squash-merged as `918efaa`; pull request #7 pushed head `2e96d61` has green hosted gates and every required review passes. A final hosted rerun after the closeout-record push, merge, tag, and release remain pending |
 
 Runtime documents are unsigned local reports. Their task records state whether
-a digest was independently recomputed; A004 independent review remains pending.
-They are not hosted provenance attestations or physical-hardware results.
+a digest was independently recomputed. They are not hosted provenance
+attestations or physical-hardware results.
 
 `0.3.1-dev` was a pre-release patch line because A007 corrected the host emulator
 without changing the guest contract, runtime evidence schema, or curriculum

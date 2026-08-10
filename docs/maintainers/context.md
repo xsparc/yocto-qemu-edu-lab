@@ -77,5 +77,7 @@ SPDX-License-Identifier: MIT
   all 19 project cases. The result was 21/21 in 172.305 seconds with no skips,
   failures, or errors. Its evidence SHA-256 is `c51de37dc60c69e5f697fb0ae8ab74fbc1c0520724554b73904783533ca2b4ea`;
   the bound native OEQA SHA-256 is `918a7ade794afbc958c428eff358e2f5740e6e89bb63f8bb90d063b014a419a9`.
-  A004 remains In Progress for the required reviews and pull request #7 merge.
+  Quality, architecture, security, and independent frozen-diff reviews approved
+  the correction with no P0-P2 findings. A004 remains In Progress for the final
+  hosted rerun after the closeout-record push and pull request #7 merge.
 - Public workflow state uses tool-neutral maintainer paths while preserving the same task, approval, validation, review, and handoff semantics.

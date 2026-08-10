@@ -3,7 +3,7 @@
 
 schema_version = 1
 task_id_prefix = "A"
-updated_on = "2026-08-10"
+updated_on = "2026-08-11"
 
 [[tasks]]
 id = "A000"
@@ -226,7 +226,7 @@ validation = [
 ]
 approval = "Repository owner confirmed the A007 squash merge and explicitly approved A004/M4 bounded DMA implementation on 2026-08-09."
 reviews_required = ["quality", "architecture", "security", "independent-diff"]
-reviews_completed = []
+reviews_completed = ["quality", "architecture", "security", "independent-diff"]
 validation_evidence = [
   "Repository-local validation on 2026-08-09 passed workflow, CI-policy, pinned A007 security, Bash syntax, whitespace, and all 94 Python tests; 11 Linux-only wrapper/environment cases were explicitly skipped on Windows rather than claimed, while the complete Linux suite passed 94/94 with no skips.",
   "Checksum-verified ShellCheck 0.11.0 passed every public shell entry point including qemu-edu-test; pinned network-disabled REUSE 3.3 validation covered 76/76 files with only MIT and GPL-2.0-only licenses.",
@@ -246,8 +246,13 @@ validation_evidence = [
   "The fresh software-QEMU testimage run at fe08e738107b9f69567e95d547e8b81de9a92444 passed ping, SSH, and all 19 project cases in 172.305 seconds with no skips, failures, or errors; the strengthened test_14_dma_contract passed its live bound-versus-unbound sysfs comparison.",
   "The correction's closed version-3 evidence validates with dirty=false and testimage exit 0; evidence SHA-256 is c51de37dc60c69e5f697fb0ae8ab74fbc1c0520724554b73904783533ca2b4ea, native OEQA SHA-256 is 918a7ade794afbc958c428eff358e2f5740e6e89bb63f8bb90d063b014a419a9, and both ignored artifacts are retained under build/evidence for independent recomputation.",
 ]
-review_evidence = []
-result = "Implementation qualification is complete at 8574eaffe206f8235a5da57461ded0ecbdbbf60b and the strengthened evidence oracle is requalified at fe08e738107b9f69567e95d547e8b81de9a92444. Pull request #6 squash-merged as 918efaa392486af73f03ac9d1e216c2a2ed421da; draft pull request #7 has green hosted and local runtime gates, while required reviews, merge, tag, and release remain pending."
+review_evidence = [
+  "Quality review verified the boundary, invalid-input, state, recovery, compatibility, and evidence-integrity matrix; it independently recomputed the retained evidence hashes and approved with no P0-P2 findings.",
+  "Architecture review verified D-013, the managed DMA and IRQ lifecycle, the combined source/runtime address-free oracle, version compatibility, and rollback; it approved with no P0-P2 findings.",
+  "Security review verified bounded guest input, BDF handling, fail-closed DMA teardown, QEMU preflight, evidence parsing, CI permissions, licensing, and current public-tree hygiene; it approved with no P0-P2 findings.",
+  "Independent frozen-diff review verified the complete correction and closeout surface, historical evidence compatibility, retained artifact hashes, licensing, public-neutral records, and hosted pull-request state; it approved with no P0-P2 findings.",
+]
+result = "Implementation qualification is complete at 8574eaffe206f8235a5da57461ded0ecbdbbf60b and the strengthened evidence oracle is requalified at fe08e738107b9f69567e95d547e8b81de9a92444. Pull request #6 squash-merged as 918efaa392486af73f03ac9d1e216c2a2ed421da. Draft pull request #7's pushed head 2e96d61cde1cbb46061087c9d609dcfcd2a90cc2 has green hosted gates, and every required review passes; a final hosted rerun after the closeout-record push, merge, tag, and release remain pending."
 
 [[tasks]]
 id = "A007"
