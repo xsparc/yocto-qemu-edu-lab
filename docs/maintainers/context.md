@@ -94,9 +94,17 @@ SPDX-License-Identifier: MIT
   evidence while preserving the x86-64 PCI lab as the no-argument default.
   RISC-V, DMA, physical validation, source-version upgrades, upstream QEMU
   submission, publication, merge, tag, and release remain outside A005.
-- A005 repository-local implementation checks currently pass 127 tests, both
-  exact QEMU patch profiles, Git Bash syntax, Device Tree schema 2026.6, and
-  REUSE 6.2.0 over 95/95 files. Thirteen native-Linux contracts, both metadata
-  parses, emulator/driver/image builds, generated-DTB checks, and both runtime
-  suites remain unqualified until they run on adequate Linux capacity.
+- A005 clean build revision `782eb6d` compiled and packaged the ARM64 platform
+  driver, completed all 4,702 image tasks, and verified the patched
+  helper-native AArch64 emulator. Test-only corrections then produced clean
+  runtime subject `2e4f87d`, where the ARM64 lab passed ping, SSH, and all nine
+  project cases and the unchanged PCI lab completed all 4,738 image tasks and
+  passed ping, SSH, and all 19 project cases. Both runs used software QEMU with
+  no skips, failures, or errors. Platform evidence SHA-256 is `a4cb66bd7e57541d79df12a9deea8d9891fa34587b1c24e5314c01a4bae2fe40`;
+  PCI evidence SHA-256 is `730ec74fbc4492cc574b93c50dccbae65bca2e8c1dba9fe30edb73caf15fe03c`.
+- A005 host validation now passes 130 tests, both exact QEMU patch profiles,
+  checksum and workflow gates, Device Tree schema 2026.6, and REUSE 6.2.0 over
+  95/95 files. Thirteen native-Linux contract tests, final metadata/layer
+  evidence, and the required independent reviews remain open; A005 therefore
+  stays In Progress and unpublished.
 - Public workflow state uses tool-neutral maintainer paths while preserving the same task, approval, validation, review, and handoff semantics.

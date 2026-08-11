@@ -206,6 +206,18 @@ evidence versions 1 through 3 remain valid; closed platform evidence version 1
 is clean and complete; licensing and all required reviews pass; shared and
 architecture-specific concepts are explicit.
 
+Qualification status: clean build revision `782eb6d` compiled and packaged the
+ARM64 driver and completed all 4,702 image tasks. After correcting three
+test-only portability and platform-ABI assumptions, clean runtime subject
+`2e4f87d` passed ping, SSH, and all nine ARM64 project cases. The same revision
+completed all 4,738 default PCI image tasks and passed ping, SSH, and all 19 PCI
+project cases. Both software-QEMU results had zero skips, failures, or errors.
+The platform evidence SHA-256 is `a4cb66bd7e57541d79df12a9deea8d9891fa34587b1c24e5314c01a4bae2fe40`;
+the PCI evidence SHA-256 is `730ec74fbc4492cc574b93c50dccbae65bca2e8c1dba9fe30edb73caf15fe03c`.
+A005 remains In Progress until the later test-only scalability correction gets
+its no-skip Linux rerun, metadata/layer evidence is current, and every required
+review passes. No publication, merge, tag, or release is implied.
+
 Rollback: remove the ARM manifest, machine, patch, driver, test, and evidence
 profile. The default PCI manifest and its existing build directory remain the
 known-good path. No source-version rollback or evidence translation is needed.

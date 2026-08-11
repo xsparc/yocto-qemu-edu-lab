@@ -175,9 +175,31 @@ source-lock, lab-index, selected-manifest, and native OEQA digests; the exact
 nine cases; and conservative Device Tree, scratch, interrupt, negative-input,
 and lifecycle completion claims. A failed, skipped, missing, reordered, or
 stale case cannot produce a passing document. This new kind does not translate
-or mutate historical PCI evidence versions 1 through 3. M5 runtime evidence is
-not claimed until the clean ARM64 suite and the existing PCI regression both
-complete on adequate Linux capacity.
+or mutate historical PCI evidence versions 1 through 3.
+
+A005/M5 was qualified locally at clean runtime subject
+`2e4f87d5004e7c40fc0b8a00e080841cf40cb72a` after clean build revision
+`782eb6d5d2c310b20a241a7de72c8702add8e58d` compiled and packaged the platform
+driver and completed all 4,702 ARM64 image tasks. A resource-capped Debian 12
+worker used `BB_NUMBER_THREADS=4`, `PARALLEL_MAKE=-j 4`, software QEMU, and no
+`/dev/kvm`. The final ARM64 run passed ping, SSH, and all nine project cases;
+the complete result was 11/11 with no skips, failures, or errors. Closed
+platform evidence records `dirty=false`, `testimage_exit_code=0`, and every
+case-bound completion claim true. Its SHA-256 is
+`a4cb66bd7e57541d79df12a9deea8d9891fa34587b1c24e5314c01a4bae2fe40`; the
+bound native OEQA SHA-256 is
+`c0ecd21280bc5b4d61a94caba9718babe56f45532fc35833c20cda3cc342eb99`.
+
+The same clean runtime subject completed all 4,738 default PCI image tasks and
+passed ping, SSH, and all 19 project cases; the complete result was 21/21 with
+no skips, failures, or errors. Its immutable version-3 evidence still validates
+with `--require-pass`. The evidence SHA-256 is
+`730ec74fbc4492cc574b93c50dccbae65bca2e8c1dba9fe30edb73caf15fe03c`; the
+bound native OEQA SHA-256 is
+`41cb7a4b67c7eca87acecb4069c8ae0ff1a57705d48e84d9abea923909b2938c`.
+These are local software-QEMU results, not hosted attestations,
+physical-hardware results, independent reviews, publication, merge, tags, or
+releases.
 
 A007 was qualified locally at clean commit
 `46e2280448cf2a857f8599f677f1b1bd0284fa13`. After clearing an inherited forced
