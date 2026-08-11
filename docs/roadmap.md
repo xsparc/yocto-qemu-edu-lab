@@ -160,9 +160,24 @@ records a clean tree and successful testimage exit; its SHA-256 is
 `f97b24335cd9579eaf825cf1c06e54ae1742f069f1afa2a4c8e6fa2f162856c2`, and
 the bound native OEQA SHA-256 is
 `1f8b1756faf079a0996070846f4e4aee5535e71d205f5e232c9cbeff395e07c5`.
-Draft pull request #6 is open. A004 remains In Progress until required reviews
-and hosted gates pass. This local result is not a hosted attestation,
-physical-hardware result, merge, tag, or release.
+Pull request #6 passed hosted Fast checks run `31312516815` and Yocto metadata
+run `31312516778` at `fbb2cab55ea6fc6a9000a1e172d71ef82a892a4b`, then
+squash-merged as `918efaa392486af73f03ac9d1e216c2a2ed421da`. A004 remains
+In Progress while its post-merge correction and pull request #7 complete. The
+correction strengthens the address-free oracle with an exact source allowlist
+and a bound-versus-unbound sysfs comparison. Clean correction commit `fe08e73`
+passed the complete 94-test
+Linux suite, locked setup and QEMU-consumer preflight, all 4,738 cached image
+tasks, and a fresh software-QEMU run containing ping, SSH, and all 19 project
+cases. All 21 tests passed in 172.305 seconds with no skips, failures, or errors.
+The corrected evidence SHA-256 is `c51de37dc60c69e5f697fb0ae8ab74fbc1c0520724554b73904783533ca2b4ea`, and
+the bound native OEQA SHA-256 is `918a7ade794afbc958c428eff358e2f5740e6e89bb63f8bb90d063b014a419a9`.
+Quality, architecture, security, and independent frozen-diff reviews approved
+the correction with no P0-P2 findings. Review-record commit `a3a42b6` passed
+hosted Fast checks run `31397396385` and Yocto metadata run `31397396470`.
+Pull request #7 must retain green checks at its then-current merge head before
+merge. The merge remains pending. The local runtime result is not a hosted
+attestation, physical-hardware result, tag, or release.
 
 Rollback: keep DMA opt-in and preserve the M3 image as a known-good stage.
 

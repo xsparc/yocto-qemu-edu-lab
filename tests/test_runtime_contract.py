@@ -124,6 +124,26 @@ class RuntimeContractTests(unittest.TestCase):
         self.assertNotIn("dma_address", source)
         self.assertNotIn("DEVICE_ATTR_RW(dma_source", source)
         self.assertNotIn("DEVICE_ATTR_RW(dma_destination", source)
+        group = re.search(
+            r"static struct attribute \*qemu_edu_attrs\[\] = \{(?P<body>.*?)\n\};",
+            source,
+            re.DOTALL,
+        )
+        self.assertIsNotNone(group)
+        self.assertEqual(
+            tuple(re.findall(r"&dev_attr_([a-z0-9_]+)\.attr", group["body"])),
+            (
+                "identification",
+                "liveness",
+                "factorial",
+                "trigger_irq",
+                "irq_count",
+                "last_irq_status",
+                "interrupt_mode",
+                "dma_buffer_size",
+                "dma_roundtrip",
+            ),
+        )
 
     def test_interrupt_policy_uses_managed_modern_pci_vectors(self) -> None:
         source = (
@@ -269,6 +289,37 @@ class RuntimeContractTests(unittest.TestCase):
 
     def test_dma_mode_failures_still_attempt_restoration(self) -> None:
         oeqa_case = load_oeqa_case()
+
+        contract = oeqa_case.QemuEduRuntimeTests("test_14_dma_contract")
+        contract.attribute = MagicMock(side_effect=lambda name: f"/sys/{name}")
+        contract.device_bdf = MagicMock(return_value="0000:00:05.0")
+        contract.run_ok = MagicMock(side_effect=("28", "4096", "N", "not-run"))
+        contract.regular_pci_files = MagicMock(
+            return_value=set(oeqa_case.DRIVER_ATTRIBUTES)
+        )
+        contract.unload_module = MagicMock(side_effect=AssertionError("unload"))
+        contract.restore_default_module = MagicMock()
+        with self.assertRaisesRegex(AssertionError, "unload"):
+            contract.test_14_dma_contract()
+        contract.restore_default_module.assert_called_once_with()
+
+        unexpected = oeqa_case.QemuEduRuntimeTests("test_14_dma_contract")
+        unexpected.attribute = MagicMock(side_effect=lambda name: f"/sys/{name}")
+        unexpected.device_bdf = MagicMock(return_value="0000:00:05.0")
+        unexpected.run_ok = MagicMock(
+            side_effect=("28", "4096", "N", "not-run", "")
+        )
+        unexpected.regular_pci_files = MagicMock(
+            side_effect=(
+                set(oeqa_case.DRIVER_ATTRIBUTES) | {"dma_address"},
+                set(),
+            )
+        )
+        unexpected.unload_module = MagicMock()
+        unexpected.restore_default_module = MagicMock()
+        with self.assertRaises(AssertionError):
+            unexpected.test_14_dma_contract()
+        unexpected.restore_default_module.assert_called_once_with()
 
         timeout = oeqa_case.QemuEduRuntimeTests(
             "test_17_dma_timeout_and_recovery"

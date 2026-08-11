@@ -12,6 +12,19 @@ from oeqa.runtime.case import OERuntimeTestCase
 
 DRIVER_DIR = "/sys/bus/pci/drivers/qemu_edu"
 BDF_PATTERN = re.compile(r"^[0-9a-f]{4}:[0-9a-f]{2}:[0-9a-f]{2}\.[0-7]$")
+DRIVER_ATTRIBUTES = frozenset(
+    {
+        "identification",
+        "liveness",
+        "factorial",
+        "trigger_irq",
+        "irq_count",
+        "last_irq_status",
+        "interrupt_mode",
+        "dma_buffer_size",
+        "dma_roundtrip",
+    }
+)
 
 
 class QemuEduRuntimeTests(OERuntimeTestCase):
@@ -55,6 +68,13 @@ class QemuEduRuntimeTests(OERuntimeTestCase):
 
     def attribute(self, name: str) -> str:
         return f"{DRIVER_DIR}/{self.device_bdf()}/{name}"
+
+    def regular_pci_files(self, bdf: str) -> set[str]:
+        output = self.run_ok(
+            f"for path in /sys/bus/pci/devices/{bdf}/*; do "
+            '[ -f "$path" ] && basename "$path"; done; true'
+        )
+        return {line.strip() for line in output.splitlines() if line.strip()}
 
     def assert_interrupt_mode(self, expected: str) -> str:
         bdf = self.device_bdf()
@@ -401,6 +421,15 @@ class QemuEduRuntimeTests(OERuntimeTestCase):
         self.assertEqual(
             self.run_ok(f"cat {self.attribute('dma_roundtrip')}"), "not-run"
         )
+        bdf = self.device_bdf()
+        bound_files = self.regular_pci_files(bdf)
+        try:
+            self.unload_module()
+            self.run_ok(f"test ! -e /sys/bus/pci/devices/{bdf}/driver")
+            unbound_files = self.regular_pci_files(bdf)
+            self.assertEqual(bound_files - unbound_files, DRIVER_ATTRIBUTES)
+        finally:
+            self.restore_default_module()
 
     def test_15_dma_roundtrip_boundaries(self) -> None:
         for length in (1, 3, 4096):

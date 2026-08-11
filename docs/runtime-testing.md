@@ -82,7 +82,10 @@ The project layer supplies `qemu_edu.QemuEduRuntimeTests`, which asserts:
 - PCI removal, the resulting missing-device diagnostic, and successful PCI
   rescan/rebinding. This uses Linux hot removal rather than a second QEMU boot.
 - the reported 28-bit mask, 4,096-byte buffer, length-only sysfs mode, and
-  disabled-by-default missing-completion seam;
+  disabled-by-default missing-completion seam. A bound-versus-unbound sysfs
+  comparison requires the exact documented driver attribute set, so an added
+  driver-created DMA-address file fails the contract rather than escaping the
+  evidence projection;
 - verified RAM-to-EDU-to-RAM transfers at lengths 1, 3, and 4096, with exactly
   two handled `0x00000100` completion interrupts per round trip;
 - rejection of zero, over-limit, negative, and malformed lengths without
@@ -160,6 +163,26 @@ bound native OEQA input SHA-256 is
 This is local software-QEMU qualification, not a hosted attestation,
 physical-hardware result, independent review, publication, merge, tag, or
 release.
+
+The post-merge evidence-oracle correction was separately qualified at clean
+commit `fe08e738107b9f69567e95d547e8b81de9a92444`. The correction changes the
+host-side OEQA contract rather than the driver or image, so the retained exact
+image tasks were verified from cache rather than mislabeled as a new rebuild.
+Offline setup, effective build composition, patched QEMU source, and the actual
+`qemu-helper-native` consumer passed their fail-closed checks before a fresh
+testimage invocation. Ping, SSH, and all 19 project cases passed in 172.305
+seconds; the complete result was 21/21 with no skips, failures, or errors.
+
+The corrected version-3 evidence records `dirty=false`, exact revision
+`fe08e738107b9f69567e95d547e8b81de9a92444`, `testimage_exit_code=0`, and all
+five conservative DMA completion claims true. Its SHA-256 is
+`c51de37dc60c69e5f697fb0ae8ab74fbc1c0520724554b73904783533ca2b4ea`; the
+bound native OEQA input SHA-256 is
+`918a7ade794afbc958c428eff358e2f5740e6e89bb63f8bb90d063b014a419a9`.
+The ignored local copies are
+`build/evidence/qemu-edu-runtime-v3-fe08e73.json` and
+`build/evidence/qemu-edu-runtime-v3-fe08e73.oeqa.json` so a reviewer can
+recompute both hashes without treating them as published artifacts.
 
 Interrupt-path, negative-path, and DMA-path completion flags are conservative claims: they
 become true only when the corresponding required case passes. A failure
