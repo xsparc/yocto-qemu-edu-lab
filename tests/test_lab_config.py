@@ -176,10 +176,16 @@ class LabConfigTests(unittest.TestCase):
         with self.assertRaisesRegex(MODULE.LabError, "unsupported path characters"):
             MODULE.validate_manifest(path_injection, "platform-arm64")
 
-        terminal_control = copy.deepcopy(manifests["platform-arm64"])
-        terminal_control["description"] = "unsafe\u001b[31moutput"
-        with self.assertRaisesRegex(MODULE.LabError, "control characters"):
-            MODULE.validate_manifest(terminal_control, "platform-arm64")
+        for description in (
+            "unsafe\u001b[31moutput",
+            "reversed\u202etext",
+            "split\u2028line",
+        ):
+            with self.subTest(description=repr(description)):
+                terminal_control = copy.deepcopy(manifests["platform-arm64"])
+                terminal_control["description"] = description
+                with self.assertRaisesRegex(MODULE.LabError, "control characters"):
+                    MODULE.validate_manifest(terminal_control, "platform-arm64")
 
 
 if __name__ == "__main__":

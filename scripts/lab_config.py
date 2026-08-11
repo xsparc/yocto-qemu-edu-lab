@@ -10,6 +10,7 @@ import hashlib
 import json
 import re
 import sys
+import unicodedata
 from pathlib import Path, PurePosixPath
 from typing import Any
 
@@ -166,8 +167,13 @@ def validate_manifest(data: dict[str, Any], expected_id: str) -> None:
     if lab_id != expected_id or not LAB_ID.fullmatch(lab_id):
         raise LabError(f"lab id {lab_id!r} does not match index id {expected_id!r}")
     description = string_value(data["description"], f"lab {expected_id}.description")
-    if any(ord(character) < 32 or ord(character) == 127 for character in description):
-        raise LabError(f"lab {expected_id}.description contains control characters")
+    if any(
+        unicodedata.category(character) in {"Cc", "Cf", "Zl", "Zp"}
+        for character in description
+    ):
+        raise LabError(
+            f"lab {expected_id}.description contains unsafe rendering or control characters"
+        )
 
     build = object_value(data["build"], f"lab {expected_id}.build")
     exact_keys(build, BUILD_KEYS, f"lab {expected_id}.build")
