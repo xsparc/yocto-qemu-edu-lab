@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: 2026 Yocto QEMU EDU learning project contributors
 # SPDX-License-Identifier: GPL-2.0-only
-# Upstream-Status: Inappropriate [project-local teaching device]
+# Upstream-Status: Inappropriate [oe specific]
+# This device exists only as infrastructure for the OpenEmbedded lab profile.
 
 diff --git a/hw/arm/Kconfig b/hw/arm/Kconfig
 index 7877506..924587e 100644
