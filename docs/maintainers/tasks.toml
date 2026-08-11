@@ -186,7 +186,7 @@ result = "Implemented, independently reviewed, and squash-merged through pull re
 
 [[tasks]]
 id = "A004"
-status = "In Progress"
+status = "Done"
 milestone = "M4"
 title = "Add bounded EDU DMA learning support"
 outcome = "Teach coherent DMA mapping, the 28-bit mask, transfer direction, and safe cleanup."
@@ -247,6 +247,8 @@ validation_evidence = [
   "The correction's closed version-3 evidence validates with dirty=false and testimage exit 0; evidence SHA-256 is c51de37dc60c69e5f697fb0ae8ab74fbc1c0520724554b73904783533ca2b4ea, native OEQA SHA-256 is 918a7ade794afbc958c428eff358e2f5740e6e89bb63f8bb90d063b014a419a9, and both ignored artifacts are retained under build/evidence for independent recomputation.",
   "Hosted Fast checks run 31397396385 passed repository, static, and REUSE licensing jobs at the review-record commit a3a42b6a4ac4835b9a76fa5652d52ac5223fcc4a.",
   "Hosted Yocto metadata run 31397396470 passed locked source resolution, metadata parse and inspection, and the project layer check at the review-record commit a3a42b6a4ac4835b9a76fa5652d52ac5223fcc4a.",
+  "Hosted Fast checks run 31404164447 passed repository, static, and REUSE licensing jobs at the final pull-request head 89a4be3e994ddc0e391451e9baa9e43ef1ebb4a0.",
+  "Hosted Yocto metadata run 31404164649 passed locked source resolution, metadata parse and inspection, and the project layer check at the final pull-request head 89a4be3e994ddc0e391451e9baa9e43ef1ebb4a0.",
 ]
 review_evidence = [
   "Quality review verified the boundary, invalid-input, state, recovery, compatibility, and evidence-integrity matrix; it independently recomputed the retained evidence hashes and approved with no P0-P2 findings.",
@@ -254,7 +256,7 @@ review_evidence = [
   "Security review verified bounded guest input, BDF handling, fail-closed DMA teardown, QEMU preflight, evidence parsing, CI permissions, licensing, and current public-tree hygiene; it approved with no P0-P2 findings.",
   "Independent frozen-diff review verified the complete correction and closeout surface, historical evidence compatibility, retained artifact hashes, licensing, public-neutral records, and hosted pull-request state; it approved with no P0-P2 findings.",
 ]
-result = "Implementation qualification is complete at 8574eaffe206f8235a5da57461ded0ecbdbbf60b and the strengthened evidence oracle is requalified at fe08e738107b9f69567e95d547e8b81de9a92444. Pull request #6 squash-merged as 918efaa392486af73f03ac9d1e216c2a2ed421da. Pull request #7 has passed hosted gates through review-record commit a3a42b6a4ac4835b9a76fa5652d52ac5223fcc4a, and every required review passes. GitHub's check state for the then-current merge head remains the authoritative final hosted gate; merge, tag, and release remain pending."
+result = "Implemented and qualified at 8574eaffe206f8235a5da57461ded0ecbdbbf60b, strengthened and requalified at fe08e738107b9f69567e95d547e8b81de9a92444, and independently approved. Pull request #6 squash-merged as 918efaa392486af73f03ac9d1e216c2a2ed421da; the focused evidence-oracle correction in pull request #7 passed final-head hosted gates and squash-merged as ebbf1db0a5f8f2b30d7580a2435f67e9db5cc940. No tag or release was published."
 
 [[tasks]]
 id = "A007"

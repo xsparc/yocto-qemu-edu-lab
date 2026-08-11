@@ -24,11 +24,11 @@ b4f80d6b5cc4567b375ebfddd0a904fa2bd2cdb5feed21bd794722436b54139c  ./docs/ci.md
 e60a797e641210a8dde3c34fe82d76dff1464a6f935e0fa925b06eac07dc170d  ./docs/licensing.md
 ab3a763550768ff8de2574f4b528fdbf60ad8e8fe24245e80cf52f562c201496  ./docs/maintainers/README.md
 cc30bad3aae0f941bf9d18a6bc2bfcb83ed5019eb9f3d5fcf172b73b3028fa11  ./docs/maintainers/config.toml
-19e4f667f8acd55d5a38564c7286eb6474cd7486334fbf881c99537602a5e46f  ./docs/maintainers/context.md
+54c0a948078ea3a2a3a359fa235ef1e693671c7e94e8184f5b464ef956fddd9a  ./docs/maintainers/context.md
 ce0c23d287d352910770fc4c804c475fcd1370988b36c4a93a81bedac7c09eab  ./docs/maintainers/decisions.md
 65f879644273c7431ccb2f132ea19e67491a5a0b9b948e729b877e4692908d3b  ./docs/maintainers/intake.md
-e3dba6bbda612e370a44d155c75fa5b5fa8851c9c8abc15e99a48114cf1e0daa  ./docs/maintainers/ledger.md
-c8c223f12f15085203c275a6f8fe30bf3b3805e2d215111840e2af825d3358cb  ./docs/maintainers/tasks.toml
+d80a65351c0db18d62529756c5bfffebc2dee49bf98d42e7fdca7925aa369740  ./docs/maintainers/ledger.md
+01ae3ab651f8dd0949ff377e512b1b7158bbf28f613bf97221b30d3c73e5d44c  ./docs/maintainers/tasks.toml
 52a3612704d4dbb87c2b2cca810cb5e6c4edc568577661d772f36b016b7d3032  ./docs/maintenance-workflow.md
 5faba99f9eceef19dd3dd330beb4ffdf4cbba516e93c994b174e9a29f2deb7f4  ./docs/mapping-to-real-hardware.md
 c8f0440c7c8df8f6cae97f670575e073f90fe2672de99908606e45683722cffd  ./docs/research/2026-08-07-m1-reproducibility.md
@@ -37,10 +37,10 @@ e74353e0045211709c74b606084e68a681fbd7af0d56d959f202703011b5dfef  ./docs/researc
 b4771fd6e821c086a6d3f12ca22e5188d186516ba1356c9d73915684df8e3029  ./docs/research/2026-08-08-m3-msi.md
 698ac5766270becc3ebf8f1e0a6557f225a48643431fe6e51db144545699b56f  ./docs/research/2026-08-08-qemu-edu-dma-bounds.md
 36db8b2590ce5da2167f5a05c6d64d82caf1f294497f5821ea48401d3ce50df3  ./docs/research/2026-08-09-m4-bounded-dma.md
-ae4139afc5c242370e01c8ab57e3144d95d01010f61f0f494da6d1c67dddf3ff  ./docs/roadmap.md
+93960bc8a7fd45a6d235d2285871c3ebe212b5fe15aea614862a102ae9d1e4ae  ./docs/roadmap.md
 5193a4ff51b617af2e97a534f9b3fd17d734a561ba5ecd56f11d2682413e5cad  ./docs/runtime-testing.md
 690830fc5fe8a199494791a645e928f2015fa212bd3abeb59179081eef139a21  ./docs/source-lock.md
-8743b6f10d5f832ad2ed9ba27f431a5c0b104676f9dfd852801f5bdd592931a1  ./docs/versioning.md
+53a16b848b761e47f4bda333d0a7a3a74a15e3b92f2027fc0d1b95a8ebed278f  ./docs/versioning.md
 0d79747066a5edc3f22efdf0ff60e72cec7252b6c5f458cd466e8df6e09a4b5c  ./docs/vision.md
 8f5e67017a4861bb1e8719a3e5256f3db101735715e59730f659560b01ee788a  ./environment.sh
 b2c4c1ee7d80794df3dbbdbd66291a34a5385b38fa8100614ccb93f4e811fc1a  ./inspect.sh
