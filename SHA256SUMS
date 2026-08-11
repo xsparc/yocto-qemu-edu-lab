@@ -64,7 +64,7 @@ dd4ecfd230917d255fd15d9828d540daf05803605f3b109c155c156b1b481712  ./meta-qemu-ed
 3815dd89db3d4559b075f43cafc5b1ea1099c22f2b49f1187ce7149fdda6d0fe  ./meta-qemu-edu/recipes-kernel/qemu-edu-driver/qemu-edu-driver_1.0.bb
 cace538ea403754b70622bd3517098a26de5aa1f31a876d8c06930696abccc79  ./meta-qemu-edu/recipes-kernel/qemu-edu-platform-driver/files/Makefile
 619f150133bc436d8d6d4478257911d3b0993286c274966a05ce638f3297ec7c  ./meta-qemu-edu/recipes-kernel/qemu-edu-platform-driver/files/qemu,edu-platform.yaml
-fd150a80a14d551d9ba868074b930de14387f84520da92911065c57667926dd4  ./meta-qemu-edu/recipes-kernel/qemu-edu-platform-driver/files/qemu_edu_platform.c
+5c907fff4699aa5392196eec4ac46071b5664828e5f10f1900a87fd77de2fbfc  ./meta-qemu-edu/recipes-kernel/qemu-edu-platform-driver/files/qemu_edu_platform.c
 51441a2b6cffe1979032cefe95fba9c956f2b11b0bcac69a2d5177ed8d48674f  ./meta-qemu-edu/recipes-kernel/qemu-edu-platform-driver/qemu-edu-platform-driver_1.0.bb
 d7f4b2af7d9efd4f205c20fd1fe3922f9fd4d62677cf7ad0c90c0a98c9056f6b  ./meta-qemu-edu/recipes-support/qemu-edu-platform-tools/files/qemu-edu-platform-test
 463ee353adc0da0084dbd629820a9eeadf30aed177c7a605834b55c4c65bbc92  ./meta-qemu-edu/recipes-support/qemu-edu-platform-tools/qemu-edu-platform-tools_1.0.bb
@@ -91,7 +91,7 @@ c2fda5a6296398c8c59fb4ba5cc551b929d7ee3682d00b8c27cadb8b52632ac1  ./setup.sh
 97e28b444512a281b5378a8b6404f1a43a0fadf5d2a006f05753cbd4dbacf7f1  ./tests/test_configure_build.py
 02d3e829c784aab15706fd85c74eaccea71eee430091b3869b800715804a4f24  ./tests/test_environment.py
 f301b0e8b90b9968e55b6feb98b78ee6c044c7067aca8cb8c390ca4a29cf9ce1  ./tests/test_lab_config.py
-8462dc4ce6403d2b1e7bc8280e89085d5a9b5b64781cc42fe1bb2e9f15a24738  ./tests/test_platform_contract.py
+c8bfc6acec5d06c9119f3a0ae1b5ad9be8941cd3c2ac6951d753680dc9f03461  ./tests/test_platform_contract.py
 3947f814745ca85fa3667cbaa6bf5fb0a4c331301fb5a116d3aad60fbb0119e0  ./tests/test_platform_runtime_evidence.py
 518abbe8573f9aa0513095e3512a01d0c9bda2ccda68da14aff900d3ec8a2b9d  ./tests/test_qemu_security.py
 1cda8f502cc8a3b6afaa20a100ac735714d9d3eb0935112053e108a60e410c5b  ./tests/test_runtime_contract.py

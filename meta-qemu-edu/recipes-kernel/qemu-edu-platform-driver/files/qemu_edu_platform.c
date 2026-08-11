@@ -107,7 +107,7 @@ static ssize_t raise_irq_store(struct device *dev,
 }
 static DEVICE_ATTR_WO(raise_irq);
 
-static struct attribute *qemu_edu_platform_attributes[] = {
+static struct attribute *qemu_edu_platform_attrs[] = {
 	&dev_attr_identification.attr,
 	&dev_attr_scratch.attr,
 	&dev_attr_interrupt_count.attr,

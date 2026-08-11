@@ -60,6 +60,9 @@ class PlatformContractTests(unittest.TestCase):
             self.assertNotIn(unsafe, text)
         self.assertNotRegex(text, r"(?<!devm_)request_irq\(")
         self.assertLess(text.index("device_remove_group"), text.index("synchronize_irq"))
+        self.assertIn("static struct attribute *qemu_edu_platform_attrs[]", text)
+        self.assertIn("ATTRIBUTE_GROUPS(qemu_edu_platform)", text)
+        self.assertNotIn("qemu_edu_platform_attributes", text)
 
     def test_guest_contract_is_small_bounded_and_exactly_named(self) -> None:
         text = DRIVER.read_text(encoding="utf-8")
