@@ -108,11 +108,11 @@ class QemuEduPlatformRuntimeTests(OERuntimeTestCase):
             "qemu,edu-platform",
         )
         self.assertEqual(
-            self.run_ok(f"od -An -tx1 -v {node}/reg | tr -d ' \\n'"),
+            self.run_ok(f"hexdump -v -e '1/1 \"%02x\"' {node}/reg"),
             "0000000000001000",
         )
         self.assertEqual(
-            self.run_ok(f"od -An -tx1 -v {node}/interrupts | tr -d ' \\n'"),
+            self.run_ok(f"hexdump -v -e '1/1 \"%02x\"' {node}/interrupts"),
             "000000000000007000000004",
         )
 
@@ -123,8 +123,8 @@ class QemuEduPlatformRuntimeTests(OERuntimeTestCase):
         )
         self.assertEqual(driver, "qemu_edu_platform")
         resource = self.run_ok(
-            f"set -- $(head -n 1 {DEVICE_ROOT}/{device}/resource); "
-            "printf '%s %s\\n' \"$1\" \"$2\""
+            f"read -r start end flags < {DEVICE_ROOT}/{device}/resource; "
+            "printf '%s %s\\n' \"$start\" \"$end\""
         )
         start, end = (int(value, 16) for value in resource.split())
         self.assertEqual(end - start + 1, 0x1000)

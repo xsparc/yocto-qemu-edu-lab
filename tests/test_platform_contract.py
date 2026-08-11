@@ -30,6 +30,9 @@ TOOL = (
     ROOT
     / "meta-qemu-edu/recipes-support/qemu-edu-platform-tools/files/qemu-edu-platform-test"
 )
+RUNTIME_CASE = (
+    ROOT / "meta-qemu-edu/lib/oeqa/runtime/cases/qemu_edu_platform.py"
+)
 
 
 class PlatformContractTests(unittest.TestCase):
@@ -126,6 +129,13 @@ class PlatformContractTests(unittest.TestCase):
             'TEST_SUITES:qemu-edu-platform-arm64 = "ping ssh qemu_edu_platform"',
             image,
         )
+
+    def test_runtime_case_uses_busybox_compatible_binary_and_resource_reads(self) -> None:
+        text = RUNTIME_CASE.read_text(encoding="utf-8")
+        self.assertIn("hexdump -v -e '1/1 \\\"%02x\\\"'", text)
+        self.assertIn("read -r start end flags <", text)
+        self.assertNotIn("od -An -tx1", text)
+        self.assertNotIn("head -n 1", text)
 
 
 if __name__ == "__main__":
