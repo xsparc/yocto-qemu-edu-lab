@@ -28,11 +28,11 @@ a118988a8f17d8523785c7e0da4364fc0db9f32eb99bc982c485c7797feb83ef  ./docs/archite
 c2a1415b1f9c32fcc0d008336dfdd76ae0a5292046a6ea984480f5fd2d14927f  ./docs/licensing.md
 ab3a763550768ff8de2574f4b528fdbf60ad8e8fe24245e80cf52f562c201496  ./docs/maintainers/README.md
 cc30bad3aae0f941bf9d18a6bc2bfcb83ed5019eb9f3d5fcf172b73b3028fa11  ./docs/maintainers/config.toml
-cf68064a6bf09fe6c9eb11c1a8d567c29f74121d5b05b498569375180af44ddd  ./docs/maintainers/context.md
+302dabef5bf36623c7f3342d7d73828521c7ecbbc46d2b46a56eb7abd03e3d02  ./docs/maintainers/context.md
 d4e193756f7ef836c921eaeac58296b57420561fa5cd8cdd43a1e95227c2d165  ./docs/maintainers/decisions.md
 65f879644273c7431ccb2f132ea19e67491a5a0b9b948e729b877e4692908d3b  ./docs/maintainers/intake.md
 73149f1982d1e6587d481523a0ada77ef5a8c035fd338deb18a2caa35abfa1f1  ./docs/maintainers/ledger.md
-59c4e38d5e0ca315565c25350c6efbc9b7ae897b0069ff558e5051e68214d6fb  ./docs/maintainers/tasks.toml
+9bcb8567f90f3776599968f6f41e06d89ff817eec5ff19ee882d759c04a6441d  ./docs/maintainers/tasks.toml
 52a3612704d4dbb87c2b2cca810cb5e6c4edc568577661d772f36b016b7d3032  ./docs/maintenance-workflow.md
 d87cc671bee02f9c36e284c119d691564021068961de46b5cbfa71a5d6bf20f5  ./docs/mapping-to-real-hardware.md
 c8f0440c7c8df8f6cae97f670575e073f90fe2672de99908606e45683722cffd  ./docs/research/2026-08-07-m1-reproducibility.md
