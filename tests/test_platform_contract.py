@@ -15,6 +15,9 @@ DRIVER = (
     ROOT
     / "meta-qemu-edu/recipes-kernel/qemu-edu-platform-driver/files/qemu_edu_platform.c"
 )
+DRIVER_MAKEFILE = (
+    ROOT / "meta-qemu-edu/recipes-kernel/qemu-edu-platform-driver/files/Makefile"
+)
 RECIPE = (
     ROOT
     / "meta-qemu-edu/recipes-kernel/qemu-edu-platform-driver/qemu-edu-platform-driver_1.0.bb"
@@ -91,6 +94,16 @@ class PlatformContractTests(unittest.TestCase):
         self.assertIn(f"md5={checksum}", recipe)
         self.assertIn('LICENSE = "GPL-2.0-only"', recipe)
         self.assertIn('COMPATIBLE_MACHINE = "^qemu-edu-platform-arm64$"', recipe)
+
+    def test_driver_makefile_exposes_module_class_targets(self) -> None:
+        text = DRIVER_MAKEFILE.read_text(encoding="utf-8")
+        self.assertIn("obj-m += qemu_edu_platform.o", text)
+        self.assertIn("all:\n\t$(MAKE) -C $(KERNEL_SRC) M=$(CURDIR) modules", text)
+        self.assertIn(
+            "modules_install:\n\t$(MAKE) -C $(KERNEL_SRC) M=$(CURDIR) modules_install",
+            text,
+        )
+        self.assertIn("clean:\n\t$(MAKE) -C $(KERNEL_SRC) M=$(CURDIR) clean", text)
 
     def test_diagnostic_tool_is_sysfs_bounded_and_address_free(self) -> None:
         text = TOOL.read_text(encoding="utf-8")
