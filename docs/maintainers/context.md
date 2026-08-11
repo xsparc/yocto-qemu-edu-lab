@@ -5,8 +5,8 @@ SPDX-License-Identifier: MIT
 
 # Project context
 
-- Active task: A004, the approved M4 bounded DMA learning slice.
-- Current branch: `docs/a004-merge-record`.
+- Active task: none. A005 and A006 remain Proposed and require explicit approval.
+- Merged runtime baseline: A004 correction commit `ebbf1db0a5f8f2b30d7580a2435f67e9db5cc940`.
 - Baseline: one x86-64 Yocto 6.0 (`wrynose`) learning machine using QEMU EDU PCI device `1234:11e8`.
 - Existing merged runtime features: PCI discovery, BAR0 MMIO, managed MSI/INTx
   selection, sysfs, factorial/liveness operations, and automated guest
@@ -80,6 +80,8 @@ SPDX-License-Identifier: MIT
   Quality, architecture, security, and independent frozen-diff reviews approved
   the correction with no P0-P2 findings. Review-record commit `a3a42b6` passed
   hosted Fast checks run `31397396385` and Yocto metadata run `31397396470`.
-  A004 remains In Progress until pull request #7 merges; GitHub's check state
-  for the then-current merge head is the authoritative final hosted gate.
+  Final pull-request head `89a4be3` passed Fast checks run `31404164447` and
+  Yocto metadata run `31404164649`; pull request #7 then squash-merged as
+  `ebbf1db0a5f8f2b30d7580a2435f67e9db5cc940`. A004 is Done. No tag or release
+  was published.
 - Public workflow state uses tool-neutral maintainer paths while preserving the same task, approval, validation, review, and handoff semantics.

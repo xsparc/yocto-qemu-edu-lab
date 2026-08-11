@@ -135,7 +135,7 @@ Outcome: the driver safely demonstrates both EDU DMA directions, coherent
 memory, the default 28-bit mask, transfer bounds, completion, and cleanup.
 
 Dependency: M3 and M3.1 are Done. A004 received separate implementation
-approval on 2026-08-09 and is In Progress.
+approval on 2026-08-09 and is Done.
 
 Approved boundary: one managed 4,096-byte coherent buffer under the EDU 28-bit
 mask; a length-only 1..4096 sysfs request; fixed device-buffer addressing; a
@@ -162,8 +162,7 @@ the bound native OEQA SHA-256 is
 `1f8b1756faf079a0996070846f4e4aee5535e71d205f5e232c9cbeff395e07c5`.
 Pull request #6 passed hosted Fast checks run `31312516815` and Yocto metadata
 run `31312516778` at `fbb2cab55ea6fc6a9000a1e172d71ef82a892a4b`, then
-squash-merged as `918efaa392486af73f03ac9d1e216c2a2ed421da`. A004 remains
-In Progress while its post-merge correction and pull request #7 complete. The
+squash-merged as `918efaa392486af73f03ac9d1e216c2a2ed421da`. The
 correction strengthens the address-free oracle with an exact source allowlist
 and a bound-versus-unbound sysfs comparison. Clean correction commit `fe08e73`
 passed the complete 94-test
@@ -175,9 +174,10 @@ the bound native OEQA SHA-256 is `918a7ade794afbc958c428eff358e2f5740e6e89bb63f8
 Quality, architecture, security, and independent frozen-diff reviews approved
 the correction with no P0-P2 findings. Review-record commit `a3a42b6` passed
 hosted Fast checks run `31397396385` and Yocto metadata run `31397396470`.
-Pull request #7 must retain green checks at its then-current merge head before
-merge. The merge remains pending. The local runtime result is not a hosted
-attestation, physical-hardware result, tag, or release.
+Final pull-request head `89a4be3` passed Fast checks run `31404164447` and Yocto
+metadata run `31404164649`, then pull request #7 squash-merged as
+`ebbf1db0a5f8f2b30d7580a2435f67e9db5cc940`. A004 is Done. The local runtime
+result is not a hosted attestation, physical-hardware result, tag, or release.
 
 Rollback: keep DMA opt-in and preserve the M3 image as a known-good stage.
 
