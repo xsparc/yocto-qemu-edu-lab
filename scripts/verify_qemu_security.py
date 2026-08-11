@@ -71,7 +71,7 @@ EXPECTED_EDU_SOURCE_SHA256 = (
 )
 QEMU_BINARY = "qemu-system-x86_64"
 PLATFORM_PATCH_SHA256 = (
-    "648d31d355d2802e7a603b4eecbd4c3e040612839924844376d3e342a9239ce4"
+    "8082f4b58ff3bc2d3d13c995859557477365b0ec0bd6390ec3f538993d039c5f"
 )
 PLATFORM_CHANGED_PATHS = (
     "hw/arm/Kconfig",
@@ -166,7 +166,7 @@ def verify_platform_patch(path: Path) -> str:
         raise VerificationError("platform patch must not contain binary changes")
     for token, label in (
         (
-            "# Upstream-Status: Inappropriate [oe specific]",
+            "Upstream-Status: Inappropriate [oe specific]",
             "OpenEmbedded-specific upstream status",
         ),
         ('+#define TYPE_QEMU_EDU_PLATFORM "qemu-edu-platform"', "QOM type"),

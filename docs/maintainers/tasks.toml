@@ -356,7 +356,7 @@ reviews_required = ["architecture", "quality", "devops", "security", "licensing"
 reviews_completed = []
 validation_evidence = [
   "Repository-local validation on 2026-08-11 passed source-lock, lab-manifest, workflow, CI-policy, both QEMU patch-integrity profiles, Git Bash syntax, and changed-line whitespace checks. The Python 3.12 suite passed all 127 tests; 13 native-Linux environment/wrapper cases were explicitly skipped rather than claimed.",
-  "The exact QEMU 10.2.0 platform patch has normalized SHA-256 648d31d355d2802e7a603b4eecbd4c3e040612839924844376d3e342a9239ce4. Its seven-file post-patch source group passed the closed source verifier and contains no DMA surface.",
+  "The exact QEMU 10.2.0 platform patch has normalized SHA-256 8082f4b58ff3bc2d3d13c995859557477365b0ec0bd6390ec3f538993d039c5f. Its seven-file post-patch source group passed the closed source verifier and contains no DMA surface.",
   "Device Tree schema 2026.6 validated the qemu,edu-platform binding against the upstream meta-schema through a kernel-style schemas/misc path; only Windows path separators were normalized for the validator's filename comparison. Compiled example and generated-DTB validation remain Linux qualification gates.",
   "REUSE 6.2.0 validation covered 95/95 files with BSD-2-Clause, GPL-2.0-only, and MIT; there were no missing, bad, deprecated, or unused licenses and no invalid SPDX expressions.",
 ]
