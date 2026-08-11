@@ -123,7 +123,7 @@ class QemuEduPlatformRuntimeTests(OERuntimeTestCase):
         )
         self.assertEqual(driver, "qemu_edu_platform")
         self.run_ok(f"test -d {DEVICE_ROOT}/{device}/of_node")
-        self.run_ok("grep -w qemu_edu_platform /proc/interrupts")
+        self.run_ok(f"grep -F '{device}' /proc/interrupts")
         self.assertEqual(
             self.regular_device_files(device) & EXPECTED_ATTRIBUTES,
             EXPECTED_ATTRIBUTES,
@@ -173,7 +173,7 @@ class QemuEduPlatformRuntimeTests(OERuntimeTestCase):
             self.run_ok("modprobe -r qemu_edu_platform")
             self.run_ok("test ! -d /sys/module/qemu_edu_platform")
             self.run_ok(f"test ! -L {DEVICE_ROOT}/{device}/driver")
-            self.run_ok("! grep -w qemu_edu_platform /proc/interrupts")
+            self.run_ok(f"! grep -F '{device}' /proc/interrupts")
         finally:
             self.restore_module()
         self.assert_interrupt(0x1000)

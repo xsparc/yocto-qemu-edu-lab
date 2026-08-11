@@ -133,7 +133,9 @@ class PlatformContractTests(unittest.TestCase):
     def test_runtime_case_uses_busybox_compatible_device_tree_reads(self) -> None:
         text = RUNTIME_CASE.read_text(encoding="utf-8")
         self.assertIn("hexdump -v -e '1/1 \\\"%02x\\\"'", text)
+        self.assertIn("grep -F '{device}' /proc/interrupts", text)
         self.assertNotIn("od -An -tx1", text)
+        self.assertNotIn("grep -w qemu_edu_platform /proc/interrupts", text)
         self.assertNotIn("/resource", text)
 
 
