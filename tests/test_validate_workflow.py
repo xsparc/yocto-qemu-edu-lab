@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import shutil
 import tempfile
 import unittest
@@ -19,6 +20,16 @@ MODULE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(MODULE)
 
 
+def lab_build_roots() -> set[str]:
+    roots = set()
+    for manifest in (ROOT / "config/labs").glob("*.json"):
+        if manifest.name == "index.json":
+            continue
+        data = json.loads(manifest.read_text(encoding="utf-8"))
+        roots.add(Path(data["build"]["build_dir"]).parts[0])
+    return roots
+
+
 class WorkflowValidationTests(unittest.TestCase):
     def copy_repository(self) -> Path:
         temporary = tempfile.TemporaryDirectory()
@@ -31,14 +42,17 @@ class WorkflowValidationTests(unittest.TestCase):
                 ".git",
                 "__pycache__",
                 "*.pyc",
-                "build",
                 "downloads",
                 "layers",
                 "poky",
                 "sstate-cache",
+                *sorted(lab_build_roots()),
             ),
         )
         return destination
+
+    def test_repository_copy_excludes_every_lab_build_root(self) -> None:
+        self.assertEqual({"build", "build-platform-arm64"}, lab_build_roots())
 
     def replace_in_task(
         self, text: str, task_id: str, old: str, new: str
