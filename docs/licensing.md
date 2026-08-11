@@ -12,9 +12,11 @@ having the right to submit their work.
 
 | Area | License | Reason |
 |---|---|---|
-| Documentation, scripts, tests, maintainer state, Yocto metadata, image recipe, test utility | MIT | Permissive reuse of educational and build material |
-| `qemu_edu.c` and its external-module `Makefile` | GPL-2.0-only | Linux kernel module implementation and build source |
+| Documentation, scripts, tests, maintainer state, Yocto metadata, image recipes, test utilities | MIT | Permissive reuse of educational and build material |
+| Both example kernel-module sources and their external-module `Makefile` files | GPL-2.0-only | Linux kernel module implementation and build source |
 | QEMU EDU bounds backport | MIT | Upstream patch to MIT-licensed `hw/misc/edu.c`, retaining the original author and commit provenance |
+| Project-local QEMU platform-device patch | GPL-2.0-only | A project-maintained teaching model and ARM `virt` integration; not an upstream contribution |
+| `qemu,edu-platform.yaml` | GPL-2.0-only OR BSD-2-Clause | Dual license follows the Linux Device Tree binding convention |
 | Third-party checkouts and build output | Their own licenses; not vendored here | `layers/`, legacy `poky/`, downloads, shared state, and build output are ignored |
 
 The top-level `LICENSE` summarizes the mixed-license repository and `LICENSES/`
@@ -47,16 +49,21 @@ SPDX license. `qemu_edu.c` therefore retains the `GPL-2.0-only` SPDX identifier.
   review/sign-off trailers, immutable source URL, and `Upstream-Status`. REUSE
   metadata covers the patch under the license of the changed upstream file;
   it does not replace those provenance fields.
+- Project-local patches must identify their project ownership, intended
+  maintenance boundary, license, and truthful `Upstream-Status`. They must not
+  reuse backport provenance or be described as upstream-ready without a
+  separate contribution decision and the upstream project's policy checks.
 - Keep GPL-only kernel implementation out of MIT files unless the resulting
   file and repository boundary are deliberately relicensed and reviewed.
 
 ## REUSE policy
 
 `REUSE.toml` supplies project copyright and fallback license information while
-preserving more specific file headers. `LICENSES/MIT.txt` and
-`LICENSES/GPL-2.0-only.txt` are the only license texts needed by the current
-tree. Fast CI runs REUSE from a digest-pinned, network-disabled container.
-Review the mapping whenever files or license boundaries change.
+preserving more specific file headers. The current tree uses
+`LICENSES/MIT.txt`, `LICENSES/GPL-2.0-only.txt`, and
+`LICENSES/BSD-2-Clause.txt`. Fast CI runs REUSE from a digest-pinned,
+network-disabled container. Review the mapping whenever files or license
+boundaries change.
 
 ## Dependencies, artifacts, and releases
 

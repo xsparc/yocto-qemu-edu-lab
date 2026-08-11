@@ -5,6 +5,7 @@ layers/
 # Kept ignored so an old checkout is not deleted or accidentally committed.
 poky/
 build/
+build-platform-arm64/
 downloads/
 sstate-cache/
 

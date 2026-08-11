@@ -312,24 +312,54 @@ result = "Implemented, independently reviewed, and squash-merged through pull re
 
 [[tasks]]
 id = "A005"
-status = "Proposed"
+status = "In Progress"
 milestone = "M5"
 title = "Introduce a portable platform-driver lab"
 outcome = "Add one non-PCI architecture path that teaches Device Tree and platform-driver bring-up."
-scope = ["Select ARM64 or RISC-V using a recorded decision.", "Add a versioned QEMU device boundary and a platform-driver lab."]
-non_scope = ["Supporting every CPU architecture", "Claiming physical validation"]
-acceptance_criteria = [
-  "The existing PCI lab remains independently usable.",
-  "The new lab proves Device Tree discovery, MMIO, and interrupts.",
-  "Shared concepts and architecture-specific differences are documented.",
+scope = [
+  "Add an ARM64 qemuarm64-derived machine using QEMU virt and one project-local qemu-edu-platform SysBus device.",
+  "Generate and validate a qemu,edu-platform Device Tree node with one MMIO resource and one level interrupt.",
+  "Add closed, digest-bound lab manifests and --lab selection while preserving the existing PCI lab as the no-argument default.",
+  "Add a GPL-2.0-only platform driver, bounded diagnostic tool, native OEQA suite, and separate platform runtime-evidence schema version 1.",
+  "Preserve the existing PCI machine, guest interface, runtime suite, and evidence schemas 1 through 3 without translation.",
+  "Document the PCI/platform comparison, exact licensing, rollback, and qualified build/runtime evidence.",
 ]
-dependencies = ["A002"]
-risks = ["qemu-patch", "device-tree", "maintenance", "compatibility"]
-validation = ["both lab build paths", "both QEMU runtime suites", "project fast-check suite"]
-approval = ""
-reviews_required = ["architecture", "quality", "devops", "security", "independent-diff"]
+non_scope = [
+  "Adding RISC-V or another CPU architecture.",
+  "Adding DMA, queues, shared memory, or arbitrary MMIO access to the platform lab.",
+  "Claiming physical-hardware, timing, electrical, coherency, or silicon validation.",
+  "Updating the locked Yocto 6.0.2 or QEMU 10.2.0 release inputs.",
+  "Submitting the project-local QEMU patch upstream.",
+  "Publishing, merging, tagging, or releasing the implementation.",
+]
+acceptance_criteria = [
+  "No-argument setup, build, inspect, run, and runtime-test commands retain the PCI x86-64 lab, existing build directory, and evidence behavior.",
+  "The ARM64 lab has its own manifest and build directory, selects only the reviewed QEMU system-emulator patch, and cannot fall back to a host emulator.",
+  "The generated Device Tree contains exactly one qemu,edu-platform node with the expected compatible, MMIO range, and level interrupt, and Linux binds it as a platform device.",
+  "The driver proves exact identification, bounded scratch read/write, two distinct interrupt raise/status/acknowledgement cycles, unload cleanup, and rebind recovery.",
+  "The platform evidence schema is closed and case-bound, while immutable PCI evidence schemas 1 through 3 remain accepted unchanged.",
+  "Both labs parse, build, boot, and pass their complete runtime suites without skips on clean exact revisions.",
+  "Repository, metadata, licensing, checksum, qualified Linux build/runtime, and all required reviews pass.",
+]
+dependencies = ["A004"]
+risks = ["qemu-patch", "device-tree", "kernel", "runtime", "supply-chain", "licensing", "maintenance", "compatibility"]
+validation = [
+  "project fast-check and licensing suite",
+  "closed lab-manifest and wrapper contract tests",
+  "both Yocto metadata parse and layer paths",
+  "exact QEMU patch, source, compile, consumer, and generated-DTB verification",
+  "clean PCI and ARM64 driver/image builds",
+  "software-QEMU runtime suites with closed PCI v3 and platform v1 evidence",
+]
+approval = "Repository owner explicitly approved A005/M5 using the documented ARM64 platform-lab boundary on 2026-08-11."
+reviews_required = ["architecture", "quality", "devops", "security", "licensing", "independent-diff"]
 reviews_completed = []
-validation_evidence = []
+validation_evidence = [
+  "Repository-local validation on 2026-08-11 passed source-lock, lab-manifest, workflow, CI-policy, both QEMU patch-integrity profiles, Git Bash syntax, and changed-line whitespace checks. The Python 3.12 suite passed all 127 tests; 13 native-Linux environment/wrapper cases were explicitly skipped rather than claimed.",
+  "The exact QEMU 10.2.0 platform patch has normalized SHA-256 5b8a4edfd225be50226d6ad9d0122b38ac12d98533fbd1f90880226eb45b3e07. Its seven-file post-patch source group passed the closed source verifier and contains no DMA surface.",
+  "Device Tree schema 2026.6 validated the qemu,edu-platform binding against the upstream meta-schema through a kernel-style schemas/misc path; only Windows path separators were normalized for the validator's filename comparison. Compiled example and generated-DTB validation remain Linux qualification gates.",
+  "REUSE 6.2.0 validation covered 95/95 files with BSD-2-Clause, GPL-2.0-only, and MIT; there were no missing, bad, deprecated, or unused licenses and no invalid SPDX expressions.",
+]
 review_evidence = []
 result = ""
 

@@ -156,3 +156,44 @@ SPDX-License-Identifier: MIT
 - Revisit when: a later curriculum stage has a separately reviewed need for
   streaming mappings or physical hardware. Such work must use a new interface
   version and must not weaken this bounded contract.
+
+## D-014: Add the platform-driver lesson on ARM64 virt
+
+- Status: Accepted on 2026-08-11 for A005; no publication, merge, tag, release,
+  or upstream submission is authorized by this decision.
+- Decision: Advance the development identity to `0.5.0-dev`. Add one ARM64
+  machine derived from OE-Core `qemuarm64`, one independent
+  `qemu-edu-platform` SysBus device on QEMU `virt`'s dynamic platform bus, and
+  one generated `qemu,edu-platform` Device Tree binding. Add a GPL-2.0-only
+  platform driver and a separate closed platform guest/runtime evidence
+  contract version 1. Keep the PCI guest contract and evidence versions 1
+  through 3 unchanged.
+- Reason: ARM64 provides a direct, well-tested OE-Core QEMU path and teaches
+  Device Tree discovery, resource mapping, interrupts, and platform lifecycle
+  without adding the OpenSBI/U-Boot chain required by the RISC-V alternative.
+  An independent device avoids pretending the PCI EDU register model is a
+  portable hardware specification.
+- Provenance boundary: the QEMU device patch is project-local and is not
+  intended for upstream submission. Its source and integration use
+  GPL-2.0-only; the external kernel module remains GPL-2.0-only; the Device
+  Tree schema uses the kernel-preferred `(GPL-2.0-only OR BSD-2-Clause)`; project
+  metadata remains MIT.
+- Revisit when: the ARM64 lab has clean build/runtime evidence and a distinct
+  RISC-V learning objective justifies the additional firmware and maintenance
+  path.
+
+## D-015: Select labs through closed manifests
+
+- Status: Accepted on 2026-08-11 for A005.
+- Decision: Add a versioned lab index with digest-bound manifests. A manifest
+  selects build directory, machine, driver, image, layer order, emulator preflight,
+  runtime suite, and evidence profile. All public wrappers accept `--lab`; an
+  omitted selector means `pci-x86-64` and preserves the existing `build/` path.
+  External Git identity remains in the source lock. New platform evidence
+  records it separately from the selected manifest digest; immutable PCI
+  evidence schemas 1 through 3 remain unchanged.
+- Reason: A closed data contract scales to additional labs without duplicating
+  entry points or spreading machine conditionals through shell scripts. Keeping
+  PCI as the default preserves the current learning and command contracts.
+- Revisit when: a third lab or external BSP makes composition expressive enough
+  to justify translating these manifests to kas or upstream `bitbake-setup`.

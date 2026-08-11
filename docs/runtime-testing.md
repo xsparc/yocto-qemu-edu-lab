@@ -5,25 +5,30 @@ SPDX-License-Identifier: MIT
 
 # Automated runtime testing and evidence
 
-The M4 suite uses the Yocto Project's native `testimage` and OEQA runtime framework. The
-image inherits `testimage`, enables Dropbear for the development-only empty-root
-login, selects `ping ssh qemu_edu`, uses unprivileged SLIRP networking, and
-disables KVM for portable evidence. Under SLIRP, OEQA's `ping` bootstrap sees a
-localhost target and does not send ICMP; `ssh` is the actual transport check.
+The PCI M4 suite and ARM64 M5 suite use the Yocto Project's native `testimage`
+and OEQA runtime framework. The image inherits `testimage`, enables Dropbear
+for the development-only empty-root login, selects the manifest's suite, uses
+unprivileged SLIRP networking, and disables KVM for portable evidence. Under
+SLIRP, OEQA's `ping` bootstrap sees a localhost target and does not send ICMP;
+`ssh` is the actual transport check.
 
 Run the complete path on a supported Linux build host after setup:
 
 ```bash
 ./setup.sh
 ./runtime-test.sh
+
+# Independent ARM64 platform path
+./setup.sh --lab platform-arm64
+./runtime-test.sh --lab platform-arm64
 ```
 
 The host must provide the OpenSSH `ssh` client used by OEQA. The wrapper checks
 for it before starting an expensive image build and reports the missing package
 directly.
 
-Before any guest boot, the wrapper fails closed through five host-emulator
-checks:
+Before the default PCI guest boots, the wrapper fails closed through five
+host-emulator checks:
 
 1. the exact `qemu-system-native_10.2.0.bbappend` is selected once;
 2. effective `PN`, `PV`, `FILE`, and `SRC_URI` identify the reviewed recipe and
@@ -39,6 +44,14 @@ The verifier intentionally inspects source instead of executing invalid-range
 input. An unpatched EDU DMA out-of-bounds test could corrupt the QEMU host
 process and is outside the supported validation boundary.
 
+For `platform-arm64`, the shared preflight dispatches to a separate closed
+profile. It requires only the machine-scoped project-local platform patch in
+effective `SRC_URI`, pins all seven post-patch QEMU source files, proves the
+model has no DMA surface, populates the same helper-native consumer, and
+requires `qemu-system-aarch64` inside that sysroot. The PCI patch must be absent
+from the ARM recipe selection, and the ARM patch must be absent from PCI
+selection.
+
 After that preflight, the wrapper builds the one locked image target and runs:
 
 ```bash
@@ -50,6 +63,7 @@ into:
 
 ```text
 build/evidence/qemu-edu-runtime-v3.json
+build-platform-arm64/evidence/qemu-edu-platform-runtime-v1.json
 ```
 
 Set `BUILD_DIR` to relocate build products or `EVIDENCE_OUTPUT` to choose a
@@ -99,6 +113,25 @@ Policy and negative tests use `try/finally` restoration. A failed unload,
 DMA addresses, streaming DMA, multiple devices, and real hardware remain out of
 scope.
 
+### ARM64 platform suite
+
+`qemu_edu_platform` has nine exact, ordered cases:
+
+- module registration;
+- the single generated FDT node, exact `qemu,edu-platform` compatible,
+  4 KiB `reg`, and level-high interrupt specifier;
+- one bound Linux platform device, one MMIO resource, and one requested IRQ;
+- exact identification `0x0100a64e` and zeroed initial state;
+- 32-bit scratch boundaries and rejection of negative, overflow, and malformed
+  inputs without changing the last valid value;
+- two distinct `0x00000400` and `0x00000800` interrupt
+  raise/status/acknowledgement cycles;
+- rejection of a zero interrupt mask without a count change; and
+- unload cleanup followed by module rebind and a known-good interrupt.
+
+The suite does not exercise DMA, claim a physical interrupt controller, or
+generalize QEMU `virt` timing to hardware.
+
 ## Evidence versions
 
 The collector emits the closed version-3 schema at
@@ -135,6 +168,16 @@ source, and the native executable that locked `runqemu` selects. The same gate
 protects `run.sh`, and it rejects the locked script's otherwise-permitted host
 `PATH` fallback. Historical runtime schemas 1 and 2 remain unchanged; M4 uses a
 new version because the guest contract and required case list change.
+
+The ARM64 path emits the separate closed
+`qemu-edu-platform-runtime-evidence-v1.schema.json` kind. It records the
+source-lock, lab-index, selected-manifest, and native OEQA digests; the exact
+nine cases; and conservative Device Tree, scratch, interrupt, negative-input,
+and lifecycle completion claims. A failed, skipped, missing, reordered, or
+stale case cannot produce a passing document. This new kind does not translate
+or mutate historical PCI evidence versions 1 through 3. M5 runtime evidence is
+not claimed until the clean ARM64 suite and the existing PCI regression both
+complete on adequate Linux capacity.
 
 A007 was qualified locally at clean commit
 `46e2280448cf2a857f8599f677f1b1bd0284fa13`. After clearing an inherited forced

@@ -5,9 +5,9 @@ SPDX-License-Identifier: MIT
 
 # Source lock contract
 
-`config/sources.lock.json` is the source of truth for the external metadata
-repositories and build composition used by this lab. Schema version 1 locks
-Yocto 6.0.2 as three upstream repositories:
+`config/sources.lock.json` is the source of truth for external metadata
+repositories. Schema version 1 locks Yocto 6.0.2 as three upstream
+repositories:
 
 | Source | Release ref | Locked peeled commit |
 |---|---|---|
@@ -64,17 +64,30 @@ offline, prove bit-for-bit image reproducibility, or replace signatures and
 provenance. Full offline builds additionally need a populated download mirror
 and `BB_NO_NETWORK`; those are later evidence gates.
 
-## Build composition
+## Lab composition
 
-The lock also declares the environment script, BitBake binary path, build
-directory default, distro, machine, target, and ordered layers. Public commands
-remain `setup.sh`, `environment.sh`, `build.sh`, `inspect.sh`, and `run.sh`.
-`BUILD_DIR` may relocate disposable build output; source URL, commit, distro,
-machine, and target overrides are intentionally absent from the reproducible
-path. `setup.sh` rewrites generated `bblayers.conf` to the exact locked order,
-places its managed `local.conf` block last, and checks the effective `BBLAYERS`,
-`DISTRO`, and `MACHINE` values. Use a separate `BUILD_DIR` for experimental
-layers or overrides.
+`config/labs/index.json` binds closed lab manifests by SHA-256. A manifest owns
+the build directory, distro, machine, driver target, one image target, ordered layers,
+emulator preflight, runtime suite, and evidence profile. Unknown fields,
+profiles, paths, digests, duplicate build directories, and duplicate machines
+fail closed. `pci-x86-64` is the no-argument default; `platform-arm64` is
+selected with `--lab platform-arm64` and uses a separate build directory.
+
+The source-lock schema-v1 `build` values remain an exact compatibility mirror
+for the default PCI build directory, distro, machine, targets, and layers, so
+existing source-lock consumers do not silently change behavior. The manifest
+also names its driver target. New composition consumers use
+`scripts/lab_config.py`; source identity remains solely in the source lock.
+Platform evidence records source lock, lab index, and selected manifest digests
+separately. Immutable PCI evidence schemas 1 through 3 remain unchanged and
+therefore do not gain new fields.
+
+Public commands remain `setup.sh`, `environment.sh`, `build.sh`, `inspect.sh`,
+`run.sh`, and `runtime-test.sh`. Executable wrappers accept `--lab`; the sourced
+environment selects through `QEMU_EDU_LAB`. `BUILD_DIR` may explicitly relocate
+disposable output. Setup rewrites `bblayers.conf` to the selected exact order,
+places its managed `local.conf` block last, and verifies effective `BBLAYERS`,
+`DISTRO`, and `MACHINE` values.
 
 ## Evolution and rollback
 

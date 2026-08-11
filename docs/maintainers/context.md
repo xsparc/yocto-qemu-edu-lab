@@ -5,13 +5,17 @@ SPDX-License-Identifier: MIT
 
 # Project context
 
-- Active task: none. A005 and A006 remain Proposed and require explicit approval.
+- Active task: A005, the approved M5 ARM64 platform-driver learning slice.
 - Merged runtime baseline: A004 correction commit `ebbf1db0a5f8f2b30d7580a2435f67e9db5cc940`.
 - Baseline: one x86-64 Yocto 6.0 (`wrynose`) learning machine using QEMU EDU PCI device `1234:11e8`.
 - Existing merged runtime features: PCI discovery, BAR0 MMIO, managed MSI/INTx
   selection, sysfs, factorial/liveness operations, and automated guest
   verification.
-- Current license boundary: infrastructure and learning material are MIT; kernel module source and its module Makefile are GPL-2.0-only.
+- Current license boundary: infrastructure, learning material, recipes, and
+  user-space tools are MIT; both example kernel-module implementations and the
+  project-local QEMU platform patch are GPL-2.0-only; the platform Device Tree
+  binding is dual licensed GPL-2.0-only OR BSD-2-Clause; the attributed QEMU
+  EDU bounds backport remains MIT.
 - Yocto 6.0 uses separate BitBake, OE-Core, and meta-yocto repositories; the old Poky combo repository is not a valid Wrynose source.
 - M1 locks Yocto 6.0.2 source metadata through `config/sources.lock.json`; recipe downloads, full image output, and runtime evidence remain separate claims.
 - Full Yocto builds require Linux/WSL2 and substantial disk/time; the present Windows session can run repository-local checks and Git Bash syntax checks, while GitHub-hosted Linux validates source resolution and metadata.
@@ -54,7 +58,7 @@ SPDX-License-Identifier: MIT
   round trip, DMA completion and timeout handling, fail-closed teardown, guest
   interface version 3, and closed runtime evidence version 3. Arbitrary DMA
   addresses, streaming DMA, physical-hardware claims, and source-lock updates
-  remain out of scope. M5 and M6 remain Proposed and unapproved.
+  remain out of scope.
 - A004 clean implementation commit
   `8574eaffe206f8235a5da57461ded0ecbdbbf60b` passed the complete 94-test Linux
   repository suite, the exact Yocto 6.0.2 driver and image build, software-QEMU
@@ -84,4 +88,15 @@ SPDX-License-Identifier: MIT
   Yocto metadata run `31404164649`; pull request #7 then squash-merged as
   `ebbf1db0a5f8f2b30d7580a2435f67e9db5cc940`. A004 is Done. No tag or release
   was published.
+- A005 is approved as an additive ARM64 `virt` lab. It introduces a separate
+  project-local SysBus device and generated `qemu,edu-platform` Device Tree
+  node, a platform driver, versioned lab manifests, and separate platform
+  evidence while preserving the x86-64 PCI lab as the no-argument default.
+  RISC-V, DMA, physical validation, source-version upgrades, upstream QEMU
+  submission, publication, merge, tag, and release remain outside A005.
+- A005 repository-local implementation checks currently pass 127 tests, both
+  exact QEMU patch profiles, Git Bash syntax, Device Tree schema 2026.6, and
+  REUSE 6.2.0 over 95/95 files. Thirteen native-Linux contracts, both metadata
+  parses, emulator/driver/image builds, generated-DTB checks, and both runtime
+  suites remain unqualified until they run on adequate Linux capacity.
 - Public workflow state uses tool-neutral maintainer paths while preserving the same task, approval, validation, review, and handoff semantics.

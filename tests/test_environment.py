@@ -43,6 +43,21 @@ print(values[key])
 ''',
                 encoding="utf-8",
             )
+            (root / "scripts/lab_config.py").write_text(
+                '''import sys
+
+if "--lab" in sys.argv and sys.argv[sys.argv.index("--lab") + 1] == "invalid":
+    raise SystemExit(2)
+
+key = sys.argv[-1]
+values = {
+    "id": "pci-x86-64",
+    "build.build_dir": "build",
+}
+print(values[key])
+''',
+                encoding="utf-8",
+            )
             (root / "layers/openembedded-core/oe-init-build-env").write_text(
                 '''#!/usr/bin/env bash
 mkdir -p "$1"
@@ -70,6 +85,54 @@ export BUILDDIR
         expected = str(root / "build-alt")
         self.assertEqual(expected, build_dir)
         self.assertEqual(expected, current_dir)
+
+    def test_invalid_lab_does_not_fall_back_when_sourced_interactively(self) -> None:
+        bash = shutil.which("bash")
+        if bash is None:
+            self.skipTest("bash is unavailable")
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            (root / "scripts").mkdir()
+            (root / "layers/openembedded-core").mkdir(parents=True)
+            (root / "layers/bitbake/bin").mkdir(parents=True)
+            shutil.copy2(ROOT / "environment.sh", root / "environment.sh")
+            (root / "scripts/source_lock.py").write_text(
+                '''import sys
+
+if "status" in sys.argv:
+    raise SystemExit(0)
+print("should-not-be-used")
+''',
+                encoding="utf-8",
+            )
+            (root / "scripts/lab_config.py").write_text(
+                '''import sys
+
+if "--lab" in sys.argv and sys.argv[sys.argv.index("--lab") + 1] == "invalid":
+    raise SystemExit(2)
+print("pci-x86-64")
+''',
+                encoding="utf-8",
+            )
+
+            result = subprocess.run(
+                [
+                    bash,
+                    "-c",
+                    'QEMU_EDU_LAB=invalid; source ./environment.sh; status=$?; '
+                    'if [ "$status" -eq 0 ]; then printf "unexpected-success\\n"; fi; '
+                    'exit "$status"',
+                ],
+                cwd=root,
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+        self.assertEqual(result.returncode, 1)
+        self.assertNotIn("unexpected-success", result.stdout)
+        self.assertIn("requested lab is not declared", result.stderr)
 
 
 if __name__ == "__main__":

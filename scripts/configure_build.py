@@ -15,7 +15,8 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
-from source_lock import DEFAULT_LOCK, LockError, locked_path, read_lock  # noqa: E402
+from lab_config import DEFAULT_INDEX, LabError, select_lab  # noqa: E402
+from source_lock import LockError, locked_path  # noqa: E402
 
 
 START = "# BEGIN yocto-qemu-edu-lab"
@@ -37,7 +38,7 @@ def expected_layers(root: Path, data: dict[str, Any]) -> list[str]:
 
 def render_bblayers(root: Path, data: dict[str, Any]) -> str:
     lines = [
-        "# Managed by yocto-qemu-edu-lab; edit config/sources.lock.json instead.",
+        "# Managed by yocto-qemu-edu-lab; edit the selected lab manifest instead.",
         'POKY_BBLAYERS_CONF_VERSION = "2"',
         'BBPATH = "${TOPDIR}"',
         'BBFILES ?= ""',
@@ -130,7 +131,8 @@ def effective_errors(
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo", default=".", help="repository root")
-    parser.add_argument("--lock", default=DEFAULT_LOCK, help="lock path under repository")
+    parser.add_argument("--index", default=DEFAULT_INDEX, help="lab index under repository")
+    parser.add_argument("--lab", help="lab id; defaults to the index default")
     subparsers = parser.add_subparsers(dest="command", required=True)
     configure_parser = subparsers.add_parser("configure", help="write locked build configuration")
     configure_parser.add_argument("--build-dir", required=True)
@@ -142,10 +144,10 @@ def main() -> int:
 
     root = Path(args.repo).resolve()
     try:
-        data, _ = read_lock(locked_path(root, args.lock))
+        selected, data, _, _ = select_lab(root, args.lab, args.index)
         if args.command == "configure":
             configure(root, Path(args.build_dir), data)
-            print("build-config: reconciled")
+            print(f"build-config: reconciled ({selected})")
             return 0
         errors = effective_errors(
             root,
@@ -158,9 +160,9 @@ def main() -> int:
             raise ConfigurationError(
                 "\n".join(errors) + "\nUse a fresh BUILD_DIR for custom configuration."
             )
-        print("build-config: PASS")
+        print(f"build-config: PASS ({selected})")
         return 0
-    except (ConfigurationError, LockError, OSError) as exc:
+    except (ConfigurationError, LabError, LockError, OSError) as exc:
         print(f"build-config: FAIL: {exc}", file=sys.stderr)
         return 1
 

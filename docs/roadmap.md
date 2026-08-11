@@ -186,15 +186,29 @@ Rollback: keep DMA opt-in and preserve the M3 image as a known-good stage.
 Outcome: one non-PCI lab teaches Device Tree discovery and a platform driver
 without weakening the original PCI lesson.
 
-Decision gate: compare ARM64 `virt`, RISC-V `virt`, and the cost of maintaining a
-small QEMU device patch. Choose one based on learning value, upstream fit,
-runtime cost, and maintenance burden.
+Approved on 2026-08-11: use ARM64 `virt`, one project-local
+`qemu-edu-platform` SysBus device, and a generated `qemu,edu-platform` node.
+ARM64 reuses OE-Core's direct `qemuarm64` path and keeps the new lesson focused
+on Device Tree, MMIO, interrupts, and platform-driver lifecycle. RISC-V remains
+deferred because its additional OpenSBI/U-Boot boot chain does not improve this
+stage's learning objective.
 
-Acceptance gate: both labs build and boot independently; the new lab proves
-Device Tree, MMIO, interrupt, and teardown behavior; shared and different
-concepts are explicit.
+Approved composition: closed lab manifests select an independent build
+directory, machine, driver, image, preflight, runtime suite, and evidence profile. The
+existing PCI lab remains the default for every no-argument command. The ARM64
+lab adds no DMA and does not modify PCI guest or evidence contracts.
 
-Rollback: the new lab is additive and can be removed without changing x86-64.
+Acceptance gate: both labs parse, build, and boot independently from the exact
+Yocto 6.0.2/QEMU 10.2.0 inputs; the ARM64 lab verifies the generated FDT node,
+platform-device binding, identification, bounded scratch MMIO, two exact
+interrupt acknowledgement cycles, unload cleanup, and rebind recovery; PCI
+evidence versions 1 through 3 remain valid; closed platform evidence version 1
+is clean and complete; licensing and all required reviews pass; shared and
+architecture-specific concepts are explicit.
+
+Rollback: remove the ARM manifest, machine, patch, driver, test, and evidence
+profile. The default PCI manifest and its existing build directory remain the
+known-good path. No source-version rollback or evidence translation is needed.
 
 ## M6 — Provider-neutral diagnostics and optional tool access
 

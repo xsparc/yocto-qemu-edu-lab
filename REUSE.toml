@@ -24,6 +24,7 @@ path = [
   "meta-qemu-edu/recipes-core/**",
   "meta-qemu-edu/recipes-devtools/qemu/*.bbappend",
   "meta-qemu-edu/recipes-kernel/qemu-edu-driver/qemu-edu-driver_1.0.bb",
+  "meta-qemu-edu/recipes-kernel/qemu-edu-platform-driver/qemu-edu-platform-driver_1.0.bb",
   "meta-qemu-edu/recipes-support/**",
   "run.sh",
   "runtime-test.sh",
@@ -40,6 +41,8 @@ SPDX-License-Identifier = "MIT"
 path = [
   "meta-qemu-edu/recipes-kernel/qemu-edu-driver/files/Makefile",
   "meta-qemu-edu/recipes-kernel/qemu-edu-driver/files/qemu_edu.c",
+  "meta-qemu-edu/recipes-kernel/qemu-edu-platform-driver/files/Makefile",
+  "meta-qemu-edu/recipes-kernel/qemu-edu-platform-driver/files/qemu_edu_platform.c",
 ]
 precedence = "closest"
 SPDX-FileCopyrightText = "2026 Yocto QEMU EDU learning project contributors"
@@ -52,3 +55,19 @@ path = [
 precedence = "closest"
 SPDX-FileCopyrightText = "2025 Torin Carey"
 SPDX-License-Identifier = "MIT"
+
+[[annotations]]
+path = [
+  "meta-qemu-edu/recipes-devtools/qemu/files/0002-hw-misc-add-qemu-edu-platform-device.patch",
+]
+precedence = "closest"
+SPDX-FileCopyrightText = "2026 Yocto QEMU EDU learning project contributors"
+SPDX-License-Identifier = "GPL-2.0-only"
+
+[[annotations]]
+path = [
+  "meta-qemu-edu/recipes-kernel/qemu-edu-platform-driver/files/qemu,edu-platform.yaml",
+]
+precedence = "closest"
+SPDX-FileCopyrightText = "2026 Yocto QEMU EDU learning project contributors"
+SPDX-License-Identifier = "GPL-2.0-only OR BSD-2-Clause"

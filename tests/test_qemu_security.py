@@ -58,6 +58,30 @@ static void edu_dma_timer(void)
         )
         return root
 
+    def platform_source_tree(self) -> tuple[Path, dict[str, str]]:
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        root = Path(temporary.name) / "qemu"
+        texts = {path: f"reviewed {path}\n" for path in MODULE.PLATFORM_CHANGED_PATHS}
+        texts["hw/misc/qemu_edu_platform.c"] = """TYPE_QEMU_EDU_PLATFORM
+QEMU_EDU_PLATFORM_MMIO_SIZE
+QEMU_EDU_PLATFORM_IRQ_RAISE_REG
+QEMU_EDU_PLATFORM_IRQ_ACK_REG
+TYPE_DYNAMIC_SYS_BUS_DEVICE
+"""
+        texts["include/hw/misc/qemu_edu_platform.h"] = """TYPE_QEMU_EDU_PLATFORM
+QEMU_EDU_PLATFORM_MMIO_SIZE
+"""
+        for relative, text in texts.items():
+            path = root / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(text, encoding="utf-8")
+        digests = {
+            relative: MODULE.canonical_text_digest(text)
+            for relative, text in texts.items()
+        }
+        return root, digests
+
     def metadata_arguments(self, root: Path) -> dict[str, str | Path]:
         append = (root / MODULE.APPEND_RELATIVE).resolve().as_posix()
         return {
@@ -150,11 +174,43 @@ static void edu_dma_timer(void)
                 with self.assertRaises(MODULE.VerificationError):
                     MODULE.static_checks(root)
 
+    def test_platform_patch_rejects_extra_path_or_tampering(self) -> None:
+        for name in ("extra path", "tampered model"):
+            with self.subTest(name=name):
+                root = self.repository_copy()
+                patch_path = root / MODULE.PLATFORM_PATCH_RELATIVE
+                text = patch_path.read_text(encoding="utf-8")
+                if name == "extra path":
+                    text += (
+                        "\ndiff --git a/meson.build b/meson.build\n"
+                        "--- a/meson.build\n+++ b/meson.build\n"
+                        "@@ -1 +1 @@\n-a\n+b\n"
+                    )
+                else:
+                    text = text.replace("0x0100a64e", "0x0100a64f", 1)
+                patch_path.write_text(text, encoding="utf-8")
+                with self.assertRaises(MODULE.VerificationError):
+                    MODULE.static_checks(root)
+
     def test_metadata_selection_and_dependency_chain_pass(self) -> None:
         arguments = self.metadata_arguments(ROOT)
         result = MODULE.metadata_checks(**arguments)
         self.assertTrue(result["selected"])
         self.assertTrue(result["testimage_dependency_verified"])
+
+    def test_platform_metadata_selects_only_platform_patch(self) -> None:
+        arguments = self.metadata_arguments(ROOT)
+        arguments["src_uri"] = (
+            f"file://powerpc_rom.bin file://{MODULE.PLATFORM_PATCH_NAME}"
+        )
+        arguments["profile"] = MODULE.PLATFORM_PROFILE
+        result = MODULE.metadata_checks(**arguments)
+        self.assertEqual(result["profile"], MODULE.PLATFORM_PROFILE)
+        self.assertEqual(result["qemu_machine"], MODULE.PLATFORM_MACHINE)
+
+        arguments["src_uri"] += f" file://{MODULE.PATCH_NAME}"
+        with self.assertRaisesRegex(MODULE.VerificationError, "another lab"):
+            MODULE.metadata_checks(**arguments)
 
     def test_metadata_rejects_ambiguous_or_wrong_inputs(self) -> None:
         base = self.metadata_arguments(ROOT)
@@ -216,6 +272,22 @@ static void edu_dma_timer(void)
         with self.assertRaisesRegex(MODULE.VerificationError, "reviewed QEMU 10.2.0"):
             MODULE.source_checks(self.source_tree())
 
+    def test_platform_source_group_is_exact_and_dma_free(self) -> None:
+        source_tree, digests = self.platform_source_tree()
+        with patch.object(MODULE, "PLATFORM_SOURCE_SHA256", digests):
+            result = MODULE.source_checks(source_tree, MODULE.PLATFORM_PROFILE)
+        self.assertTrue(result["source_guard_verified"])
+
+        device = source_tree / "hw/misc/qemu_edu_platform.c"
+        device.write_text(device.read_text(encoding="utf-8") + "DMA\n", encoding="utf-8")
+        updated = dict(digests)
+        updated["hw/misc/qemu_edu_platform.c"] = MODULE.canonical_text_digest(
+            device.read_text(encoding="utf-8")
+        )
+        with patch.object(MODULE, "PLATFORM_SOURCE_SHA256", updated):
+            with self.assertRaisesRegex(MODULE.VerificationError, "must not expose DMA"):
+                MODULE.source_checks(source_tree, MODULE.PLATFORM_PROFILE)
+
     def test_consumer_requires_native_executable_and_ignores_host_path(self) -> None:
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
@@ -241,6 +313,17 @@ static void edu_dma_timer(void)
                 MODULE.VerificationError, "host fallback prohibited"
             ):
                 MODULE.consumer_checks(staging)
+
+    def test_platform_consumer_requires_native_aarch64_binary(self) -> None:
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        staging = (Path(temporary.name) / "recipe-sysroot-native/usr/bin").resolve()
+        staging.mkdir(parents=True)
+        binary = staging / "qemu-system-aarch64"
+        binary.write_bytes(b"reviewed-platform-qemu\n")
+        binary.chmod(0o755)
+        result = MODULE.consumer_checks(staging, MODULE.PLATFORM_PROFILE)
+        self.assertEqual(Path(result["qemu_binary"]), binary.resolve())
 
 
 if __name__ == "__main__":

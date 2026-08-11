@@ -3,11 +3,16 @@ SPDX-FileCopyrightText: 2026 Yocto QEMU EDU learning project contributors
 SPDX-License-Identifier: MIT
 -->
 
-# QEMU EDU guest interface contract
+# QEMU EDU guest interface contracts
 
-This document defines version 3 of the pre-1.0 guest-visible contract for the
-`qemu_edu` learning driver. It describes the current stage; it is not a
-promise that a later pre-1.0 minor version will never change the interface.
+This document defines two independent pre-1.0 guest-visible contracts: PCI
+contract version 3 for `qemu_edu`, and ARM64 platform contract version 1 for
+`qemu_edu_platform`. They share teaching concepts, but neither contract is a
+translation of the other. A later pre-1.0 minor version may deliberately
+change either interface with corresponding version, migration, and rollback
+documentation.
+
+## PCI contract version 3
 
 The driver binds QEMU PCI device `1234:11e8`. A bound device is represented by
 one symbolic link under:
@@ -135,11 +140,59 @@ one write and reports the numeric Linux `errno` on failure, allowing OEQA to
 assert kernel behavior without depending on shell, locale, or libc prose. It is
 not a privileged bypass: normal file permissions and kernel validation apply.
 
+## ARM64 platform contract version 1
+
+The independent `platform-arm64` lab creates one dynamic SysBus device under
+QEMU's ARM `virt` platform bus. QEMU generates one Device Tree node with:
+
+```text
+compatible = "qemu,edu-platform"
+reg size = 4096 bytes
+interrupt = SPI 112, level-high
+```
+
+Linux discovers the generated node and binds the `qemu_edu_platform` driver.
+The generated platform-device name contains its allocated address and must not
+be hard-coded. Discover the one bound device through:
+
+```text
+/sys/bus/platform/drivers/qemu_edu_platform/<generated-device-name>/
+```
+
+The driver-owned attributes are published on the corresponding device under
+`/sys/bus/platform/devices/<generated-device-name>/`:
+
+| Attribute | Mode | Contract |
+|---|---:|---|
+| `identification` | `0444` | Exact model identifier `0x0100a64e` |
+| `scratch` | `0644` | One unsigned 32-bit scratch register, rendered as eight-digit hexadecimal |
+| `interrupt_count` | `0444` | Decimal count of handled device interrupts since this binding began |
+| `last_irq_status` | `0444` | Last acknowledged interrupt mask as eight-digit hexadecimal |
+| `raise_irq` | `0200` | A nonzero unsigned 32-bit mask raises the level interrupt; zero is rejected with `EINVAL` |
+
+Writes use Linux `kstrtou32()` base-0 parsing. Decimal and `0x`-prefixed
+hexadecimal values are accepted. Negative, malformed, and unsigned-overflow
+text is rejected without changing the prior scratch value. The model contains
+no DMA engine, guest-address input, shared-memory window, or arbitrary MMIO
+access surface.
+
+The interrupt handler reads the pending mask, returns `IRQ_NONE` for zero,
+acknowledges the exact nonzero mask, records it, and increments the count once.
+Removal acknowledges pending state and synchronizes the IRQ before managed
+resources are released. The runtime contract proves two distinct masks,
+unload cleanup, module rebind, and a known-good interrupt after recovery.
+
+`qemu-edu-platform-test identify|status|scratch VALUE|raise MASK` is the bounded
+manual interface. It discovers the single bound device and uses only these
+sysfs files; it does not map `/dev/mem`, `resource0`, or another raw address.
+
 ## Compatibility and security
 
-Only root can write the writable attributes in the development image. Sysfs input is
-untrusted kernel input: range checks, serialized operations, bounded waits,
-interrupt acknowledgement, and safe teardown remain required. QEMU evidence
-does not imply electrical, timing, cache-coherency, IOMMU, or physical-hardware
-behavior. Contract versions 1 and 2 remain historical evidence inputs; the
-current driver and collector emit version 3.
+Only root can write the writable attributes in the development image. Sysfs
+input is untrusted kernel input: range checks, serialized operations where
+needed, bounded waits, interrupt acknowledgement, and safe teardown remain
+required. QEMU evidence does not imply electrical, timing, cache-coherency,
+IOMMU, interrupt-controller, firmware, or physical-hardware behavior. PCI
+contract versions 1 and 2 remain historical evidence inputs; the PCI driver
+and collector emit version 3. The ARM64 platform contract and evidence kind
+begin independently at version 1.

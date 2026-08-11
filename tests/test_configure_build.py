@@ -20,8 +20,10 @@ SPEC.loader.exec_module(MODULE)
 
 
 class ConfigureBuildTests(unittest.TestCase):
-    def lock(self) -> dict:
-        return json.loads((ROOT / "config/sources.lock.json").read_text(encoding="utf-8"))
+    def manifest(self, lab: str = "pci-x86-64") -> dict:
+        return json.loads(
+            (ROOT / f"config/labs/{lab}.json").read_text(encoding="utf-8")
+        )
 
     def fixture(self, local_conf: str = 'CONF_VERSION = "2"\n') -> tuple[Path, Path]:
         temporary = tempfile.TemporaryDirectory()
@@ -36,7 +38,7 @@ class ConfigureBuildTests(unittest.TestCase):
 
     def test_configure_replaces_layers_with_exact_locked_order(self) -> None:
         root, build_dir = self.fixture()
-        data = self.lock()
+        data = self.manifest()
         MODULE.configure(root, build_dir, data)
         text = (build_dir / "conf/bblayers.conf").read_text(encoding="utf-8")
         positions = [text.index(layer) for layer in MODULE.expected_layers(root, data)]
@@ -44,7 +46,7 @@ class ConfigureBuildTests(unittest.TestCase):
         self.assertNotIn("old layers", text)
 
     def test_managed_local_values_are_last(self) -> None:
-        data = self.lock()
+        data = self.manifest()
         old = f'''CONF_VERSION = "2"
 {MODULE.START}
 DISTRO = "old"
@@ -59,19 +61,19 @@ MACHINE = "experimental"
     def test_invalid_managed_blocks_do_not_rewrite_bblayers(self) -> None:
         root, build_dir = self.fixture(f"{MODULE.START}\n{MODULE.START}\n{MODULE.END}\n")
         with self.assertRaisesRegex(MODULE.ConfigurationError, "invalid managed block"):
-            MODULE.configure(root, build_dir, self.lock())
+            MODULE.configure(root, build_dir, self.manifest())
         self.assertEqual(
             "old layers\n",
             (build_dir / "conf/bblayers.conf").read_text(encoding="utf-8"),
         )
 
     def test_reversed_managed_markers_are_rejected(self) -> None:
-        data = self.lock()
+        data = self.manifest()
         with self.assertRaisesRegex(MODULE.ConfigurationError, "invalid managed block"):
             MODULE.render_local_conf(f"{MODULE.END}\n{MODULE.START}\n", data)
 
     def test_managed_local_uses_explicit_development_image_features(self) -> None:
-        rendered = MODULE.render_local_conf('CONF_VERSION = "2"\n', self.lock())
+        rendered = MODULE.render_local_conf('CONF_VERSION = "2"\n', self.manifest())
         self.assertNotIn("debug-tweaks", rendered)
         for feature in (
             "allow-empty-password",
@@ -83,7 +85,7 @@ MACHINE = "experimental"
 
     def test_effective_values_reject_extra_or_reordered_layers(self) -> None:
         root, _ = self.fixture()
-        data = self.lock()
+        data = self.manifest()
         layers = MODULE.expected_layers(root, data)
         self.assertEqual(
             [],
@@ -106,7 +108,7 @@ MACHINE = "experimental"
 
     def test_effective_values_reject_machine_override(self) -> None:
         root, _ = self.fixture()
-        data = self.lock()
+        data = self.manifest()
         errors = MODULE.effective_errors(
             root,
             data,
@@ -115,6 +117,16 @@ MACHINE = "experimental"
             bblayers=" ".join(MODULE.expected_layers(root, data)),
         )
         self.assertTrue(any("MACHINE resolved" in error for error in errors))
+
+    def test_arm_manifest_selects_independent_machine_and_same_layer_order(self) -> None:
+        root, build_dir = self.fixture()
+        data = self.manifest("platform-arm64")
+        MODULE.configure(root, build_dir, data)
+        local = (build_dir / "conf/local.conf").read_text(encoding="utf-8")
+        layers = (build_dir / "conf/bblayers.conf").read_text(encoding="utf-8")
+        self.assertIn('MACHINE = "qemu-edu-platform-arm64"', local)
+        positions = [layers.index(layer) for layer in MODULE.expected_layers(root, data)]
+        self.assertEqual(sorted(positions), positions)
 
 
 if __name__ == "__main__":

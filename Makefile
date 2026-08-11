@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: MIT
 
-.PHONY: setup inspect build run runtime-test rebuild-driver clean-driver check check-source-lock check-workflow check-qemu-security test-workflow checksums
+.PHONY: setup inspect build run runtime-test rebuild-driver clean-driver check check-source-lock check-labs check-workflow check-qemu-security test-workflow checksums
 
 setup:
 	./setup.sh
@@ -18,17 +18,20 @@ runtime-test:
 	./runtime-test.sh
 
 rebuild-driver:
-	bash -c 'source ./environment.sh && target_text=$$(python3 "$$QEMU_EDU_ROOT/scripts/source_lock.py" --repo "$$QEMU_EDU_ROOT" get build.targets --lines) && mapfile -t targets <<<"$$target_text" && bitbake qemu-edu-driver -c compile -f && bitbake "$${targets[@]}"'
+	bash -c 'source ./environment.sh && driver=$$(python3 "$$QEMU_EDU_ROOT/scripts/lab_config.py" --repo "$$QEMU_EDU_ROOT" --lab "$$QEMU_EDU_LAB" get build.driver_target) && target_text=$$(python3 "$$QEMU_EDU_ROOT/scripts/lab_config.py" --repo "$$QEMU_EDU_ROOT" --lab "$$QEMU_EDU_LAB" get build.targets --lines) && mapfile -t targets <<<"$$target_text" && bitbake "$$driver" -c compile -f && bitbake "$${targets[@]}"'
 
 clean-driver:
-	bash -c 'source ./environment.sh && bitbake qemu-edu-driver -c cleansstate'
+	bash -c 'source ./environment.sh && driver=$$(python3 "$$QEMU_EDU_ROOT/scripts/lab_config.py" --repo "$$QEMU_EDU_ROOT" --lab "$$QEMU_EDU_LAB" get build.driver_target) && bitbake "$$driver" -c cleansstate'
 
-check: check-source-lock check-workflow check-qemu-security test-workflow
+check: check-source-lock check-labs check-workflow check-qemu-security test-workflow
 	python3 scripts/update_checksums.py --check
 	git diff --check
 
 check-source-lock:
 	python3 scripts/source_lock.py validate
+
+check-labs:
+	python3 scripts/lab_config.py validate
 
 check-workflow:
 	python3 scripts/validate_workflow.py

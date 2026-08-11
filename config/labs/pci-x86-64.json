@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "id": "pci-x86-64",
+  "description": "QEMU EDU PCI lab on the x86-64 classic PC machine",
+  "build": {
+    "build_dir": "build",
+    "distro": "poky",
+    "machine": "qemu-edu-x86-64",
+    "driver_target": "qemu-edu-driver",
+    "targets": [
+      "qemu-edu-image"
+    ],
+    "layers": [
+      "layers/openembedded-core/meta",
+      "layers/meta-yocto/meta-poky",
+      "meta-qemu-edu"
+    ]
+  },
+  "emulator": {
+    "preflight_profile": "qemu-edu-pci-v1",
+    "system_binary": "qemu-system-x86_64"
+  },
+  "runtime": {
+    "suite": "qemu_edu",
+    "evidence_profile": "pci-v3",
+    "evidence_filename": "qemu-edu-runtime-v3.json",
+    "guest_contract_version": 3,
+    "evidence_schema_version": 3
+  }
+}

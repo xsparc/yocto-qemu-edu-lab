@@ -79,7 +79,13 @@ class RuntimeContractTests(unittest.TestCase):
         )
         self.assertIn("inherit testimage", recipe)
         self.assertIn('IMAGE_FEATURES += "ssh-server-dropbear"', recipe)
-        self.assertIn('TEST_SUITES = "ping ssh qemu_edu"', recipe)
+        self.assertIn(
+            'TEST_SUITES:qemu-edu-x86-64 = "ping ssh qemu_edu"', recipe
+        )
+        self.assertIn(
+            'TEST_SUITES:qemu-edu-platform-arm64 = "ping ssh qemu_edu_platform"',
+            recipe,
+        )
         self.assertIn('TEST_RUNQEMUPARAMS = "slirp"', recipe)
         self.assertIn('QEMU_USE_KVM = ""', recipe)
 
@@ -363,12 +369,17 @@ class RuntimeWrapperTests(unittest.TestCase):
             self.scripts_dir / "qemu_security_preflight.sh",
         )
         (self.root / "environment.sh").write_text(
-            'BUILD_DIR="$ROOT_DIR/build"\nexport BUILD_DIR\n', encoding="utf-8"
+            'BUILD_DIR="$ROOT_DIR/build"\n'
+            'QEMU_EDU_LAB=${QEMU_EDU_LAB:-pci-x86-64}\n'
+            'export BUILD_DIR QEMU_EDU_LAB\n',
+            encoding="utf-8",
         )
         for name in (
             "source_lock.py",
+            "lab_config.py",
             "configure_build.py",
             "runtime_evidence.py",
+            "platform_runtime_evidence.py",
             "verify_qemu_security.py",
         ):
             (self.scripts_dir / name).touch()
@@ -383,7 +394,13 @@ class RuntimeWrapperTests(unittest.TestCase):
 variable=${!#}
 case "$variable" in
     DISTRO) printf '%s\\n' poky ;;
-    MACHINE) printf '%s\\n' qemu-edu-x86-64 ;;
+    MACHINE)
+        if [ "${QEMU_EDU_LAB:-}" = platform-arm64 ]; then
+            printf '%s\\n' qemu-edu-platform-arm64
+        else
+            printf '%s\\n' qemu-edu-x86-64
+        fi
+        ;;
     BBLAYERS) printf '%s\\n' "$FAKE_LAYERS" ;;
     PN) printf '%s\\n' qemu-system-native ;;
     PV) printf '%s\\n' 10.2.0 ;;
@@ -433,10 +450,37 @@ exit 0
             "python3",
             """#!/usr/bin/env bash
 case "$1" in
-    */source_lock.py)
+    */lab_config.py)
         case "$*" in
-            *' get build.machine') printf '%s\\n' qemu-edu-x86-64 ;;
+            *' get build.machine')
+                if [[ "$*" == *'--lab platform-arm64'* ]]; then
+                    printf '%s\\n' qemu-edu-platform-arm64
+                else
+                    printf '%s\\n' qemu-edu-x86-64
+                fi
+                ;;
             *' get build.targets --lines') printf '%s\\n' qemu-edu-image ;;
+            *' get runtime.evidence_filename')
+                if [[ "$*" == *'--lab platform-arm64'* ]]; then
+                    printf '%s\\n' qemu-edu-platform-runtime-v1.json
+                else
+                    printf '%s\\n' qemu-edu-runtime-v3.json
+                fi
+                ;;
+            *' get emulator.preflight_profile')
+                if [[ "$*" == *'--lab platform-arm64'* ]]; then
+                    printf '%s\\n' qemu-edu-platform-v1
+                else
+                    printf '%s\\n' qemu-edu-pci-v1
+                fi
+                ;;
+            *' get runtime.evidence_profile')
+                if [[ "$*" == *'--lab platform-arm64'* ]]; then
+                    printf '%s\\n' platform-v1
+                else
+                    printf '%s\\n' pci-v3
+                fi
+                ;;
             *) exit 2 ;;
         esac
         ;;
@@ -444,7 +488,7 @@ case "$1" in
         printf 'verify:%s\\n' "$*" >> "$CALL_LOG"
         exit "${VERIFY_STATUS:-0}"
         ;;
-    */runtime_evidence.py)
+    *runtime_evidence.py)
         printf 'evidence:%s:oeqa=%s\\n' "$*" "${OEQA_JSON_RESULT_DIR:-}" >> "$CALL_LOG"
         case "$*" in
             *' collect '*) exit "${COLLECT_STATUS:-0}" ;;
@@ -478,7 +522,9 @@ esac
         path.write_text(text, encoding="utf-8", newline="\n")
         path.chmod(0o755)
 
-    def run_wrapper(self, **overrides: str) -> subprocess.CompletedProcess[str]:
+    def run_wrapper(
+        self, *arguments: str, **overrides: str
+    ) -> subprocess.CompletedProcess[str]:
         environment = os.environ.copy()
         environment.update(
             {
@@ -490,7 +536,7 @@ esac
         )
         environment.update(overrides)
         return subprocess.run(
-            ["bash", str(self.root / "runtime-test.sh")],
+            ["bash", str(self.root / "runtime-test.sh"), *arguments],
             cwd=self.root,
             env=environment,
             text=True,
@@ -498,7 +544,9 @@ esac
             check=False,
         )
 
-    def run_manual_wrapper(self, **overrides: str) -> subprocess.CompletedProcess[str]:
+    def run_manual_wrapper(
+        self, *arguments: str, **overrides: str
+    ) -> subprocess.CompletedProcess[str]:
         environment = os.environ.copy()
         environment.update(
             {
@@ -510,7 +558,7 @@ esac
         )
         environment.update(overrides)
         return subprocess.run(
-            ["bash", str(self.root / "run.sh")],
+            ["bash", str(self.root / "run.sh"), *arguments],
             cwd=self.root,
             env=environment,
             text=True,
@@ -567,6 +615,25 @@ esac
         )
         self.assertNotIn(str(stale), testimage_call)
         self.assertRegex(testimage_call, r"oeqa=.*[/\\]oeqa\.[A-Za-z0-9]+")
+
+    def test_platform_lab_selects_arm_machine_preflight_and_evidence(self) -> None:
+        result = self.run_wrapper("--lab", "platform-arm64")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        calls = self.log.read_text(encoding="utf-8")
+        self.assertIn("--lab platform-arm64 verify", calls)
+        self.assertIn("--machine qemu-edu-platform-arm64", calls)
+        self.assertIn("--profile qemu-edu-platform-v1", calls)
+        self.assertIn("platform_runtime_evidence.py", calls)
+        self.assertIn("--lab platform-arm64", calls)
+
+        self.log.unlink(missing_ok=True)
+        manual = self.run_manual_wrapper("--lab", "platform-arm64")
+        self.assertEqual(manual.returncode, 0, manual.stderr)
+        manual_calls = self.log.read_text(encoding="utf-8")
+        self.assertIn("--profile qemu-edu-platform-v1", manual_calls)
+        self.assertIn(
+            "runqemu:qemu-edu-platform-arm64 qemu-edu-image", manual_calls
+        )
 
     def test_configuration_failure_prevents_build(self) -> None:
         result = self.run_wrapper(VERIFY_STATUS="6")
