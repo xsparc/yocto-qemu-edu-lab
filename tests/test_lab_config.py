@@ -72,6 +72,11 @@ class LabConfigTests(unittest.TestCase):
         self.assertEqual({"pci-x86-64", "platform-arm64"}, set(manifests))
         self.assertTrue(all(len(digest) == 64 for digest in digests.values()))
 
+    def test_all_generated_lab_build_roots_are_ignored(self) -> None:
+        ignore = (ROOT / ".gitignore").read_text(encoding="utf-8")
+        self.assertIn("\nbuild/\n", ignore)
+        self.assertIn("\nbuild-*/\n", ignore)
+
     def test_default_selection_preserves_existing_build_contract(self) -> None:
         selected, manifest, _, _ = MODULE.select_lab(ROOT, None)
         self.assertEqual("pci-x86-64", selected)
