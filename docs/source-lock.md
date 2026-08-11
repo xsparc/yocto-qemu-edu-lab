@@ -67,7 +67,8 @@ and `BB_NO_NETWORK`; those are later evidence gates.
 ## Lab composition
 
 `config/labs/index.json` binds closed lab manifests by SHA-256. A manifest owns
-the build directory, distro, machine, driver target, one image target, ordered layers,
+a top-level `build` or `build-<lab>` generated-output directory, distro,
+machine, driver target, one image target, ordered layers,
 emulator preflight, runtime suite, and evidence profile. Unknown fields,
 profiles, paths, digests, duplicate build directories, and duplicate machines
 fail closed. `pci-x86-64` is the no-argument default; `platform-arm64` is

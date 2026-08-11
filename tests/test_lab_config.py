@@ -147,12 +147,22 @@ class LabConfigTests(unittest.TestCase):
         with self.assertRaisesRegex(MODULE.LabError, "duplicate JSON key"):
             MODULE.read_json(path, "duplicate")
 
-    def test_build_directory_cannot_overlap_project_inputs(self) -> None:
+    def test_build_directory_is_limited_to_generated_output_roots(self) -> None:
         _, manifests, _ = self.repository_data()
-        manifest = copy.deepcopy(manifests["platform-arm64"])
-        manifest["build"]["build_dir"] = "layers/build"
-        with self.assertRaisesRegex(MODULE.LabError, "overlaps project inputs"):
-            MODULE.validate_manifest(manifest, "platform-arm64")
+        for invalid in (
+            "downloads",
+            "sstate-cache",
+            "layers/build",
+            "build/platform-arm64",
+            "README.md",
+        ):
+            with self.subTest(build_dir=invalid):
+                manifest = copy.deepcopy(manifests["platform-arm64"])
+                manifest["build"]["build_dir"] = invalid
+                with self.assertRaisesRegex(
+                    MODULE.LabError, "top-level build or build-<lab>"
+                ):
+                    MODULE.validate_manifest(manifest, "platform-arm64")
 
     def test_manifest_rejects_rendering_and_terminal_control_characters(self) -> None:
         _, manifests, _ = self.repository_data()

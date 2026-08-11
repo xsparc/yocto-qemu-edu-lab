@@ -47,6 +47,7 @@ RUNTIME_KEYS = {
 }
 LAB_ID = re.compile(r"[a-z0-9][a-z0-9-]*\Z")
 TOKEN = re.compile(r"[A-Za-z0-9][A-Za-z0-9._+-]*\Z")
+BUILD_DIRECTORY = re.compile(r"build(?:-[a-z0-9][a-z0-9-]*)?\Z")
 SHA256 = re.compile(r"[0-9a-f]{64}\Z")
 PROFILE_RULES = {
     "qemu-edu-pci-v1": {
@@ -171,16 +172,11 @@ def validate_manifest(data: dict[str, Any], expected_id: str) -> None:
     build = object_value(data["build"], f"lab {expected_id}.build")
     exact_keys(build, BUILD_KEYS, f"lab {expected_id}.build")
     build_dir = relative_path(build["build_dir"], f"lab {expected_id}.build.build_dir")
-    if PurePosixPath(build_dir).parts[0] in {
-        ".git",
-        "config",
-        "docs",
-        "layers",
-        "meta-qemu-edu",
-        "scripts",
-        "tests",
-    }:
-        raise LabError(f"lab {expected_id}.build.build_dir overlaps project inputs")
+    if not BUILD_DIRECTORY.fullmatch(build_dir):
+        raise LabError(
+            f"lab {expected_id}.build.build_dir must be a top-level "
+            "build or build-<lab> generated-output directory"
+        )
     for field in ("distro", "machine", "driver_target"):
         value = string_value(build[field], f"lab {expected_id}.build.{field}")
         if not TOKEN.fullmatch(value):

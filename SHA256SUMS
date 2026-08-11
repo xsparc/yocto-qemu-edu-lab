@@ -44,7 +44,7 @@ b4771fd6e821c086a6d3f12ca22e5188d186516ba1356c9d73915684df8e3029  ./docs/researc
 084b2821ae9d9eb71d32d64f7bcb2aa7c7fc5170df9a86595efba1c092095a42  ./docs/research/2026-08-11-m5-platform-lab.md
 2a7b0bdab52ba3a45be0b28258a1a73b539035ee1adb2a74ac3a4b60292d8311  ./docs/roadmap.md
 0defca36ad8a99b208071189968a16485d8653c95ec6e66172715aa38aab7c06  ./docs/runtime-testing.md
-b951497c6ad21c2c24c683ae22101146abbbacabf5763ec6415abddf8643115d  ./docs/source-lock.md
+5de0a0b5470caa2d9b27e7a86ba142b5fc9ad19afb2bcaba263d6746ebd6974b  ./docs/source-lock.md
 c3e32f48ededa450b464a68fac3057c5c3bfb07bfcccf365012143984afd7f52  ./docs/versioning.md
 0d79747066a5edc3f22efdf0ff60e72cec7252b6c5f458cd466e8df6e09a4b5c  ./docs/vision.md
 e8068500361df6f8a27075ca88ea48748d9f0433e1db8ac8ec5d189176552062  ./environment.sh
@@ -78,7 +78,7 @@ c5417ab5612246d4e94d14a4da16bd3b9d7057d739653b6e77ca4f4640fda38b  ./schemas/qemu
 d3e697a676ec68dfcfedcb5c7c87ab686250ee56c1ab6db9a64027e13ec48e2f  ./schemas/qemu-edu-runtime-evidence-v2.schema.json
 71b9f0a06c5d77f0f61f1fe14992fee69fc5b8beb278c546fe337480bc44b17e  ./schemas/qemu-edu-runtime-evidence-v3.schema.json
 bea6642b48d2f8a1069d862dac654573e0fa81080b7a44402249ae99a6124a4f  ./scripts/configure_build.py
-24f88055416c238ac503349c8497fc10504e6f0434007e58f653f2658808719f  ./scripts/lab_config.py
+41ca141e513eca495fa3118903470584a0a8883090a3878658769b5988019714  ./scripts/lab_config.py
 831ddfc812910992778117bce50955bae2eb6efb1e7b7a7e6cd6873a511621d1  ./scripts/platform_runtime_evidence.py
 edd7d77e6239966ae85069dff9b222e9d8f4a927de5c30231bbae125d5ed1ea5  ./scripts/qemu_security_preflight.sh
 750222cc25f6c47509c10971a9185f54f08e6676fcb7afde9a0ad83fc9013dab  ./scripts/runtime_evidence.py
@@ -90,7 +90,7 @@ aa8cab383eb0346a59fcbce006cf4ae95ed96ef172f60d47316972787487a3cf  ./scripts/veri
 c2fda5a6296398c8c59fb4ba5cc551b929d7ee3682d00b8c27cadb8b52632ac1  ./setup.sh
 97e28b444512a281b5378a8b6404f1a43a0fadf5d2a006f05753cbd4dbacf7f1  ./tests/test_configure_build.py
 02d3e829c784aab15706fd85c74eaccea71eee430091b3869b800715804a4f24  ./tests/test_environment.py
-f301b0e8b90b9968e55b6feb98b78ee6c044c7067aca8cb8c390ca4a29cf9ce1  ./tests/test_lab_config.py
+0792be47e58f7975e30e41bc8156be33f42b10d86273fad83ccf831e1c391f3d  ./tests/test_lab_config.py
 42e1a0a820af2a3bb5dd3176354c69b43a3b4a1cd91a737e6ba1e6b28faddc6b  ./tests/test_platform_contract.py
 3947f814745ca85fa3667cbaa6bf5fb0a4c331301fb5a116d3aad60fbb0119e0  ./tests/test_platform_runtime_evidence.py
 518abbe8573f9aa0513095e3512a01d0c9bda2ccda68da14aff900d3ec8a2b9d  ./tests/test_qemu_security.py
