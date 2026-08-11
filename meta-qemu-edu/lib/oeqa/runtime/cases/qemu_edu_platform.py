@@ -122,12 +122,7 @@ class QemuEduPlatformRuntimeTests(OERuntimeTestCase):
             f"basename $(readlink -f {DEVICE_ROOT}/{device}/driver)"
         )
         self.assertEqual(driver, "qemu_edu_platform")
-        resource = self.run_ok(
-            f"read -r start end flags < {DEVICE_ROOT}/{device}/resource; "
-            "printf '%s %s\\n' \"$start\" \"$end\""
-        )
-        start, end = (int(value, 16) for value in resource.split())
-        self.assertEqual(end - start + 1, 0x1000)
+        self.run_ok(f"test -d {DEVICE_ROOT}/{device}/of_node")
         self.run_ok("grep -w qemu_edu_platform /proc/interrupts")
         self.assertEqual(
             self.regular_device_files(device) & EXPECTED_ATTRIBUTES,

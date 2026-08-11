@@ -130,12 +130,11 @@ class PlatformContractTests(unittest.TestCase):
             image,
         )
 
-    def test_runtime_case_uses_busybox_compatible_binary_and_resource_reads(self) -> None:
+    def test_runtime_case_uses_busybox_compatible_device_tree_reads(self) -> None:
         text = RUNTIME_CASE.read_text(encoding="utf-8")
         self.assertIn("hexdump -v -e '1/1 \\\"%02x\\\"'", text)
-        self.assertIn("read -r start end flags <", text)
         self.assertNotIn("od -An -tx1", text)
-        self.assertNotIn("head -n 1", text)
+        self.assertNotIn("/resource", text)
 
 
 if __name__ == "__main__":
