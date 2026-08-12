@@ -12,7 +12,7 @@ eb1c3030e8cdec589b3a0d6c52c22ae16811f790d63bec1ec490c141fcd67a7a  ./LICENSE
 8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643  ./LICENSES/GPL-2.0-only.txt
 d9a3a73069243cef01c0c7cf9dc42abed95d4a9b8fb1ba486ce04737699e367b  ./LICENSES/MIT.txt
 2ae1e7167228c29012c27564625cba10eac8ba9f017878b0210062c759a6dbc4  ./MAINTAINERS.md
-011cb68630c7402f51fa2d64b6379d281c461147a1165b602b817231b719be5e  ./Makefile
+8ca6320ca65e36b0dd280b2d7725c91bc27cf37fa258872c9f4bfe1f841f3f35  ./Makefile
 3676a23111810fcf4f23481707cfdaa71489764888adc80e7057cb92a55d99a5  ./README.md
 8e189448b75507ac4f7cadf113a4334887129441f3fb2da56b632294b6e86c80  ./REUSE.toml
 54f2da55a9b08012d9d7198af9fcee5a861e3604f9e0f8cbb2b1380681b50d1d  ./SECURITY.md
@@ -28,11 +28,11 @@ a118988a8f17d8523785c7e0da4364fc0db9f32eb99bc982c485c7797feb83ef  ./docs/archite
 c2a1415b1f9c32fcc0d008336dfdd76ae0a5292046a6ea984480f5fd2d14927f  ./docs/licensing.md
 ab3a763550768ff8de2574f4b528fdbf60ad8e8fe24245e80cf52f562c201496  ./docs/maintainers/README.md
 02ffb6a312d4fdf0fca4de813fa681d03e43d1a094fccebab92ecfde760f9d1d  ./docs/maintainers/config.toml
-1dce02c2f05feb1f1d335216491a4d9071f2c6e45fa8d10643a6dfdf6f85f8d0  ./docs/maintainers/context.md
+8c1d8d94917be15b8a674714a7a88e7a98053d7c3dd9a8cd234d595e478ac041  ./docs/maintainers/context.md
 d4e193756f7ef836c921eaeac58296b57420561fa5cd8cdd43a1e95227c2d165  ./docs/maintainers/decisions.md
 65f879644273c7431ccb2f132ea19e67491a5a0b9b948e729b877e4692908d3b  ./docs/maintainers/intake.md
 a71d1066c749f6730067f4bc083e94cdb8599321b3315df2fd2e6e454464c5f5  ./docs/maintainers/ledger.md
-8fd8b987a834c9b925041d559f2c06ba45cc2fee1247cb4c5f6762b28999d464  ./docs/maintainers/tasks.toml
+f4449905697711de7c6fd26ae1fb2a6d1f2703466f8a0d6c3fe768cb5e0f6189  ./docs/maintainers/tasks.toml
 52a3612704d4dbb87c2b2cca810cb5e6c4edc568577661d772f36b016b7d3032  ./docs/maintenance-workflow.md
 d87cc671bee02f9c36e284c119d691564021068961de46b5cbfa71a5d6bf20f5  ./docs/mapping-to-real-hardware.md
 c8f0440c7c8df8f6cae97f670575e073f90fe2672de99908606e45683722cffd  ./docs/research/2026-08-07-m1-reproducibility.md
@@ -98,5 +98,5 @@ caef994ab90db3471a7ed374a82edabc4ba8e4e2b73941003d97f77bb8fc7227  ./setup.sh
 63498edae7bcce6e12c265d8d18aa6570b74b6af1091e48ee5b9f40c20b41ce7  ./tests/test_runtime_evidence.py
 7b61ce129f9c73d56cfaddf78cb9b35efe23f37cf6f10daef51f1e0b6b181563  ./tests/test_source_lock.py
 417fc3c3edbecd3881ace46103073dbb93b6c6a7987ab24916545177e1a09a5b  ./tests/test_update_checksums.py
-129e54516044778f34ca390df15209e87501518885c12d60ee406963a99dc29e  ./tests/test_validate_ci.py
+94215a663c361c2b7e9690c9e534f10e3ce80d0e85bde25a69e85849e3b3eac6  ./tests/test_validate_ci.py
 9de87b660d03df4a052453e0a7cf86d21328248e0ce470ef1ebdd8df054fe7f9  ./tests/test_validate_workflow.py

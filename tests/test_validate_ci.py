@@ -45,6 +45,11 @@ class CiValidationTests(unittest.TestCase):
     def test_repository_workflows_are_safe(self) -> None:
         self.assertEqual([], MODULE.validate(ROOT))
 
+    def test_canonical_make_check_includes_ci_policy(self) -> None:
+        text = (ROOT / "Makefile").read_text(encoding="utf-8")
+        self.assertIn("check: check-source-lock check-labs check-workflow check-ci", text)
+        self.assertIn("check-ci:\n\tpython3 scripts/validate_ci.py", text)
+
     def test_metadata_inputs_must_trigger_both_hosted_runs(self) -> None:
         text = (ROOT / ".github/workflows/yocto-metadata.yml").read_text(
             encoding="utf-8"

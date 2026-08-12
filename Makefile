@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: MIT
 
-.PHONY: setup inspect build run runtime-test rebuild-driver clean-driver check check-source-lock check-labs check-workflow check-qemu-security test-workflow checksums
+.PHONY: setup inspect build run runtime-test rebuild-driver clean-driver check check-source-lock check-labs check-workflow check-ci check-qemu-security test-workflow checksums
 
 setup:
 	./setup.sh
@@ -23,7 +23,7 @@ rebuild-driver:
 clean-driver:
 	bash -c 'source ./environment.sh && driver=$$(python3 "$$QEMU_EDU_ROOT/scripts/lab_config.py" --repo "$$QEMU_EDU_ROOT" --lab "$$QEMU_EDU_LAB" get build.driver_target) && bitbake "$$driver" -c cleansstate'
 
-check: check-source-lock check-labs check-workflow check-qemu-security test-workflow
+check: check-source-lock check-labs check-workflow check-ci check-qemu-security test-workflow
 	python3 scripts/update_checksums.py --check
 	git diff --check
 
@@ -35,6 +35,9 @@ check-labs:
 
 check-workflow:
 	python3 scripts/validate_workflow.py
+
+check-ci:
+	python3 scripts/validate_ci.py
 
 check-qemu-security:
 	python3 scripts/verify_qemu_security.py static
