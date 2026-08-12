@@ -13,6 +13,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
+SETUP = ROOT / "setup.sh"
 SPEC = importlib.util.spec_from_file_location(
     "lab_config", ROOT / "scripts/lab_config.py"
 )
@@ -76,6 +77,17 @@ class LabConfigTests(unittest.TestCase):
         ignore = (ROOT / ".gitignore").read_text(encoding="utf-8")
         self.assertIn("\nbuild/\n", ignore)
         self.assertIn("\nbuild-*/\n", ignore)
+
+    def test_setup_handoff_preserves_lab_and_relocated_build_directory(self) -> None:
+        text = SETUP.read_text(encoding="utf-8")
+        for wrapper in ("inspect.sh", "build.sh", "run.sh", "runtime-test.sh"):
+            with self.subTest(wrapper=wrapper):
+                self.assertIn(
+                    f'"$BUILD_DIR" "$ROOT_DIR/{wrapper}" "$QEMU_EDU_LAB"',
+                    text,
+                )
+        self.assertEqual(text.count("BUILD_DIR=%q %q --lab %q"), 4)
+        self.assertNotIn('echo "  Build: $ROOT_DIR/build.sh"', text)
 
     def test_default_selection_preserves_existing_build_contract(self) -> None:
         selected, manifest, _, _ = MODULE.select_lab(ROOT, None)

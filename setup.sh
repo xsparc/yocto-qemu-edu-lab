@@ -76,6 +76,11 @@ echo
 echo "Configuration complete."
 echo "  Locked sources: $ROOT_DIR/config/sources.lock.json"
 echo "  Lab: $QEMU_EDU_LAB"
-echo "  Build: $ROOT_DIR/build.sh"
-echo "  Inspect metadata: $ROOT_DIR/inspect.sh"
-echo "  Run after building: $ROOT_DIR/run.sh"
+printf '  Inspect metadata: BUILD_DIR=%q %q --lab %q\n' \
+    "$BUILD_DIR" "$ROOT_DIR/inspect.sh" "$QEMU_EDU_LAB"
+printf '  Build: BUILD_DIR=%q %q --lab %q\n' \
+    "$BUILD_DIR" "$ROOT_DIR/build.sh" "$QEMU_EDU_LAB"
+printf '  Run after building: BUILD_DIR=%q %q --lab %q\n' \
+    "$BUILD_DIR" "$ROOT_DIR/run.sh" "$QEMU_EDU_LAB"
+printf '  Runtime test: BUILD_DIR=%q %q --lab %q\n' \
+    "$BUILD_DIR" "$ROOT_DIR/runtime-test.sh" "$QEMU_EDU_LAB"
