@@ -5,10 +5,13 @@ from __future__ import annotations
 
 import copy
 import importlib.util
+import io
 import json
 import sys
+import tempfile
 import types
 import unittest
+from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from unittest.mock import patch
 
@@ -117,6 +120,43 @@ class PlatformRuntimeEvidenceTests(unittest.TestCase):
             "oeqa_result_sha256",
         ):
             self.assertRegex(evidence["inputs"][key], r"^[0-9a-f]{64}$")
+
+    def test_required_revision_rejects_stale_or_invalid_evidence(self) -> None:
+        evidence = self.build()
+        revision = evidence["project"]["revision"]
+        self.module.validate_evidence(
+            evidence, require_pass=True, expected_revision=revision
+        )
+        with self.assertRaisesRegex(self.module.EvidenceError, "required revision must"):
+            self.module.validate_evidence(
+                evidence, expected_revision="not-a-revision"
+            )
+        with self.assertRaisesRegex(self.module.EvidenceError, "project.revision is"):
+            self.module.validate_evidence(evidence, expected_revision="0" * 40)
+
+    def test_cli_enforces_required_revision(self) -> None:
+        evidence = self.build()
+        revision = evidence["project"]["revision"]
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "evidence.json"
+            self.module.write_evidence(path, evidence)
+            arguments = [
+                "platform_runtime_evidence.py",
+                "validate",
+                str(path),
+                "--require-pass",
+                "--require-revision",
+            ]
+            with redirect_stdout(io.StringIO()), patch.object(
+                sys, "argv", [*arguments, revision]
+            ):
+                self.assertEqual(self.module.main(), 0)
+            error = io.StringIO()
+            with redirect_stderr(error), patch.object(
+                sys, "argv", [*arguments, "0" * 40]
+            ):
+                self.assertEqual(self.module.main(), 1)
+            self.assertIn("project.revision is", error.getvalue())
 
     def test_failed_case_makes_claim_conservative_and_require_pass_rejects(self) -> None:
         evidence = self.build(failed_index=6)

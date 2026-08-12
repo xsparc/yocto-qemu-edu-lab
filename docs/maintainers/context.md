@@ -107,7 +107,7 @@ SPDX-License-Identifier: MIT
   passed ping, SSH, and all 19 project cases. Both runs used software QEMU with
   no skips, failures, or errors. Platform evidence SHA-256 is `a4cb66bd7e57541d79df12a9deea8d9891fa34587b1c24e5314c01a4bae2fe40`;
   PCI evidence SHA-256 is `730ec74fbc4492cc574b93c50dccbae65bca2e8c1dba9fe30edb73caf15fe03c`.
-- A005 host validation now passes 137 tests, both exact QEMU patch profiles,
+- A005 host validation now passes 141 tests, both exact QEMU patch profiles,
   checksum and workflow gates, Device Tree schema 2026.6, and REUSE 6.2.0 over
   95/95 files. Thirteen native-Linux contract tests, final metadata/layer
   evidence, and the required independent reviews remain open; A005 therefore

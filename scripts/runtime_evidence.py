@@ -381,7 +381,12 @@ def build_evidence(
     return evidence
 
 
-def validate_evidence(evidence: dict[str, Any], *, require_pass: bool = False) -> None:
+def validate_evidence(
+    evidence: dict[str, Any],
+    *,
+    require_pass: bool = False,
+    expected_revision: str | None = None,
+) -> None:
     require_exact_keys(
         evidence,
         {
@@ -442,8 +447,17 @@ def validate_evidence(evidence: dict[str, Any], *, require_pass: bool = False) -
     require_string(project["version"], "project.version")
     if not isinstance(project["dirty"], bool):
         raise EvidenceError("project.dirty must be boolean")
-    if not SHA1.fullmatch(require_string(project["revision"], "project.revision")):
+    project_revision = require_string(project["revision"], "project.revision")
+    if not SHA1.fullmatch(project_revision):
         raise EvidenceError("project.revision must be a lowercase SHA-1")
+    if expected_revision is not None:
+        expected_revision = require_string(expected_revision, "required revision")
+        if not SHA1.fullmatch(expected_revision):
+            raise EvidenceError("required revision must be a lowercase SHA-1")
+        if project_revision != expected_revision:
+            raise EvidenceError(
+                f"project.revision is {project_revision}, required {expected_revision}"
+            )
 
     inputs = evidence["inputs"]
     if not isinstance(inputs, dict):
@@ -800,6 +814,10 @@ def main() -> int:
     validate = subparsers.add_parser("validate", help="validate project evidence")
     validate.add_argument("path")
     validate.add_argument("--require-pass", action="store_true")
+    validate.add_argument(
+        "--require-revision",
+        help="require evidence from this exact 40-character project revision",
+    )
     args = parser.parse_args()
 
     try:
@@ -817,7 +835,11 @@ def main() -> int:
             print(f"runtime-evidence: {evidence['result']}: {args.output}")
             return 0
         evidence = read_object(Path(args.path))
-        validate_evidence(evidence, require_pass=args.require_pass)
+        validate_evidence(
+            evidence,
+            require_pass=args.require_pass,
+            expected_revision=args.require_revision,
+        )
         print(f"runtime-evidence: PASS: {args.path}")
         return 0
     except (EvidenceError, OSError, subprocess.CalledProcessError) as exc:

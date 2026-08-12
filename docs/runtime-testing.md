@@ -270,9 +270,54 @@ diagnosis; do not mistake a schema-valid failure document for a passing run.
 Validate an existing document with:
 
 ```bash
+revision=$(git rev-parse HEAD)
 python3 scripts/runtime_evidence.py validate \
-  build/evidence/qemu-edu-runtime-v3.json --require-pass
+  build/evidence/qemu-edu-runtime-v3.json \
+  --require-pass --require-revision "$revision"
+python3 scripts/platform_runtime_evidence.py validate \
+  build-platform-arm64/evidence/qemu-edu-platform-runtime-v1.json \
+  --require-pass --require-revision "$revision"
 ```
+
+`--require-revision` is an independent closeout check. It does not change any
+evidence schema or historical document; it rejects a valid but stale report
+when the caller is qualifying a different commit.
+
+## A005 exact-revision closeout order
+
+Use this order for the final M5 evidence-bearing commit:
+
+1. Freeze a committed implementation revision and require an empty tracked and
+   untracked status before starting. Record the revision, worker distribution,
+   CPU/memory/storage limits, BitBake concurrency, QEMU acceleration mode, and
+   whether `/dev/kvm` is available.
+2. Run `make check`, Bash syntax, pinned ShellCheck/actionlint, and pinned
+   network-disabled REUSE on Linux. Every repository test must run; a skip is
+   a gap, not a pass.
+3. Run the source/setup, parse, expanded-metadata, per-machine QEMU selection,
+   and dual-machine `yocto-check-layer` steps from
+   `.github/workflows/yocto-metadata.yml` at that same revision.
+4. Run both profiles explicitly so inherited environment cannot select the
+   wrong lab:
+
+   ```bash
+   ./setup.sh --lab pci-x86-64 --offline
+   ./runtime-test.sh --lab pci-x86-64
+   ./setup.sh --lab platform-arm64 --offline
+   ./runtime-test.sh --lab platform-arm64
+   ```
+
+5. Validate both reports with `--require-pass --require-revision "$revision"`,
+   recompute the evidence and bound native-OEQA SHA-256 values, and confirm the
+   repository remains clean. Record each lab separately; one cannot qualify the
+   other.
+6. Freeze the complete diff for architecture, quality, DevOps, security,
+   licensing, and independent-diff review. Documentation-only review records
+   may follow, but any implementation, test, manifest, schema, or wrapper change
+   invalidates the final qualification subject and requires proportional rerun.
+7. After authorized publication, require the hosted Fast checks and Yocto
+   metadata job on the current pull-request head. Do not translate those green
+   metadata checks into build or runtime evidence.
 
 ## Host and CI boundary
 
