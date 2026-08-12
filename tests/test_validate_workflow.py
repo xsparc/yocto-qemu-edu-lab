@@ -97,6 +97,37 @@ class WorkflowValidationTests(unittest.TestCase):
             errors,
         )
 
+    def test_historical_evidence_schema_list_is_closed(self) -> None:
+        root = self.copy_repository()
+        path = root / "docs/maintainers/config.toml"
+        text = path.read_text(encoding="utf-8").replace(
+            '  "schemas/qemu-edu-runtime-evidence-v2.schema.json",\n', "", 1
+        )
+        path.write_text(text, encoding="utf-8")
+        self.assertTrue(
+            any(
+                error.startswith(
+                    "configured path list differs: "
+                    "historical_runtime_evidence_schema_paths="
+                )
+                for error in MODULE.validate(root)
+            )
+        )
+
+    def test_every_historical_evidence_schema_file_is_required(self) -> None:
+        for name in (
+            "qemu-edu-runtime-evidence-v1.schema.json",
+            "qemu-edu-runtime-evidence-v2.schema.json",
+        ):
+            with self.subTest(name=name):
+                root = self.copy_repository()
+                (root / "schemas" / name).unlink()
+                self.assertIn(
+                    "configured path is missing: "
+                    f"historical_runtime_evidence_schema_paths='schemas/{name}'",
+                    MODULE.validate(root),
+                )
+
     def test_task_ids_are_unique(self) -> None:
         state = MODULE.load_toml(ROOT / "docs/maintainers/tasks.toml")
         ids = [task["id"] for task in state["tasks"]]

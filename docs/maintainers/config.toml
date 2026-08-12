@@ -15,6 +15,10 @@ ci_policy_path = "docs/ci.md"
 versioning_path = "docs/versioning.md"
 guest_interface_path = "docs/guest-interface.md"
 runtime_testing_path = "docs/runtime-testing.md"
+historical_runtime_evidence_schema_paths = [
+  "schemas/qemu-edu-runtime-evidence-v1.schema.json",
+  "schemas/qemu-edu-runtime-evidence-v2.schema.json",
+]
 runtime_evidence_schema_path = "schemas/qemu-edu-runtime-evidence-v3.schema.json"
 platform_runtime_evidence_schema_path = "schemas/qemu-edu-platform-runtime-evidence-v1.schema.json"
 

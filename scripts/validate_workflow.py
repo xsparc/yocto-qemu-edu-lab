@@ -52,6 +52,13 @@ REQUIRED_VALIDATION_COMMANDS = (
     "git diff --check",
 )
 
+REQUIRED_PATH_LISTS = {
+    "historical_runtime_evidence_schema_paths": (
+        "schemas/qemu-edu-runtime-evidence-v1.schema.json",
+        "schemas/qemu-edu-runtime-evidence-v2.schema.json",
+    ),
+}
+
 
 def load_toml(path: Path) -> dict[str, Any]:
     with path.open("rb") as handle:
@@ -198,6 +205,18 @@ def validate(root: Path) -> list[str]:
         relative = config.get(key)
         if not relative or not (root / str(relative)).is_file():
             errors.append(f"configured path is missing: {key}={relative!r}")
+
+    for key, expected in REQUIRED_PATH_LISTS.items():
+        configured = config.get(key)
+        if configured != list(expected):
+            errors.append(
+                f"configured path list differs: {key}={configured!r}; "
+                f"expected {list(expected)!r}"
+            )
+            continue
+        for relative in configured:
+            if not (root / relative).is_file():
+                errors.append(f"configured path is missing: {key}={relative!r}")
 
     return errors
 
