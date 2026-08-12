@@ -176,8 +176,10 @@ the correction with no P0-P2 findings. Review-record commit `a3a42b6` passed
 hosted Fast checks run `31397396385` and Yocto metadata run `31397396470`.
 Final pull-request head `89a4be3` passed Fast checks run `31404164447` and Yocto
 metadata run `31404164649`, then pull request #7 squash-merged as
-`ebbf1db0a5f8f2b30d7580a2435f67e9db5cc940`. A004 is Done. The local runtime
-result is not a hosted attestation, physical-hardware result, tag, or release.
+`ebbf1db0a5f8f2b30d7580a2435f67e9db5cc940`. Documentation closeout pull request
+#8 passed hosted Fast checks and squash-merged as `01ff717` without changing the
+qualified implementation. A004 is Done. The local runtime result is not a
+hosted attestation, physical-hardware result, tag, or release.
 
 Rollback: keep DMA opt-in and preserve the M3 image as a known-good stage.
 
@@ -214,9 +216,12 @@ completed all 4,738 default PCI image tasks and passed ping, SSH, and all 19 PCI
 project cases. Both software-QEMU results had zero skips, failures, or errors.
 The platform evidence SHA-256 is `a4cb66bd7e57541d79df12a9deea8d9891fa34587b1c24e5314c01a4bae2fe40`;
 the PCI evidence SHA-256 is `730ec74fbc4492cc574b93c50dccbae65bca2e8c1dba9fe30edb73caf15fe03c`.
-A005 remains In Progress until the later test-only scalability correction gets
-its no-skip Linux rerun, metadata/layer evidence is current, and every required
-review passes. No publication, merge, tag, or release is implied.
+After A004 documentation closeout squash-merged as `01ff717`, the unpublished
+A005 history was replayed onto that baseline. The earlier subjects are retained
+as pre-reconciliation local evidence, not final qualification of the reconciled
+branch. A005 remains In Progress until it gets a clean exact-revision no-skip
+Linux rerun, current metadata/layer evidence, and every required review. No
+publication, merge, tag, or release is implied.
 
 Rollback: remove the ARM manifest, machine, patch, driver, test, and evidence
 profile. The default PCI manifest and its existing build directory remain the

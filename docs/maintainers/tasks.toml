@@ -249,6 +249,7 @@ validation_evidence = [
   "Hosted Yocto metadata run 31397396470 passed locked source resolution, metadata parse and inspection, and the project layer check at the review-record commit a3a42b6a4ac4835b9a76fa5652d52ac5223fcc4a.",
   "Hosted Fast checks run 31404164447 passed repository, static, and REUSE licensing jobs at the final pull-request head 89a4be3e994ddc0e391451e9baa9e43ef1ebb4a0.",
   "Hosted Yocto metadata run 31404164649 passed locked source resolution, metadata parse and inspection, and the project layer check at the final pull-request head 89a4be3e994ddc0e391451e9baa9e43ef1ebb4a0.",
+  "Focused documentation closeout commit 55063223a6319eb374664367200db3313b14a651 passed repository, static, and licensing jobs in hosted Fast checks run 31491533350; pull request #8 then squash-merged that record as 01ff717 without changing the qualified implementation or runtime evidence.",
 ]
 review_evidence = [
   "Quality review verified the boundary, invalid-input, state, recovery, compatibility, and evidence-integrity matrix; it independently recomputed the retained evidence hashes and approved with no P0-P2 findings.",
@@ -256,7 +257,7 @@ review_evidence = [
   "Security review verified bounded guest input, BDF handling, fail-closed DMA teardown, QEMU preflight, evidence parsing, CI permissions, licensing, and current public-tree hygiene; it approved with no P0-P2 findings.",
   "Independent frozen-diff review verified the complete correction and closeout surface, historical evidence compatibility, retained artifact hashes, licensing, public-neutral records, and hosted pull-request state; it approved with no P0-P2 findings.",
 ]
-result = "Implemented and qualified at 8574eaffe206f8235a5da57461ded0ecbdbbf60b, strengthened and requalified at fe08e738107b9f69567e95d547e8b81de9a92444, and independently approved. Pull request #6 squash-merged as 918efaa392486af73f03ac9d1e216c2a2ed421da; the focused evidence-oracle correction in pull request #7 passed final-head hosted gates and squash-merged as ebbf1db0a5f8f2b30d7580a2435f67e9db5cc940. No tag or release was published."
+result = "Implemented and qualified at 8574eaffe206f8235a5da57461ded0ecbdbbf60b, strengthened and requalified at fe08e738107b9f69567e95d547e8b81de9a92444, and independently approved. Pull request #6 squash-merged as 918efaa392486af73f03ac9d1e216c2a2ed421da; the focused evidence-oracle correction in pull request #7 passed final-head hosted gates and squash-merged as ebbf1db0a5f8f2b30d7580a2435f67e9db5cc940. Documentation closeout pull request #8 passed hosted Fast checks and squash-merged as 01ff717; no tag or release was published."
 
 [[tasks]]
 id = "A007"
@@ -363,6 +364,7 @@ validation_evidence = [
   "Clean runtime subject 2e4f87d5004e7c40fc0b8a00e080841cf40cb72a reused the verified ARM64 image graph and passed ping, SSH, and all nine project platform cases in software QEMU with zero skips, failures, or errors. Closed platform evidence SHA-256 a4cb66bd7e57541d79df12a9deea8d9891fa34587b1c24e5314c01a4bae2fe40 validates with --require-pass and binds native OEQA SHA-256 c0ecd21280bc5b4d61a94caba9718babe56f45532fc35833c20cda3cc342eb99.",
   "The same clean runtime subject completed all 4,738 default PCI image tasks and passed ping, SSH, and all 19 project PCI cases with zero skips, failures, or errors. Closed PCI version-3 evidence SHA-256 730ec74fbc4492cc574b93c50dccbae65bca2e8c1dba9fe30edb73caf15fe03c validates with --require-pass and binds native OEQA SHA-256 41cb7a4b67c7eca87acecb4069c8ae0ff1a57705d48e84d9abea923909b2938c.",
   "The qualified worker was a resource-capped Debian 12 container using BB_NUMBER_THREADS=4, PARALLEL_MAKE=-j 4, software QEMU, and no /dev/kvm. Later test-only commit d12698b327177bb551ec82438db09447dd465355 derives generated build exclusions from the lab manifests so repository-copy fixtures cannot copy Yocto output; its 130-test host pass is recorded separately from the still-pending no-skip Linux rerun.",
+  "After documentation closeout pull request #8 squash-merged A004 as 01ff717, the unpublished A005 commits were replayed onto that public baseline. The earlier clean build and runtime subjects remain provisional pre-reconciliation local evidence; final A005 closeout requires new exact-revision Linux metadata, build, and runtime evidence.",
 ]
 review_evidence = []
 result = ""

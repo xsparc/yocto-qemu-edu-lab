@@ -197,9 +197,12 @@ with `--require-pass`. The evidence SHA-256 is
 `730ec74fbc4492cc574b93c50dccbae65bca2e8c1dba9fe30edb73caf15fe03c`; the
 bound native OEQA SHA-256 is
 `41cb7a4b67c7eca87acecb4069c8ae0ff1a57705d48e84d9abea923909b2938c`.
-These are local software-QEMU results, not hosted attestations,
-physical-hardware results, independent reviews, publication, merge, tags, or
-releases.
+After A004 documentation closeout squash-merged as `01ff717`, the unpublished
+A005 work was replayed onto that public baseline. These retained runs are
+pre-reconciliation local evidence and do not qualify the reconciled A005 branch;
+a new exact-revision run is required before closeout. They are not hosted
+attestations, physical-hardware results, independent reviews, publication,
+merge, tags, or releases.
 
 A007 was qualified locally at clean commit
 `46e2280448cf2a857f8599f677f1b1bd0284fa13`. After clearing an inherited forced

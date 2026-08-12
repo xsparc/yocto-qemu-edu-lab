@@ -6,7 +6,9 @@ SPDX-License-Identifier: MIT
 # Project context
 
 - Active task: A005, the approved M5 ARM64 platform-driver learning slice.
-- Merged runtime baseline: A004 correction commit `ebbf1db0a5f8f2b30d7580a2435f67e9db5cc940`.
+- Current public baseline: A004 documentation closeout commit `01ff717`; the
+  last runtime-affecting A004 baseline remains correction commit
+  `ebbf1db0a5f8f2b30d7580a2435f67e9db5cc940`.
 - Baseline: one x86-64 Yocto 6.0 (`wrynose`) learning machine using QEMU EDU PCI device `1234:11e8`.
 - Existing merged runtime features: PCI discovery, BAR0 MMIO, managed MSI/INTx
   selection, sysfs, factorial/liveness operations, and automated guest
@@ -87,7 +89,10 @@ SPDX-License-Identifier: MIT
   Final pull-request head `89a4be3` passed Fast checks run `31404164447` and
   Yocto metadata run `31404164649`; pull request #7 then squash-merged as
   `ebbf1db0a5f8f2b30d7580a2435f67e9db5cc940`. A004 is Done. No tag or release
-  was published.
+  was published. Focused documentation closeout commit `5506322` then passed
+  repository, static, and licensing jobs in Fast checks run `31491533350`;
+  pull request #8 squash-merged that record as `01ff717` without changing the
+  qualified implementation.
 - A005 is approved as an additive ARM64 `virt` lab. It introduces a separate
   project-local SysBus device and generated `qemu,edu-platform` Device Tree
   node, a platform driver, versioned lab manifests, and separate platform
@@ -107,4 +112,9 @@ SPDX-License-Identifier: MIT
   95/95 files. Thirteen native-Linux contract tests, final metadata/layer
   evidence, and the required independent reviews remain open; A005 therefore
   stays In Progress and unpublished.
+- The unpublished A005 history was replayed onto public A004 closeout
+  `01ff717`. The earlier `782eb6d` and `2e4f87d` runs remain useful
+  pre-reconciliation local evidence, but they are not final evidence for the
+  reconciled A005 branch. Exact-revision Linux qualification must be repeated
+  before review or publication.
 - Public workflow state uses tool-neutral maintainer paths while preserving the same task, approval, validation, review, and handoff semantics.
