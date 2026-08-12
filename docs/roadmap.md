@@ -154,7 +154,7 @@ Qualification status: clean implementation commit `8574eaf` passed the full
 94-test Linux repository suite, all 4,738 exact Yocto 6.0.2 image tasks, and a
 software-QEMU run containing ping, SSH, and all 19 project cases. All 21 tests
 passed without skips, failures, or errors. The isolated exact-lock
-`yocto-check-layer` run also passed all 13 applicable BSP/common checks, with
+`yocto-check-layer` run completed 13 BSP/common checks: 12 passed, with
 only the expected distro-class skip for a BSP layer. Closed version-3 evidence
 records a clean tree and successful testimage exit; its SHA-256 is
 `f97b24335cd9579eaf825cf1c06e54ae1742f069f1afa2a4c8e6fa2f162856c2`, and
@@ -208,20 +208,19 @@ evidence versions 1 through 3 remain valid; closed platform evidence version 1
 is clean and complete; licensing and all required reviews pass; shared and
 architecture-specific concepts are explicit.
 
-Qualification status: clean build revision `782eb6d` compiled and packaged the
-ARM64 driver and completed all 4,702 image tasks. After correcting three
-test-only portability and platform-ABI assumptions, clean runtime subject
-`2e4f87d` passed ping, SSH, and all nine ARM64 project cases. The same revision
-completed all 4,738 default PCI image tasks and passed ping, SSH, and all 19 PCI
-project cases. Both software-QEMU results had zero skips, failures, or errors.
-The platform evidence SHA-256 is `a4cb66bd7e57541d79df12a9deea8d9891fa34587b1c24e5314c01a4bae2fe40`;
-the PCI evidence SHA-256 is `730ec74fbc4492cc574b93c50dccbae65bca2e8c1dba9fe30edb73caf15fe03c`.
-After A004 documentation closeout squash-merged as `01ff717`, the unpublished
-A005 history was replayed onto that baseline. The earlier subjects are retained
-as pre-reconciliation local evidence, not final qualification of the reconciled
-branch. A005 remains In Progress until it gets a clean exact-revision no-skip
-Linux rerun, current metadata/layer evidence, and every required review. No
-publication, merge, tag, or release is implied.
+Qualification status: clean exact revision `3244a0c` passed all 141 Linux tests
+without skips, pinned static and licensing checks, both metadata profiles, and
+the fresh dual-machine layer audit. The previously failing machine-signature
+check now passes because both project machines select the same reviewed native
+QEMU patch set. After clean project driver/image invalidation, the PCI graph
+completed all 4,738 tasks and the ARM64 graph completed all 4,702 tasks. The
+software-QEMU results passed 21/21 PCI tests and 11/11 ARM64 tests with zero
+skips, failures, or errors. Platform-v1 evidence SHA-256 is
+`432e391555346582f7ccd2a8572fadd3f9c8200058d9a180f17a10fe46928824`; PCI-v3
+evidence SHA-256 is
+`823bffd64153516c928b108ce23a695e9d50d34bcc6754578edf3519cbb1d79e`.
+A005 remains In Progress until every required review and hosted pull-request
+gate passes. No publication, merge, tag, or release is implied.
 
 Rollback: remove the ARM manifest, machine, patch, driver, test, and evidence
 profile. The default PCI manifest and its existing build directory remain the

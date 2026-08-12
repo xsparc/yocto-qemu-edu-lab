@@ -184,32 +184,44 @@ attributes, so an accidental sixth driver-created file cannot silently expand
 the guest contract. Restoration remains in `finally`; an oracle failure cannot
 leave the module unloaded for later cases.
 
-A005/M5 was qualified locally at clean runtime subject
-`2e4f87d5004e7c40fc0b8a00e080841cf40cb72a` after clean build revision
-`782eb6d5d2c310b20a241a7de72c8702add8e58d` compiled and packaged the platform
-driver and completed all 4,702 ARM64 image tasks. A resource-capped Debian 12
-worker used `BB_NUMBER_THREADS=4`, `PARALLEL_MAKE=-j 4`, software QEMU, and no
-`/dev/kvm`. The final ARM64 run passed ping, SSH, and all nine project cases;
-the complete result was 11/11 with no skips, failures, or errors. Closed
-platform evidence records `dirty=false`, `testimage_exit_code=0`, and every
-case-bound completion claim true. Its SHA-256 is
-`a4cb66bd7e57541d79df12a9deea8d9891fa34587b1c24e5314c01a4bae2fe40`; the
-bound native OEQA SHA-256 is
-`c0ecd21280bc5b4d61a94caba9718babe56f45532fc35833c20cda3cc342eb99`.
+A005/M5 exact-revision qualification completed at clean commit
+`3244a0cc9bc8042544943fca9d0e9deb5c0cc356` after the unpublished work was
+replayed onto public A004 closeout `01ff717`. A resource-capped Debian 12
+container exposed 16 CPUs and 15.2 GiB memory, had about 697 GB free at the
+start, used `BB_NUMBER_THREADS=4` and `PARALLEL_MAKE=-j 4`, and had no
+`/dev/kvm`. All 141 repository tests ran on Linux with no skips. Pinned
+ShellCheck 0.11.0, actionlint 1.7.12, and network-disabled REUSE 6.2.0 also
+passed; REUSE covered all 95 files with BSD-2-Clause, GPL-2.0-only, and MIT.
 
-The same clean runtime subject completed all 4,738 default PCI image tasks and
-passed ping, SSH, and all 19 project cases; the complete result was 21/21 with
-no skips, failures, or errors. Its immutable version-3 evidence still validates
-with `--require-pass`. The evidence SHA-256 is
-`730ec74fbc4492cc574b93c50dccbae65bca2e8c1dba9fe30edb73caf15fe03c`; the
-bound native OEQA SHA-256 is
-`41cb7a4b67c7eca87acecb4069c8ae0ff1a57705d48e84d9abea923909b2938c`.
-After A004 documentation closeout squash-merged as `01ff717`, the unpublished
-A005 work was replayed onto that public baseline. These retained runs are
-pre-reconciliation local evidence and do not qualify the reconciled A005 branch;
-a new exact-revision run is required before closeout. They are not hosted
-attestations, physical-hardware results, independent reviews, publication,
-merge, tags, or releases.
+The fresh OE-Core-only layer audit tested both project machines together. It
+ran 13 checks: 12 passed, including `test_machine_signatures`, and the
+distro-only test class was skipped because `meta-qemu-edu` is a BSP layer. Both
+project metadata profiles parsed and selected the complete two-patch QEMU input
+set. The PCI and ARM64 helper sysroots contained the reviewed emulators rather
+than a host fallback: `qemu-system-x86_64` SHA-256
+`26aad3da474c044c517b675e0e6c88d13bcfda5d9317119dfecce77e8cfaaf8ef` and
+`qemu-system-aarch64` SHA-256
+`e4401eb5907becb790aeae31b714b19894f5f69fe6df63a3e9b4a2281619866f`.
+
+After invalidating the project driver and image state, the default PCI graph
+completed all 4,738 tasks and the ARM64 graph completed all 4,702 tasks. Both
+generated SPDX/SBOM output. Software-QEMU `testimage` then passed ping, SSH,
+and all 19 PCI project cases (21/21 total) plus ping, SSH, and all nine ARM64
+project cases (11/11 total), with no skips, failures, or errors.
+
+Both closed reports record exact revision `3244a0c`, `dirty=false`, and
+`testimage_exit_code=0`, and validate with `--require-pass` and
+`--require-revision`. Platform-v1 evidence SHA-256 is
+`432e391555346582f7ccd2a8572fadd3f9c8200058d9a180f17a10fe46928824`; its
+native OEQA SHA-256 is
+`b87805d86263a2956b860b95ad5d281f516bbab0ecb5c882ab0b26445c2fcdd5`.
+PCI-v3 evidence SHA-256 is
+`823bffd64153516c928b108ce23a695e9d50d34bcc6754578edf3519cbb1d79e`; its
+native OEQA SHA-256 is
+`bacc75f23275afaed5988b0cb2e4149aafc4c4e7c2ece4df3eadb1b10b31ffb5`.
+These are local software-QEMU results, not hosted attestations,
+physical-hardware results, independent reviews, publication, merge, tags, or
+releases.
 
 A007 was qualified locally at clean commit
 `46e2280448cf2a857f8599f677f1b1bd0284fa13`. After clearing an inherited forced
