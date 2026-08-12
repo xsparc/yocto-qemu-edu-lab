@@ -177,6 +177,12 @@ and lifecycle completion claims. A failed, skipped, missing, reordered, or
 stale case cannot produce a passing document. This new kind does not translate
 or mutate historical PCI evidence versions 1 through 3.
 
+The lifecycle case also compares regular device files while the platform driver
+is bound and unbound. The exact difference must be the five documented sysfs
+attributes, so an accidental sixth driver-created file cannot silently expand
+the guest contract. Restoration remains in `finally`; an oracle failure cannot
+leave the module unloaded for later cases.
+
 A005/M5 was qualified locally at clean runtime subject
 `2e4f87d5004e7c40fc0b8a00e080841cf40cb72a` after clean build revision
 `782eb6d5d2c310b20a241a7de72c8702add8e58d` compiled and packaged the platform

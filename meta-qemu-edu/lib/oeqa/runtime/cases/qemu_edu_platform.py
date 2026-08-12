@@ -169,11 +169,22 @@ class QemuEduPlatformRuntimeTests(OERuntimeTestCase):
 
     def test_08_unload_cleanup_and_rebind_recovery(self) -> None:
         device = self.device_name()
+        bound_files = self.regular_device_files(device)
         try:
             self.run_ok("modprobe -r qemu_edu_platform")
             self.run_ok("test ! -d /sys/module/qemu_edu_platform")
             self.run_ok(f"test ! -L {DEVICE_ROOT}/{device}/driver")
             self.run_ok(f"! grep -F '{device}' /proc/interrupts")
+            unbound_files = self.regular_device_files(device)
+            self.assertEqual(
+                bound_files - unbound_files,
+                EXPECTED_ATTRIBUTES,
+                msg=(
+                    "driver-created regular sysfs files differ from the closed "
+                    f"guest contract: bound={sorted(bound_files)}, "
+                    f"unbound={sorted(unbound_files)}"
+                ),
+            )
         finally:
             self.restore_module()
         self.assert_interrupt(0x1000)

@@ -134,6 +134,8 @@ class PlatformContractTests(unittest.TestCase):
         text = RUNTIME_CASE.read_text(encoding="utf-8")
         self.assertIn("hexdump -v -e '1/1 \\\"%02x\\\"'", text)
         self.assertIn("grep -F '{device}' /proc/interrupts", text)
+        self.assertIn("bound_files - unbound_files", text)
+        self.assertIn("EXPECTED_ATTRIBUTES", text)
         self.assertNotIn("od -An -tx1", text)
         self.assertNotIn("grep -w qemu_edu_platform /proc/interrupts", text)
         self.assertNotIn("/resource", text)
