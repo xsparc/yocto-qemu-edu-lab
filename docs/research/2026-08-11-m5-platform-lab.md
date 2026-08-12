@@ -63,6 +63,13 @@ uses an independent build directory, guest contract version 1, runtime suite,
 and closed evidence schema version 1. Unknown lab, manifest, profile, or schema
 values fail closed.
 
+Both project machines must compose the same two-patch `qemu-system-native`
+input set: the attributed EDU bounds backport and the project-local platform
+device. The patches are independent and non-overlapping, while the native recipe
+is a shared host tool whose task signatures must not vary between project
+machines. Exact machine scoping still leaves unrelated machines unchanged; each
+lab's boot arguments instantiate only its intended device.
+
 Yocto 6.0.3 is planned for the week commencing 2026-08-24. It is monitored as a
 separate point-update candidate and is not mixed into M5.
 
@@ -90,8 +97,9 @@ that satisfies QEMU's current code-provenance policy.
 ## Required evidence
 
 M5 remains unqualified until a clean adequate Linux host proves both build and
-runtime paths. ARM evidence must include exact patch and post-patch source
-digests, recipe selection, compiled and consumed native emulator, generated DTB
+runtime paths. ARM evidence must include the complete exact patch set,
+profile-relevant post-patch source digests, recipe selection, compiled and
+consumed native emulator, generated DTB
 validation, platform binding, MMIO, two interrupt acknowledgement cycles,
 unload cleanup, and rebind recovery. The existing 19-case PCI suite must pass
 unchanged on the same source revision. Public CI can provide fast and metadata

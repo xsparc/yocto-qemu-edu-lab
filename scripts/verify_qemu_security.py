@@ -44,15 +44,18 @@ EXPECTED_APPEND_TEXT = f"""# SPDX-License-Identifier: MIT
 QEMU_EDU_BACKPORT_FILESPATH := "${{THISDIR}}/files:"
 
 python __anonymous() {{
-    patches = {{
-        "{QEMU_MACHINE}": "{PATCH_NAME}",
-        "{PLATFORM_MACHINE}": "{PLATFORM_PATCH_NAME}",
+    supported_machines = {{
+        "{QEMU_MACHINE}",
+        "{PLATFORM_MACHINE}",
     }}
-    patch = patches.get(d.getVar("MACHINE"))
-    if patch is None:
+    if d.getVar("MACHINE") not in supported_machines:
         return
     d.prependVar("FILESEXTRAPATHS", d.getVar("QEMU_EDU_BACKPORT_FILESPATH"))
-    d.appendVar("SRC_URI", " file://" + patch)
+    d.appendVar(
+        "SRC_URI",
+        " file://{PATCH_NAME}"
+        " file://{PLATFORM_PATCH_NAME}",
+    )
 }}
 """
 EXPECTED_RECIPE_SUFFIX = (
@@ -94,15 +97,14 @@ PLATFORM_SOURCE_SHA256 = {
 PROFILE_RULES = {
     PCI_PROFILE: {
         "machine": QEMU_MACHINE,
-        "patch": PATCH_NAME,
         "binary": QEMU_BINARY,
     },
     PLATFORM_PROFILE: {
         "machine": PLATFORM_MACHINE,
-        "patch": PLATFORM_PATCH_NAME,
         "binary": "qemu-system-aarch64",
     },
 }
+PROJECT_PATCHES = (PATCH_NAME, PLATFORM_PATCH_NAME)
 
 
 class VerificationError(ValueError):
@@ -217,7 +219,7 @@ def static_checks(root: Path) -> dict[str, Any]:
     if append_text != EXPECTED_APPEND_TEXT:
         raise VerificationError(
             "qemu-system-native append must exactly match the reviewed "
-            "machine-scoped backport integration"
+            "project-machine patch-set integration"
         )
 
     machine_text = read_text(machine_path)
@@ -326,17 +328,13 @@ def metadata_checks(
         raise VerificationError(
             "qemu-system-native FILE is not the exact locked OE-Core 10.2.0 recipe"
         )
-    patch_token = f"file://{rule['patch']}"
-    if src_uri.split().count(patch_token) != 1:
-        raise VerificationError("effective SRC_URI must contain the selected patch once")
-    unexpected = {
-        f"file://{profile_rule['patch']}"
-        for profile_name, profile_rule in PROFILE_RULES.items()
-        if profile_name != profile
-    }
-    selected_uri = set(src_uri.split())
-    if selected_uri & unexpected:
-        raise VerificationError("effective SRC_URI contains another lab's QEMU patch")
+    selected_uri = src_uri.split()
+    for patch in PROJECT_PATCHES:
+        patch_token = f"file://{patch}"
+        if selected_uri.count(patch_token) != 1:
+            raise VerificationError(
+                "effective SRC_URI must contain every project-machine patch once"
+            )
     missing_helper_tasks = TESTIMAGE_HELPER_TASKS - set(testimage_depends.split())
     if missing_helper_tasks:
         raise VerificationError(

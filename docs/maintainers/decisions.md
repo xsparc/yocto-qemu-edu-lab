@@ -197,3 +197,19 @@ SPDX-License-Identifier: MIT
   PCI as the default preserves the current learning and command contracts.
 - Revisit when: a third lab or external BSP makes composition expressive enough
   to justify translating these manifests to kas or upstream `bitbake-setup`.
+
+## D-016: Keep the native QEMU input set invariant across project machines
+
+- Status: Accepted on 2026-08-12 for A005.
+- Decision: Apply both reviewed QEMU 10.2.0 patches—the attributed EDU bounds
+  backport and project-local platform device—to `qemu-system-native` for both
+  project machines. Apply neither patch to unrelated machines. Keep each lab's
+  boot arguments and profile-specific post-patch source verification separate.
+- Reason: `qemu-system-native` and `qemu-helper-native` are shared host-native
+  providers. Machine-dependent recipe inputs give shared tasks different
+  signatures and fail the BSP cross-machine contract. The two patches are
+  independent and non-overlapping, so one exact project-machine input set
+  preserves reproducibility without conflating the guest device interfaces.
+- Revisit when: a later QEMU version includes either change, or upstream recipe
+  structure provides a machine-independent equivalent. Any change must retain
+  exact source verification and unrelated-machine signature neutrality.

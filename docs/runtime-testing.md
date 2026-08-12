@@ -32,7 +32,7 @@ host-emulator checks:
 
 1. the exact `qemu-system-native_10.2.0.bbappend` is selected once;
 2. effective `PN`, `PV`, `FILE`, and `SRC_URI` identify the reviewed recipe and
-   backport;
+   complete two-patch project-machine set;
 3. testimage reaches that recipe through `qemu-helper-native`;
 4. the normalized patch and post-patch `edu.c` match reviewed digests, and both
    DMA copies remain inside their range guards;
@@ -45,12 +45,13 @@ input. An unpatched EDU DMA out-of-bounds test could corrupt the QEMU host
 process and is outside the supported validation boundary.
 
 For `platform-arm64`, the shared preflight dispatches to a separate closed
-profile. It requires only the machine-scoped project-local platform patch in
-effective `SRC_URI`, pins all seven post-patch QEMU source files, proves the
-model has no DMA surface, populates the same helper-native consumer, and
-requires `qemu-system-aarch64` inside that sysroot. The PCI patch must be absent
-from the ARM recipe selection, and the ARM patch must be absent from PCI
-selection.
+profile. Both project profiles require the same bounds and platform patches in
+effective `SRC_URI`, keeping the shared native provider signature-invariant.
+The ARM profile then pins all seven platform-related post-patch QEMU source
+files, proves the model has no DMA surface, populates the same helper-native
+consumer, and requires `qemu-system-aarch64` inside that sysroot. The PCI
+profile independently pins the patched `edu.c` guard contract and its x86-64
+consumer. Neither patch is selected for an unrelated machine.
 
 After that preflight, the wrapper builds the one locked image target and runs:
 

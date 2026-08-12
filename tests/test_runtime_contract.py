@@ -405,7 +405,7 @@ case "$variable" in
     PN) printf '%s\\n' qemu-system-native ;;
     PV) printf '%s\\n' 10.2.0 ;;
     FILE) printf '%s\\n' "$FAKE_ROOT/layers/openembedded-core/meta/recipes-devtools/qemu/qemu-system-native_10.2.0.bb" ;;
-    SRC_URI) printf '%s\\n' 'file://0001-hw-misc-edu-restrict-dma-access-to-dma-buffer.patch' ;;
+    SRC_URI) printf '%s\\n' 'file://0001-hw-misc-edu-restrict-dma-access-to-dma-buffer.patch file://0002-hw-misc-add-qemu-edu-platform-device.patch' ;;
     TESTIMAGEDEPENDS) printf '%s\\n' 'qemu-helper-native:do_populate_sysroot qemu-helper-native:do_addto_recipe_sysroot' ;;
     DEPENDS) printf '%s\\n' 'qemu-system-native pseudo-native' ;;
     S) printf '%s\\n' "$FAKE_ROOT/build/work/qemu-10.2.0" ;;

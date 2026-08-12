@@ -93,7 +93,10 @@ QEMU_EDU_PLATFORM_MMIO_SIZE
                 "/work/repo/layers/openembedded-core/meta/recipes-devtools/"
                 "qemu/qemu-system-native_10.2.0.bb"
             ),
-            "src_uri": f"file://powerpc_rom.bin file://{MODULE.PATCH_NAME}",
+            "src_uri": (
+                f"file://powerpc_rom.bin file://{MODULE.PATCH_NAME} "
+                f"file://{MODULE.PLATFORM_PATCH_NAME}"
+            ),
             "testimage_depends": (
                 "qemu-native:do_populate_sysroot "
                 "qemu-helper-native:do_populate_sysroot "
@@ -150,7 +153,7 @@ QEMU_EDU_PLATFORM_MMIO_SIZE
                     append_text, encoding="utf-8"
                 )
                 with self.assertRaisesRegex(
-                    MODULE.VerificationError, "scoped backport integration"
+                    MODULE.VerificationError, "patch-set integration"
                 ):
                     MODULE.static_checks(root)
 
@@ -198,18 +201,17 @@ QEMU_EDU_PLATFORM_MMIO_SIZE
         self.assertTrue(result["selected"])
         self.assertTrue(result["testimage_dependency_verified"])
 
-    def test_platform_metadata_selects_only_platform_patch(self) -> None:
+    def test_both_profiles_require_the_shared_project_patch_set(self) -> None:
         arguments = self.metadata_arguments(ROOT)
-        arguments["src_uri"] = (
-            f"file://powerpc_rom.bin file://{MODULE.PLATFORM_PATCH_NAME}"
-        )
         arguments["profile"] = MODULE.PLATFORM_PROFILE
         result = MODULE.metadata_checks(**arguments)
         self.assertEqual(result["profile"], MODULE.PLATFORM_PROFILE)
         self.assertEqual(result["qemu_machine"], MODULE.PLATFORM_MACHINE)
 
-        arguments["src_uri"] += f" file://{MODULE.PATCH_NAME}"
-        with self.assertRaisesRegex(MODULE.VerificationError, "another lab"):
+        arguments["src_uri"] = (
+            f"file://powerpc_rom.bin file://{MODULE.PLATFORM_PATCH_NAME}"
+        )
+        with self.assertRaisesRegex(MODULE.VerificationError, "every project-machine"):
             MODULE.metadata_checks(**arguments)
 
     def test_metadata_rejects_ambiguous_or_wrong_inputs(self) -> None:
@@ -225,6 +227,14 @@ QEMU_EDU_PLATFORM_MMIO_SIZE
             "wrong PV": {"pv": "10.2.1"},
             "wrong FILE": {"recipe_file": "/tmp/qemu-system-native_10.2.0.bb"},
             "missing patch": {"src_uri": "file://powerpc_rom.bin"},
+            "missing platform patch": {
+                "src_uri": f"file://powerpc_rom.bin file://{MODULE.PATCH_NAME}"
+            },
+            "duplicate bounds patch": {
+                "src_uri": (
+                    str(base["src_uri"]) + f" file://{MODULE.PATCH_NAME}"
+                )
+            },
             "missing testimage helper": {"testimage_depends": "qemu-native:do_populate_sysroot"},
             "missing system emulator": {"helper_depends": "pseudo-native"},
         }

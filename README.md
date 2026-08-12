@@ -31,7 +31,7 @@ This first lab implements:
 - A derived Yocto machine: `qemu-edu-x86-64`
 - QEMU hardware selection through `QB_OPT_APPEND`
 - An exact upstream EDU DMA bounds backport for the native system emulator,
-  scoped to the `qemu-edu-x86-64` machine
+  carried in the shared patch set for the two project machines
 - An out-of-tree PCI kernel module
 - PCI ID matching and `probe()`
 - BAR/MMIO mapping
@@ -47,7 +47,8 @@ This first lab implements:
 The additive ARM64 lab implements:
 
 - A machine derived from OE-Core `qemuarm64`
-- A machine-scoped QEMU 10.2.0 patch for `qemu-edu-platform`
+- A project-local QEMU 10.2.0 patch for `qemu-edu-platform`, carried in the
+  same project-machine patch set as the PCI bounds backport
 - One generated `qemu,edu-platform` FDT node with a 4 KiB resource and one
   level-high interrupt
 - A managed out-of-tree platform driver with bounded scratch and IRQ controls

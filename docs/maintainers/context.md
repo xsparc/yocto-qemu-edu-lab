@@ -43,10 +43,11 @@ SPDX-License-Identifier: MIT
   continuing the copy. Upstream commit
   `42f599172ae023924f288e20af0ceed681674747` makes the check fail closed in
   both directions. Released QEMU 10.2.4 predates that fix.
-- A007 backports the fix only to `qemu-system-native` when the configured
-  machine is `qemu-edu-x86-64`; adding the layer to an unrelated machine must
-  remain signature-neutral. The native recipe reaches testimage through
-  `qemu-helper-native`. Manual and OEQA boot paths share an exact append,
+- A007 originally scoped the bounds fix to `qemu-edu-x86-64`. A005 composes it
+  with the platform-device patch as one identical `qemu-system-native` input set
+  for both project machines, while unrelated machines remain signature-neutral.
+  The native recipe reaches testimage through `qemu-helper-native`. Manual and
+  OEQA boot paths share an exact append,
   patch/source, and consumer-executable gate, refusing `runqemu` host fallback.
   Unsafe out-of-bounds input is never executed as a validation method.
 - A007 clean commit `46e2280` passed patched-emulator compilation, exact

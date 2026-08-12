@@ -335,7 +335,7 @@ non_scope = [
 ]
 acceptance_criteria = [
   "No-argument setup, build, inspect, run, and runtime-test commands retain the PCI x86-64 lab, existing build directory, and evidence behavior.",
-  "The ARM64 lab has its own manifest and build directory, selects only the reviewed QEMU system-emulator patch, and cannot fall back to a host emulator.",
+  "The ARM64 lab has its own manifest and build directory, both project machines select the complete reviewed QEMU system-emulator patch set without affecting unrelated machines, and neither lab can fall back to a host emulator.",
   "The generated Device Tree contains exactly one qemu,edu-platform node with the expected compatible, MMIO range, and level interrupt, and Linux binds it as a platform device.",
   "The driver proves exact identification, bounded scratch read/write, two distinct interrupt raise/status/acknowledgement cycles, unload cleanup, and rebind recovery.",
   "The platform evidence schema is closed and case-bound, while immutable PCI evidence schemas 1 through 3 remain accepted unchanged.",

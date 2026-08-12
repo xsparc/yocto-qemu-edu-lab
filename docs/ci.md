@@ -21,10 +21,11 @@ For native layer checking, CI creates a separate core-only build directory with
 OE-Core's weak `qemux86-64` default. It proves that base composition before
 asking `yocto-check-layer` to add the project layer and test both project
 machines. The weak default allows the checker to select each machine during
-its BSP tests. The native QEMU append is an exact-machine map: the PCI machine
-selects only the attributed EDU bounds backport, the ARM64 machine selects only
-the project-local platform patch, and the unrelated `qemux86-64` baseline must
-remain signature-neutral. Every cross-machine patch selection fails closed.
+its BSP tests. The native QEMU append is scoped to the exact set of two project
+machines. Both receive the same reviewed bounds and platform patch set because
+`qemu-system-native` is a shared host-native provider; unrelated machines such
+as the `qemux86-64` baseline receive neither patch and remain signature-neutral.
+The metadata verifier requires both inputs exactly once for either profile.
 
 ## Public-repository trust boundary
 

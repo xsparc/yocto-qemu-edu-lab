@@ -39,7 +39,7 @@ qemu-edu-platform-arm64.conf
     |
     |-- derives from qemuarm64 / QEMU virt
     |-- appends: -device qemu-edu-platform
-    |-- selects only the project-local native-QEMU patch
+    |-- consumes the shared project-machine native-QEMU patch set
     v
 qemu-system-aarch64 -> dynamic platform bus -> generated qemu,edu-platform FDT
                                                        |
@@ -84,12 +84,14 @@ Linux OF/platform core -> qemu_edu_platform.ko -> managed MMIO + level IRQ
   1..4096 coherent DMA round trip. It does not expose DMA addresses, arbitrary
   device offsets, streaming mappings, scatter-gather, or queues.
 - The host emulator is a build input as well as a teaching tool. Both machines
-  require `qemu-system-native` 10.2.0. The exact-machine append selects only
-  the upstream EDU bounds backport for `qemu-edu-x86-64`, only the project-local
-  platform-device patch for `qemu-edu-platform-arm64`, and nothing for unrelated
-  machines. It is kept separate from target and user-mode QEMU recipes because
-  only the system-mode native binary crosses the `runqemu` boundary. A shared
-  profile-aware preflight pins the selected integration and post-patch source,
+  require `qemu-system-native` 10.2.0. Its exact append applies the same reviewed
+  upstream EDU bounds backport and project-local platform-device patch to both
+  project machines, and nothing to unrelated machines. Keeping a machine-invariant
+  input set across the two labs preserves shared native-task signatures; boot
+  arguments still select only the device each lab teaches. The append is kept
+  separate from target and user-mode QEMU recipes because only the system-mode
+  native binary crosses the `runqemu` boundary. A shared profile-aware preflight
+  pins the complete integration and its profile-relevant post-patch source,
   populates `qemu-helper-native`'s consumer sysroot, and requires the matching
   x86-64 or AArch64 executable before either manual or OEQA boot; host-`PATH`
   fallback is outside the project boundary.
