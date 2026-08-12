@@ -70,6 +70,33 @@ class WorkflowValidationTests(unittest.TestCase):
     def test_repository_workflow_is_valid(self) -> None:
         self.assertEqual([], MODULE.validate(ROOT))
 
+    def test_lab_validation_command_is_required(self) -> None:
+        root = self.copy_repository()
+        path = root / "docs/maintainers/config.toml"
+        text = path.read_text(encoding="utf-8").replace(
+            '  "python3 scripts/lab_config.py validate",\n', "", 1
+        )
+        path.write_text(text, encoding="utf-8")
+        self.assertIn(
+            "validation_commands is missing: python3 scripts/lab_config.py validate",
+            MODULE.validate(root),
+        )
+
+    def test_platform_evidence_schema_path_is_required(self) -> None:
+        root = self.copy_repository()
+        path = root / "schemas/qemu-edu-platform-runtime-evidence-v1.schema.json"
+        path.unlink()
+        errors = MODULE.validate(root)
+        self.assertIn(
+            "missing required file: schemas/qemu-edu-platform-runtime-evidence-v1.schema.json",
+            errors,
+        )
+        self.assertIn(
+            "configured path is missing: platform_runtime_evidence_schema_path="
+            "'schemas/qemu-edu-platform-runtime-evidence-v1.schema.json'",
+            errors,
+        )
+
     def test_task_ids_are_unique(self) -> None:
         state = MODULE.load_toml(ROOT / "docs/maintainers/tasks.toml")
         ids = [task["id"] for task in state["tasks"]]

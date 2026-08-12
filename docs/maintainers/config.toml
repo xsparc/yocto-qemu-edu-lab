@@ -10,14 +10,17 @@ maintenance_plan_path = "docs/maintenance-workflow.md"
 license_policy_path = "docs/licensing.md"
 source_lock_path = "config/sources.lock.json"
 source_lock_policy_path = "docs/source-lock.md"
+lab_index_path = "config/labs/index.json"
 ci_policy_path = "docs/ci.md"
 versioning_path = "docs/versioning.md"
 guest_interface_path = "docs/guest-interface.md"
 runtime_testing_path = "docs/runtime-testing.md"
 runtime_evidence_schema_path = "schemas/qemu-edu-runtime-evidence-v3.schema.json"
+platform_runtime_evidence_schema_path = "schemas/qemu-edu-platform-runtime-evidence-v1.schema.json"
 
 validation_commands = [
   "python3 scripts/source_lock.py validate",
+  "python3 scripts/lab_config.py validate",
   "python3 scripts/validate_workflow.py",
   "python3 scripts/validate_ci.py",
   "python3 scripts/verify_qemu_security.py static",

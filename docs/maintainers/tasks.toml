@@ -355,7 +355,7 @@ approval = "Repository owner explicitly approved A005/M5 using the documented AR
 reviews_required = ["architecture", "quality", "devops", "security", "licensing", "independent-diff"]
 reviews_completed = []
 validation_evidence = [
-  "Repository-local validation on 2026-08-12 passed source-lock, lab-manifest, workflow, CI-policy, both QEMU patch-integrity profiles, Git Bash syntax, checksum, and changed-line whitespace checks. The current Python suite passes all 131 tests on Windows; 13 native-Linux environment/wrapper cases remain explicitly skipped rather than claimed.",
+  "Repository-local validation on 2026-08-12 passed source-lock, lab-manifest, workflow, CI-policy, both QEMU patch-integrity profiles, Git Bash syntax, checksum, and changed-line whitespace checks. The current Python suite passes all 133 tests on Windows; 13 native-Linux environment/wrapper cases remain explicitly skipped rather than claimed.",
   "The exact QEMU 10.2.0 platform patch has normalized SHA-256 8082f4b58ff3bc2d3d13c995859557477365b0ec0bd6390ec3f538993d039c5f. Its seven-file post-patch source group passed the closed source verifier and contains no DMA surface.",
   "Device Tree schema 2026.6 validated the qemu,edu-platform binding against the upstream meta-schema through a kernel-style schemas/misc path; only Windows path separators were normalized for the validator's filename comparison. The clean ARM64 runtime then verified the exact generated compatible, 4 KiB reg, and level-high interrupt bytes; a standalone kernel dt_binding_check example build is not claimed.",
   "REUSE 6.2.0 validation covered 95/95 files with BSD-2-Clause, GPL-2.0-only, and MIT; there were no missing, bad, deprecated, or unused licenses and no invalid SPDX expressions.",
