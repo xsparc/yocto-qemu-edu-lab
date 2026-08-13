@@ -22,6 +22,11 @@ RECIPE = (
     ROOT
     / "meta-qemu-edu/recipes-kernel/qemu-edu-platform-driver/qemu-edu-platform-driver_1.0.bb"
 )
+TOOL_RECIPE = (
+    ROOT
+    / "meta-qemu-edu/recipes-support/qemu-edu-platform-tools/"
+    "qemu-edu-platform-tools_1.0.bb"
+)
 BINDING = (
     ROOT
     / "meta-qemu-edu/recipes-kernel/qemu-edu-platform-driver/files/qemu,edu-platform.yaml"
@@ -117,6 +122,13 @@ class PlatformContractTests(unittest.TestCase):
         self.assertIn("identify|status|scratch VALUE|raise MASK", text)
         for unsafe in ("/dev/mem", "mmap", "debugfs", "resource0"):
             self.assertNotIn(unsafe, text)
+
+    def test_diagnostic_tool_license_checksum_matches_lf_spdx_line(self) -> None:
+        recipe = TOOL_RECIPE.read_text(encoding="utf-8")
+        selected = TOOL.read_bytes().splitlines(keepends=True)[1]
+        self.assertEqual(selected, b"# SPDX-License-Identifier: MIT\n")
+        checksum = hashlib.md5(selected, usedforsecurity=False).hexdigest()
+        self.assertIn(f"md5={checksum}", recipe)
 
     def test_image_keeps_architecture_specific_packages_and_suites_separate(self) -> None:
         image = (

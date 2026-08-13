@@ -205,16 +205,30 @@ class RuntimeContractTests(unittest.TestCase):
                     expected,
                 )
 
-    def test_extensionless_guest_tool_is_lf_normalized_and_syntax_checked(self) -> None:
-        guest_tool = (
-            "meta-qemu-edu/recipes-support/qemu-edu-tools/files/qemu-edu-test"
+    def test_extensionless_guest_tools_are_lf_normalized_and_syntax_checked(self) -> None:
+        guest_tools = (
+            "meta-qemu-edu/recipes-support/qemu-edu-tools/files/qemu-edu-test",
+            "meta-qemu-edu/recipes-support/qemu-edu-platform-tools/files/"
+            "qemu-edu-platform-test",
         )
         attributes = (ROOT / ".gitattributes").read_text(encoding="utf-8")
         workflow = (ROOT / ".github/workflows/fast-checks.yml").read_text(
             encoding="utf-8"
         )
-        self.assertIn(f"{guest_tool} text eol=lf", attributes)
-        self.assertIn(f"sh -n {guest_tool}", workflow)
+        static_analysis = workflow.split("      - name: Static analysis", 1)[1].split(
+            "\n  licensing:", 1
+        )[0]
+        for guest_tool in guest_tools:
+            with self.subTest(guest_tool=guest_tool):
+                self.assertIn(f"{guest_tool} text eol=lf", attributes)
+                self.assertRegex(
+                    static_analysis,
+                    rf"sh -n[\s\S]*{re.escape(guest_tool)}",
+                )
+                self.assertRegex(
+                    static_analysis,
+                    rf"shellcheck[\s\S]*{re.escape(guest_tool)}",
+                )
 
     def test_schema_is_closed_and_covers_every_case(self) -> None:
         evidence = load_runtime_evidence()

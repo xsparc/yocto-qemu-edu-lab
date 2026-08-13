@@ -8,11 +8,13 @@ bounded coherent-DMA round trip. `qemu-edu-platform-arm64` derives from
 `qemuarm64` and teaches generated Device Tree discovery, platform resources,
 MMIO, one level interrupt, and managed driver lifecycle without DMA.
 
-The exact native QEMU 10.2.0 append is machine scoped. The PCI machine selects
-the attributed upstream EDU bounds backport; the ARM64 machine selects the
-project-local `qemu-edu-platform` model/FDT patch. Each boot path verifies its
-selected patch, post-patch source group, and architecture-specific executable
-in `qemu-helper-native`'s consumer sysroot before `runqemu` can start.
+The exact native QEMU 10.2.0 append is machine scoped. Both project machines
+select the complete two-patch set: the attributed upstream EDU bounds backport
+and the project-local `qemu-edu-platform` model/FDT patch. This keeps the
+shared native provider's inputs invariant across the project machines. Each
+boot path then verifies its profile-relevant post-patch source and
+architecture-specific executable in `qemu-helper-native`'s consumer sysroot
+before `runqemu` can start.
 
 See the repository-level `README.md` for the learning path and host setup,
 `CONTRIBUTING.md` for maintainer and patch-submission guidance, `SECURITY.md`

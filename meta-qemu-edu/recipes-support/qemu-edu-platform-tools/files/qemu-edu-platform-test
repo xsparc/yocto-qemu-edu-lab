@@ -3,7 +3,7 @@
 set -eu
 
 find_device() {
-    found=
+    found=""
     for candidate in /sys/bus/platform/devices/*; do
         [ -e "$candidate/identification" ] || continue
         [ -L "$candidate/driver" ] || continue
