@@ -13,6 +13,7 @@ while [ "$#" -gt 0 ]; do
     case "$1" in
         --lab)
             [ "$#" -ge 2 ] || { echo "--lab requires a value" >&2; exit 2; }
+            [ -n "$2" ] || { echo "--lab requires a non-empty value" >&2; exit 2; }
             LAB_ID=$2
             shift
             ;;

@@ -325,7 +325,7 @@ def select_lab(
     root: Path, lab_id: str | None, index_relative: str = DEFAULT_INDEX
 ) -> tuple[str, dict[str, Any], str, str]:
     index, index_digest, manifests, digests = read_catalog(root, index_relative)
-    selected = lab_id or index["default_lab"]
+    selected = index["default_lab"] if lab_id is None else lab_id
     if selected not in manifests:
         raise LabError(f"unknown lab: {selected}")
     return selected, manifests[selected], index_digest, digests[selected]

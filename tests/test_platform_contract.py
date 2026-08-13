@@ -126,7 +126,7 @@ class PlatformContractTests(unittest.TestCase):
     def test_diagnostic_tool_license_checksum_matches_lf_spdx_line(self) -> None:
         recipe = TOOL_RECIPE.read_text(encoding="utf-8")
         selected = TOOL.read_bytes().splitlines(keepends=True)[1]
-        self.assertEqual(selected, b"# SPDX-License-Identifier: MIT\n")
+        self.assertEqual(selected, b"# SPDX-License-" b"Identifier: MIT\n")
         checksum = hashlib.md5(selected, usedforsecurity=False).hexdigest()
         self.assertIn(f"md5={checksum}", recipe)
 

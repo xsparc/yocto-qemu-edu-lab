@@ -7,6 +7,8 @@ import copy
 import hashlib
 import importlib.util
 import json
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -100,6 +102,32 @@ class LabConfigTests(unittest.TestCase):
     def test_unknown_lab_fails_closed(self) -> None:
         with self.assertRaisesRegex(MODULE.LabError, "unknown lab"):
             MODULE.select_lab(ROOT, "future-lab")
+
+    def test_explicit_empty_lab_fails_closed(self) -> None:
+        with self.assertRaisesRegex(MODULE.LabError, "unknown lab"):
+            MODULE.select_lab(ROOT, "")
+
+    @unittest.skipIf(
+        sys.platform == "win32", "requires a native Linux Bash environment"
+    )
+    def test_public_wrappers_reject_explicit_empty_lab(self) -> None:
+        for wrapper in (
+            "setup.sh",
+            "build.sh",
+            "inspect.sh",
+            "run.sh",
+            "runtime-test.sh",
+        ):
+            with self.subTest(wrapper=wrapper):
+                result = subprocess.run(
+                    ["bash", str(ROOT / wrapper), "--lab", ""],
+                    cwd=ROOT,
+                    text=True,
+                    capture_output=True,
+                    check=False,
+                )
+                self.assertEqual(result.returncode, 2, result.stderr)
+                self.assertIn("--lab requires a non-empty value", result.stderr)
 
     def test_unknown_manifest_field_fails_closed(self) -> None:
         _, manifests, _ = self.repository_data()
