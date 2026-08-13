@@ -354,7 +354,7 @@ validation = [
 ]
 approval = "Repository owner explicitly approved A005/M5 using the documented ARM64 platform-lab boundary on 2026-08-11."
 reviews_required = ["architecture", "quality", "devops", "security", "licensing", "independent-diff"]
-reviews_completed = []
+reviews_completed = ["architecture", "quality", "devops", "security", "licensing", "independent-diff"]
 validation_evidence = [
   "Clean exact revision 3244a0cc9bc8042544943fca9d0e9deb5c0cc356 passed source-lock, lab-manifest, workflow, CI-policy, checksum, both QEMU patch-integrity profiles, and all 141 repository tests on Linux with no skips. Pinned ShellCheck 0.11.0 and actionlint 1.7.12 passed. Network-disabled REUSE 6.2.0 covered 95/95 files with BSD-2-Clause, GPL-2.0-only, and MIT and reported no missing, bad, deprecated, or unused licenses or invalid expressions.",
   "The exact QEMU 10.2.0 platform patch has normalized SHA-256 8082f4b58ff3bc2d3d13c995859557477365b0ec0bd6390ec3f538993d039c5f. Its seven-file post-patch source group passed the closed source verifier and contains no DMA surface.",
@@ -367,8 +367,18 @@ validation_evidence = [
   "At exact revision 3244a0cc9bc8042544943fca9d0e9deb5c0cc356, the reviewed helper-native consumers were qemu-system-x86_64 SHA-256 26aad3da474c044c517b675e0e6c88d13bcfda5d9317119dfecce77e8cfaaf8ef and qemu-system-aarch64 SHA-256 e4401eb5907becb790aeae31b714b19894f5f69fe6df63a3e9b4a2281619866f. After project driver/image cleansstate, the PCI graph completed all 4,738 tasks and the ARM64 graph all 4,702 tasks, including SPDX/SBOM output.",
   "Exact-revision PCI software-QEMU testimage passed ping, SSH, and all 19 project cases with zero skips, failures, or errors. Closed PCI-v3 evidence SHA-256 823bffd64153516c928b108ce23a695e9d50d34bcc6754578edf3519cbb1d79e validates with --require-pass --require-revision and binds native OEQA SHA-256 bacc75f23275afaed5988b0cb2e4149aafc4c4e7c2ece4df3eadb1b10b31ffb5.",
   "Exact-revision ARM64 software-QEMU testimage passed ping, SSH, and all nine project cases with zero skips, failures, or errors. Closed platform-v1 evidence SHA-256 432e391555346582f7ccd2a8572fadd3f9c8200058d9a180f17a10fe46928824 validates with --require-pass --require-revision and binds native OEQA SHA-256 b87805d86263a2956b860b95ad5d281f516bbab0ecb5c882ab0b26445c2fcdd5.",
+  "After review corrections, clean exact revision 340621afe3108d074e03f638b238d724bc10de5c passed all 144 repository tests on Linux with no skips, source-lock, lab-catalog, workflow, CI-policy, QEMU static, checksum, Bash-syntax, and diff checks. Network-disabled REUSE 6.2.0 covered 95/95 files with zero issues. Explicit empty lab selectors now fail closed centrally and in all five public wrappers, while omitted selection still resolves to PCI.",
+  "At exact revision 340621afe3108d074e03f638b238d724bc10de5c, qemu-edu-platform-tools and qemu-edu-platform-driver were invalidated through cleansstate and the ARM64 image completed all 4,702 tasks including fresh packaging and SPDX generation. Software-QEMU testimage passed ping, SSH, and all nine platform cases with zero skips, failures, or errors. Platform-v1 evidence SHA-256 40550c299ec26e216c62ef5489774b53dc37c74658fab14d79588946fc311a9e validates with --require-pass --require-revision and binds native OEQA SHA-256 9a877ffb6e6def3f6050a1d176df7048bbe1855d7bc988971b8586bef22970e4.",
+  "The no-argument runtime wrapper at exact revision 340621afe3108d074e03f638b238d724bc10de5c selected the default PCI lab and passed ping, SSH, and all 19 PCI cases with zero skips, failures, or errors. PCI-v3 evidence SHA-256 1a443dd4183eb843511e97f7751e72aa4e57b249dca545bc0c2dbba6e640a94d validates with --require-pass --require-revision and binds native OEQA SHA-256 ef7a88b977a3b5ab3fad42cd50c77649d425935473f4839f0c18a5daf9ff9cc6.",
 ]
-review_evidence = []
+review_evidence = [
+  "Architecture review approved the final implementation boundary after verifying closed manifest composition, default PCI compatibility, machine-invariant native-QEMU inputs, ARM64 platform-device separation, IRQ and driver lifecycle, evidence versioning, rollback, LF portability, and fail-closed empty-selector handling with no P0-P2 findings.",
+  "Quality review approved after reproducing and closing the extensionless-tool LF defect, verifying recipe license-line checksum parity and direct Linux execution, exercising explicit-empty selector failures, and passing the complete 144-test Linux suite with no skips.",
+  "DevOps review approved after aligning the shared two-patch documentation with the bbappend, verifying all public wrappers reject empty selectors before side effects, confirming workflow path coverage and CI policy, and retaining proportional exact-head runtime plus hosted-gate boundaries.",
+  "Security review approved the closed manifest and shell-input boundaries, QEMU source and consumer oracles, bounded MMIO/sysfs and IRQ lifecycle, evidence integrity, CI trust boundary, and explicit-empty selector correction with no P0-P2 findings.",
+  "Licensing review approved after the SPDX fixture ambiguity was removed; pinned network-disabled REUSE 6.2.0 covered 95/95 files with zero issues, recipe LIC_FILES_CHKSUM values matched tracked LF bytes, and QEMU, kernel, Device Tree, and project provenance remained coherent.",
+  "Independent full-diff review found the SPDX fixture and empty-selector defects, verified both corrections at clean revision 340621afe3108d074e03f638b238d724bc10de5c, and approved after source-lock, lab, workflow, CI, QEMU static, checksum, Bash, diff, 144-test Linux, and REUSE gates passed.",
+]
 result = ""
 
 [[tasks]]

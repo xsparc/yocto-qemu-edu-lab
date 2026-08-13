@@ -223,6 +223,40 @@ These are local software-QEMU results, not hosted attestations,
 physical-hardware results, independent reviews, publication, merge, tags, or
 releases.
 
+Review findings produced two focused correction commits. `ef65188` makes the
+extensionless platform diagnostic tool checkout-portable with exact LF bytes
+and aligns the layer guide with the shared native-QEMU patch set. `340621a`
+makes explicit empty lab selectors fail closed in the central selector and all
+five public wrappers; omitted selection still resolves to PCI. At clean exact
+revision `340621afe3108d074e03f638b238d724bc10de5c`, all 144 repository tests
+passed on Linux with no skips and network-disabled REUSE 6.2.0 covered 95/95
+files with zero issues.
+
+The proportional final-head qualification invalidated
+`qemu-edu-platform-tools` and `qemu-edu-platform-driver` through cleansstate,
+then completed all 4,702 ARM64 image tasks including fresh packaging and SPDX
+generation. Software-QEMU passed ping, SSH, and all nine platform cases (11/11
+total) with no skips, failures, or errors. The no-argument runtime wrapper then
+selected the default PCI lab and passed ping, SSH, and all 19 PCI cases (21/21
+total) with the same clean revision. Both reports record `dirty=false` and
+`testimage_exit_code=0` and validate with `--require-pass` and
+`--require-revision 340621afe3108d074e03f638b238d724bc10de5c`.
+
+Final implementation-head platform-v1 evidence SHA-256 is
+`40550c299ec26e216c62ef5489774b53dc37c74658fab14d79588946fc311a9e`; its
+native OEQA SHA-256 is
+`9a877ffb6e6def3f6050a1d176df7048bbe1855d7bc988971b8586bef22970e4`.
+Final implementation-head PCI-v3 evidence SHA-256 is
+`1a443dd4183eb843511e97f7751e72aa4e57b249dca545bc0c2dbba6e640a94d`; its
+native OEQA SHA-256 is
+`ef7a88b977a3b5ab3fad42cd50c77649d425935473f4839f0c18a5daf9ff9cc6`.
+All six required reviews approved the implementation with no remaining P0-P2
+findings. These remain unsigned local software-QEMU results; publication,
+hosted pull-request gates, merge, physical-hardware validation, tag, and
+release are not claimed. This documentation-only review record follows the
+qualified implementation without changing its build, runtime, manifest,
+schema, wrapper, or test surface.
+
 A007 was qualified locally at clean commit
 `46e2280448cf2a857f8599f677f1b1bd0284fa13`. After clearing an inherited forced
 driver task, the final warning-free rebuild passed ping, SSH, and all 14 project

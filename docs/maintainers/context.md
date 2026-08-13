@@ -101,7 +101,7 @@ SPDX-License-Identifier: MIT
   evidence while preserving the x86-64 PCI lab as the no-argument default.
   RISC-V, DMA, physical validation, source-version upgrades, upstream QEMU
   submission, publication, merge, tag, and release remain outside A005.
-- A005 exact-revision qualification now covers clean commit `3244a0c` after
+- A005 implementation qualification covers clean commit `3244a0c` after
   replay onto public A004 closeout `01ff717`. All 141 Linux tests ran without
   skips; pinned static checks, REUSE 6.2.0 over 95/95 files, both metadata
   profiles, and the fresh dual-machine layer audit passed. The layer audit's
@@ -113,6 +113,15 @@ SPDX-License-Identifier: MIT
   `432e391555346582f7ccd2a8572fadd3f9c8200058d9a180f17a10fe46928824`; PCI-v3
   evidence SHA-256 is
   `823bffd64153516c928b108ce23a695e9d50d34bcc6754578edf3519cbb1d79e`.
-  Required reviews and hosted pull-request gates remain open, so A005 stays In
-  Progress and unpublished.
+  Following review corrections, clean final implementation revision `340621a`
+  passed all 144 Linux tests without skips and REUSE 95/95. The affected ARM64
+  tool and driver were rebuilt from cleansstate; the image completed 4,702
+  tasks and software QEMU passed 11/11 tests. The no-argument wrapper selected
+  PCI and passed 21/21 tests. Fresh platform-v1 evidence SHA-256 is
+  `40550c299ec26e216c62ef5489774b53dc37c74658fab14d79588946fc311a9e`;
+  fresh PCI-v3 evidence SHA-256 is
+  `1a443dd4183eb843511e97f7751e72aa4e57b249dca545bc0c2dbba6e640a94d`.
+  Architecture, quality, DevOps, security, licensing, and independent-diff
+  reviews approved with no remaining P0-P2 findings. Publication and hosted
+  pull-request gates remain open, so A005 stays In Progress and unpublished.
 - Public workflow state uses tool-neutral maintainer paths while preserving the same task, approval, validation, review, and handoff semantics.
