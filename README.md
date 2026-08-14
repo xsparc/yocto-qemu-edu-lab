@@ -2,8 +2,8 @@
 
 # Yocto + QEMU EDU driver lab
 
-This is a PC-only example BSP project for learning how Yocto, QEMU, Linux
-hardware discovery, a kernel driver, packages, and an image fit together.
+This is a multi-architecture example BSP project for learning how Yocto, QEMU,
+Linux hardware discovery, kernel drivers, packages, and an image fit together.
 
 The long-term direction is a progressive, evidence-driven curriculum from this
 first virtual PCI driver through automated runtime testing, MSI, DMA, a
@@ -11,20 +11,27 @@ Device-Tree/platform-driver lab, and optional provider-neutral diagnostics. The
 core build and learning path will remain usable without an AI service. See
 [`docs/vision.md`](docs/vision.md) and [`docs/roadmap.md`](docs/roadmap.md).
 
-The current development identity is `0.4.0-dev`; no release is implied. Yocto
+The current development identity is `0.5.0-dev`; no release is implied. Yocto
 metadata inputs are locked to the 6.0.2 Wrynose point release.
 
-The virtual target is an x86-64 machine with QEMU's **EDU educational PCI
-peripheral**.  EDU was specifically designed for kernel-driver exercises.  It
-has a 1 MiB MMIO BAR, identification and liveness registers, asynchronous
-factorial hardware, legacy/MSI interrupts, and a small DMA engine.
+Two closed lab manifests share the same locked sources and image target while
+keeping their hardware contracts independent:
+
+| Lab | Machine | Learning boundary | Build directory |
+|---|---|---|---|
+| `pci-x86-64` (default) | `qemu-edu-x86-64` | PCI discovery, BAR MMIO, MSI/INTx, bounded DMA | `build/` |
+| `platform-arm64` | `qemu-edu-platform-arm64` | generated Device Tree, platform discovery, MMIO, one level IRQ | `build-platform-arm64/` |
+
+The default remains QEMU's EDU educational PCI peripheral. The ARM64 lab uses
+an independent project-local SysBus model on QEMU `virt`; it does not expose
+DMA or reinterpret the PCI EDU ABI as a portable hardware contract.
 
 This first lab implements:
 
 - A derived Yocto machine: `qemu-edu-x86-64`
 - QEMU hardware selection through `QB_OPT_APPEND`
 - An exact upstream EDU DMA bounds backport for the native system emulator,
-  scoped to the `qemu-edu-x86-64` machine
+  carried in the shared patch set for the two project machines
 - An out-of-tree PCI kernel module
 - PCI ID matching and `probe()`
 - BAR/MMIO mapping
@@ -37,9 +44,21 @@ This first lab implements:
 - A user-space test package
 - A custom minimal image
 
-It does **not** emulate a new instruction set.  It uses a normal x86-64 CPU and
-adds a custom-like peripheral.  That is the fastest way to learn the BSP and
-driver workflow without first writing a CPU model or a QEMU board model.
+The additive ARM64 lab implements:
+
+- A machine derived from OE-Core `qemuarm64`
+- A project-local QEMU 10.2.0 patch for `qemu-edu-platform`, carried in the
+  same project-machine patch set as the PCI bounds backport
+- One generated `qemu,edu-platform` FDT node with a 4 KiB resource and one
+  level-high interrupt
+- A managed out-of-tree platform driver with bounded scratch and IRQ controls
+- A separate diagnostic command, OEQA suite, and closed evidence schema v1
+
+Neither lab implements a CPU or board model. The PCI lab uses QEMU's existing
+x86-64 PC machine, and the platform lab uses its existing ARM64 `virt` machine;
+each adds only the teaching peripheral selected by its manifest. This keeps the
+lesson on BSP composition and driver bring-up rather than instruction-set
+emulation.
 
 ## 1. Host requirements
 
@@ -68,12 +87,16 @@ lab is smaller than a graphical reference image, but a roomy SSD still matters.
 ```bash
 cd yocto-qemu-edu-lab
 ./setup.sh
+# Or select the independent ARM64 path:
+./setup.sh --lab platform-arm64
 ```
 
 The script resolves the exact BitBake, OpenEmbedded Core, and meta-yocto commits
-declared in `config/sources.lock.json`, creates `build/`, adds the ordered locked
-layers and `meta-qemu-edu`, selects the custom machine, and enables development
-login settings. It refuses dirty, wrong-origin, or unexpected source checkouts.
+declared in `config/sources.lock.json`, validates the digest-bound manifest in
+`config/labs/`, creates that lab's build directory, adds the ordered layers,
+selects the declared machine, and enables development login settings. It
+refuses dirty, wrong-origin, unexpected source checkouts and unknown or altered
+lab manifests.
 
 Verify existing checkouts without fetching, or configure from already-cached
 Git objects:
@@ -82,6 +105,8 @@ Git objects:
 ./setup.sh --check
 ./setup.sh --offline
 python3 scripts/source_lock.py --format json status
+python3 scripts/lab_config.py validate
+python3 scripts/lab_config.py list
 ```
 
 Offline source checkout does not make recipe downloads available offline. See
@@ -91,6 +116,7 @@ Inspect the metadata before compiling:
 
 ```bash
 ./inspect.sh
+./inspect.sh --lab platform-arm64
 ```
 
 Look especially for:
@@ -101,10 +127,15 @@ QB_OPT_APPEND="... -device edu"
 REQUIRED_VERSION_qemu-system-native="10.2.0"
 ```
 
+For `platform-arm64`, expect `MACHINE="qemu-edu-platform-arm64"`,
+`QB_SYSTEM_NAME="qemu-system-aarch64"`, and
+`QB_OPT_APPEND="... -device qemu-edu-platform"`.
+
 ## 3. Build
 
 ```bash
 ./build.sh
+./build.sh --lab platform-arm64
 ```
 
 The first build downloads and compiles the toolchain, QEMU, Linux, BusyBox, the
@@ -115,25 +146,37 @@ The important output directory is:
 
 ```text
 build/tmp/deploy/images/qemu-edu-x86-64/
+build-platform-arm64/tmp/deploy/images/qemu-edu-platform-arm64/
 ```
 
 ## 4. Boot in QEMU
 
 ```bash
 ./run.sh
+./run.sh --lab platform-arm64
 ```
 
 The script uses unprivileged SLIRP networking, a serial console, and snapshot
-mode. Before `runqemu`, it uses the same A007 security preflight as the
-automated runtime path: the exact patch and patched source must match their
-reviewed digests, the helper-native consumer sysroot is populated, and its
-executable must exist there. Host-QEMU fallback is refused for the EDU machine.
-Log in as `root`; the development image has no password.
+mode. Before `runqemu`, it uses the same fail-closed emulator preflight as the
+automated runtime path. The selected machine's exact patch and patched source
+must match their reviewed digests, the helper-native consumer sysroot is
+populated, and the matching x86-64 or AArch64 executable must exist there.
+Host-QEMU fallback is refused for both labs. Log in as `root`; the development
+image has no password.
 
 Inside the guest, run:
 
 ```bash
 qemu-edu-test
+```
+
+For the ARM64 platform lab, use the bounded interface:
+
+```bash
+qemu-edu-platform-test identify
+qemu-edu-platform-test scratch 0x12345678
+qemu-edu-platform-test raise 0x400
+qemu-edu-platform-test status
 ```
 
 Expected highlights resemble:
@@ -169,13 +212,16 @@ without an interactive guest login:
 
 ```bash
 ./runtime-test.sh
+./runtime-test.sh --lab platform-arm64
 ```
 
 Before boot, the wrapper verifies the exact `qemu-system-native` append,
-normalized patch digest, effective recipe and dependency chain, the exact
-patched `edu.c` digest and both guarded copies, and the executable in
-`qemu-helper-native`'s consumer sysroot. It then runs Yocto's native
-`testimage`/OEQA path over unprivileged SLIRP. It
+selected patch digest, effective recipe and dependency chain, the profile's
+exact patched source, and the architecture-matching executable in
+`qemu-helper-native`'s consumer sysroot. The PCI profile proves both guarded
+DMA copies; the ARM64 profile pins its complete source group and proves that
+the model has no DMA surface. It then runs Yocto's native `testimage`/OEQA path
+over unprivileged SLIRP. The PCI suite
 asserts PCI discovery, identification, liveness, factorial boundaries, default
 and strict MSI, explicit INTx, real automatic fallback, strict-MSI failure,
 cleanup, invalid inputs, timeout handling, the removed-device diagnostic,
@@ -187,6 +233,7 @@ A successful run creates a closed, versioned result document at:
 
 ```text
 build/evidence/qemu-edu-runtime-v3.json
+build-platform-arm64/evidence/qemu-edu-platform-runtime-v1.json
 ```
 
 See [`docs/guest-interface.md`](docs/guest-interface.md) for the sysfs contract
@@ -218,20 +265,21 @@ is software rather than RTL/silicon.
 
 Read files in this order:
 
-1. `meta-qemu-edu/conf/machine/qemu-edu-x86-64.conf`
-2. `meta-qemu-edu/recipes-devtools/qemu/qemu-system-native_10.2.0.bbappend`
-3. `meta-qemu-edu/recipes-kernel/qemu-edu-driver/qemu-edu-driver_1.0.bb`
-4. `meta-qemu-edu/recipes-kernel/qemu-edu-driver/files/qemu_edu.c`
-5. `meta-qemu-edu/recipes-support/qemu-edu-tools/qemu-edu-tools_1.0.bb`
-6. `meta-qemu-edu/recipes-core/images/qemu-edu-image.bb`
-7. `docs/architecture.md`
-8. `docs/guest-interface.md`
-9. `docs/runtime-testing.md`
-10. `docs/mapping-to-real-hardware.md`
+1. `config/labs/index.json` and the selected manifest
+2. `meta-qemu-edu/conf/machine/qemu-edu-x86-64.conf`
+3. `meta-qemu-edu/conf/machine/qemu-edu-platform-arm64.conf`
+4. `meta-qemu-edu/recipes-devtools/qemu/qemu-system-native_10.2.0.bbappend`
+5. The selected driver recipe and source under `recipes-kernel/`
+6. The selected diagnostic tool and OEQA case
+7. `meta-qemu-edu/recipes-core/images/qemu-edu-image.bb`
+8. `docs/architecture.md`
+9. `docs/guest-interface.md`
+10. `docs/runtime-testing.md`
+11. `docs/mapping-to-real-hardware.md`
 
 ## 8. Edit/rebuild loop
 
-Change `qemu_edu.c`, then run:
+For the default PCI lab, change `qemu_edu.c`, then run:
 
 ```bash
 make rebuild-driver
@@ -240,6 +288,14 @@ make rebuild-driver
 
 For normal source changes, BitBake notices changed `file://` inputs.  Do not
 habitually delete the whole build directory.
+
+The same helper resolves the architecture-specific driver from the selected
+manifest:
+
+```bash
+QEMU_EDU_LAB=platform-arm64 make rebuild-driver
+./run.sh --lab platform-arm64
+```
 
 Useful commands after sourcing the environment:
 
@@ -327,8 +383,12 @@ This repository is mixed-license:
   the user-space test utility are MIT-licensed. See `LICENSES/MIT.txt`.
 - The attributed QEMU EDU bounds patch changes MIT-licensed upstream source and
   is mapped to MIT in `REUSE.toml`.
-- The example Linux kernel module source and its kernel-module build file are
-  GPL-2.0-only. See `LICENSES/GPL-2.0-only.txt`.
+- The project-local QEMU platform-device patch and both example Linux kernel
+  module sources/build files are GPL-2.0-only. See
+  `LICENSES/GPL-2.0-only.txt`.
+- The project-local Device Tree schema is dual licensed
+  `(GPL-2.0-only OR BSD-2-Clause)` following kernel binding convention; see
+  `LICENSES/BSD-2-Clause.txt`.
 
 Individual files may carry `SPDX-License-Identifier` comments that state the
 applicable license for that file.

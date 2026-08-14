@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "id": "platform-arm64",
+  "description": "Device Tree and platform-driver lab on the ARM64 QEMU virt machine",
+  "build": {
+    "build_dir": "build-platform-arm64",
+    "distro": "poky",
+    "machine": "qemu-edu-platform-arm64",
+    "driver_target": "qemu-edu-platform-driver",
+    "targets": [
+      "qemu-edu-image"
+    ],
+    "layers": [
+      "layers/openembedded-core/meta",
+      "layers/meta-yocto/meta-poky",
+      "meta-qemu-edu"
+    ]
+  },
+  "emulator": {
+    "preflight_profile": "qemu-edu-platform-v1",
+    "system_binary": "qemu-system-aarch64"
+  },
+  "runtime": {
+    "suite": "qemu_edu_platform",
+    "evidence_profile": "platform-v1",
+    "evidence_filename": "qemu-edu-platform-runtime-v1.json",
+    "guest_contract_version": 1,
+    "evidence_schema_version": 1
+  }
+}

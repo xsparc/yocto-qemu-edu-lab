@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "default_lab": "pci-x86-64",
+  "labs": [
+    {
+      "id": "pci-x86-64",
+      "manifest": "config/labs/pci-x86-64.json",
+      "sha256": "ce220280596700928546902c68d9c5e0c63b2f9ea2af0857fb69bf0a13103296"
+    },
+    {
+      "id": "platform-arm64",
+      "manifest": "config/labs/platform-arm64.json",
+      "sha256": "dc717b71f63c25bef31ee7739e8d8573b7c1df3b4b1cebfea334f90fcd37d5f2"
+    }
+  ]
+}

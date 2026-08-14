@@ -1,0 +1,40 @@
+# SPDX-FileCopyrightText: 2026 Yocto QEMU EDU learning project contributors
+# SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+%YAML 1.2
+---
+$id: http://devicetree.org/schemas/misc/qemu,edu-platform.yaml#
+$schema: http://devicetree.org/meta-schemas/core.yaml#
+
+title: QEMU educational platform device
+
+maintainers:
+  - Louijie Compo <louijie.compo@gmail.com>
+
+description: |
+  A project-local QEMU SysBus teaching device with one 4 KiB MMIO resource,
+  one level interrupt, identification and scratch registers, and no DMA.
+
+properties:
+  compatible:
+    const: qemu,edu-platform
+
+  reg:
+    maxItems: 1
+
+  interrupts:
+    maxItems: 1
+
+required:
+  - compatible
+  - reg
+  - interrupts
+
+additionalProperties: false
+
+examples:
+  - |
+    qemu-edu@0 {
+        compatible = "qemu,edu-platform";
+        reg = <0x0 0x1000>;
+        interrupts = <0 112 4>;
+    };

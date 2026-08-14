@@ -10,21 +10,22 @@ resource-constrained, or metadata-only checks into build or runtime claims.
 
 | Tier | Trigger and environment | Evidence | Not proved |
 |---|---|---|---|
-| Fast checks | Every PR, main push, or manual run on `ubuntu-24.04` | Lock schema, workflow/CI policy, unit tests, QEMU backport identity, checksums, changed-line whitespace, ShellCheck, actionlint, REUSE | Upstream availability, BitBake parse, image build, guest runtime |
-| Yocto metadata | Relevant PR/main changes or manual run on `ubuntu-24.04` | Exact source resolution, cached offline recheck, layer order, `bitbake -p`, expanded image metadata, exact QEMU append/recipe/dependency selection, `yocto-check-layer` | Patched source, compiled image or emulator, QEMU boot, guest behavior, offline recipe fetches, bit-for-bit output |
-| Full build/runtime | Local/manual on an adequately sized Linux host; no hosted runner currently configured | A completed `runtime-test.sh` run builds, boots, executes required OEQA cases, and emits the current version-3 evidence | Nothing until the command actually completes; metadata CI is not runtime proof |
+| Fast checks | Every PR, main push, or manual run on `ubuntu-24.04` | Source-lock and lab-manifest schemas, workflow/CI policy, unit tests, both QEMU patch identities, checksums, changed-line whitespace, ShellCheck, actionlint, REUSE | Upstream availability, BitBake parse, image build, guest runtime |
+| Yocto metadata | Relevant PR/main changes or manual run on `ubuntu-24.04` | Exact source resolution, cached offline recheck, both manifest compositions, `bitbake -p`, expanded image metadata, per-machine QEMU append/recipe/dependency isolation, both machine checks through `yocto-check-layer` | Patched source, compiled image or emulator, QEMU boot, guest behavior, offline recipe fetches, bit-for-bit output |
+| Full build/runtime | Local/manual on an adequately sized Linux host; no hosted runner currently configured | A completed lab-specific `runtime-test.sh` run builds, boots, executes its required OEQA cases, and emits PCI version-3 or platform version-1 evidence | Nothing until the command actually completes; one lab's result does not qualify the other and metadata CI is not runtime proof |
 
 The stable fast job IDs are `repository`, `static`, and `licensing`. The metadata
 job is path-scoped and initially advisory; path-filtered checks should not be
 made universally required because unrelated pull requests may not create them.
 For native layer checking, CI creates a separate core-only build directory with
 OE-Core's weak `qemux86-64` default. It proves that base composition before
-asking `yocto-check-layer` to add the project layer and test the project-provided
-`qemu-edu-x86-64` machine. The weak default allows the checker to select that
-machine during its BSP tests. The native QEMU append is an exact-machine
-conditional: adding the layer to the `qemux86-64` baseline must not change
-signatures, while the project-machine metadata check must still select the
-reviewed patch. Both conditions fail closed.
+asking `yocto-check-layer` to add the project layer and test both project
+machines. The weak default allows the checker to select each machine during
+its BSP tests. The native QEMU append is scoped to the exact set of two project
+machines. Both receive the same reviewed bounds and platform patch set because
+`qemu-system-native` is a shared host-native provider; unrelated machines such
+as the `qemux86-64` baseline receive neither patch and remain signature-neutral.
+The metadata verifier requires both inputs exactly once for either profile.
 
 ## Public-repository trust boundary
 
@@ -57,6 +58,7 @@ Run the dependency-free repository suite with Python 3.11 or newer:
 
 ```bash
 python3 scripts/source_lock.py validate
+python3 scripts/lab_config.py validate
 python3 scripts/validate_workflow.py
 python3 scripts/validate_ci.py
 python3 scripts/verify_qemu_security.py static
@@ -83,6 +85,13 @@ and the executable in `qemu-helper-native`'s consumer sysroot before boot. The
 manual `run.sh` command shares that gate, so neither path can fall back to a
 host QEMU. The metadata lane proves only selection and the dependency chain;
 it does not claim the patch compiled.
+
+M5 applies the same boundary to both lab profiles. The PCI profile pins the
+reviewed `edu.c` source and `qemu-system-x86_64`; the ARM64 profile pins the
+complete project-local platform source group, proves that the model exposes no
+DMA path, and requires `qemu-system-aarch64` from the exact helper-native
+consumer sysroot. A clean ARM64 result does not replace the required PCI
+regression, and neither result is a physical-hardware claim.
 
 The project provides the executable runtime path and closed evidence formats, but does
 not weaken this capacity gate. The repository currently has no self-hosted or

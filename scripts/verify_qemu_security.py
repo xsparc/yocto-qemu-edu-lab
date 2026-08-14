@@ -18,6 +18,9 @@ from typing import Any
 QEMU_RECIPE = "qemu-system-native"
 QEMU_VERSION = "10.2.0"
 QEMU_MACHINE = "qemu-edu-x86-64"
+PLATFORM_MACHINE = "qemu-edu-platform-arm64"
+PCI_PROFILE = "qemu-edu-pci-v1"
+PLATFORM_PROFILE = "qemu-edu-platform-v1"
 UPSTREAM_COMMIT = "42f599172ae023924f288e20af0ceed681674747"
 UPSTREAM_URL = (
     "https://gitlab.com/qemu-project/qemu/-/commit/"
@@ -28,16 +31,31 @@ APPEND_RELATIVE = Path(
 )
 PATCH_NAME = "0001-hw-misc-edu-restrict-dma-access-to-dma-buffer.patch"
 PATCH_RELATIVE = Path("meta-qemu-edu/recipes-devtools/qemu/files") / PATCH_NAME
+PLATFORM_PATCH_NAME = "0002-hw-misc-add-qemu-edu-platform-device.patch"
+PLATFORM_PATCH_RELATIVE = (
+    Path("meta-qemu-edu/recipes-devtools/qemu/files") / PLATFORM_PATCH_NAME
+)
 MACHINE_RELATIVE = Path(f"meta-qemu-edu/conf/machine/{QEMU_MACHINE}.conf")
+PLATFORM_MACHINE_RELATIVE = Path(
+    f"meta-qemu-edu/conf/machine/{PLATFORM_MACHINE}.conf"
+)
 EXPECTED_APPEND_TEXT = f"""# SPDX-License-Identifier: MIT
 
 QEMU_EDU_BACKPORT_FILESPATH := "${{THISDIR}}/files:"
 
 python __anonymous() {{
-    if d.getVar("MACHINE") != "{QEMU_MACHINE}":
+    supported_machines = {{
+        "{QEMU_MACHINE}",
+        "{PLATFORM_MACHINE}",
+    }}
+    if d.getVar("MACHINE") not in supported_machines:
         return
     d.prependVar("FILESEXTRAPATHS", d.getVar("QEMU_EDU_BACKPORT_FILESPATH"))
-    d.appendVar("SRC_URI", " file://{PATCH_NAME}")
+    d.appendVar(
+        "SRC_URI",
+        " file://{PATCH_NAME}"
+        " file://{PLATFORM_PATCH_NAME}",
+    )
 }}
 """
 EXPECTED_RECIPE_SUFFIX = (
@@ -55,6 +73,38 @@ EXPECTED_EDU_SOURCE_SHA256 = (
     "32e2a035df36c25410d843e902cb4057aa43e83c047f682589d6f8539036ca2a"
 )
 QEMU_BINARY = "qemu-system-x86_64"
+PLATFORM_PATCH_SHA256 = (
+    "8082f4b58ff3bc2d3d13c995859557477365b0ec0bd6390ec3f538993d039c5f"
+)
+PLATFORM_CHANGED_PATHS = (
+    "hw/arm/Kconfig",
+    "hw/arm/virt.c",
+    "hw/core/sysbus-fdt.c",
+    "hw/misc/Kconfig",
+    "hw/misc/meson.build",
+    "hw/misc/qemu_edu_platform.c",
+    "include/hw/misc/qemu_edu_platform.h",
+)
+PLATFORM_SOURCE_SHA256 = {
+    "hw/arm/Kconfig": "1f68966366b6e9c64715272300f1127847b3d522b2b71a8d919372ae50efdd77",
+    "hw/arm/virt.c": "8b9df7be3429429b6b859881f03e1f5a4b69497c96b7d37eb2bba29d55bb4c87",
+    "hw/core/sysbus-fdt.c": "99624863fa6fad8e0c26937a112bf08483c7cad22adf9c5a5b46adf6b5a091c7",
+    "hw/misc/Kconfig": "7eeb70b27381fdb69e8aebb96fc2c97ab0e82bfc5aea68084ea20a4453d5f880",
+    "hw/misc/meson.build": "4ec1ba3bbb53cdc5a884b9b3caf564583c74cd05c69ca53960b11c637f49ee05",
+    "hw/misc/qemu_edu_platform.c": "d71a6a00acd9cd86c4bdd50fc56a9694e277a035a3cdd720a92b6471e4d878a0",
+    "include/hw/misc/qemu_edu_platform.h": "29cf6e3f8a7ef2de68d57f8c363ec505e17170a3d1ada02eca17fc828b4f5b1f",
+}
+PROFILE_RULES = {
+    PCI_PROFILE: {
+        "machine": QEMU_MACHINE,
+        "binary": QEMU_BINARY,
+    },
+    PLATFORM_PROFILE: {
+        "machine": PLATFORM_MACHINE,
+        "binary": "qemu-system-aarch64",
+    },
+}
+PROJECT_PATCHES = (PATCH_NAME, PLATFORM_PATCH_NAME)
 
 
 class VerificationError(ValueError):
@@ -104,11 +154,56 @@ def require_guarded_copy(source: str, endpoint: str, function: str) -> None:
         )
 
 
+def verify_platform_patch(path: Path) -> str:
+    text = read_text(path)
+    changed = re.findall(
+        r"(?m)^diff --git a/([^\s]+) b/([^\s]+)$", text
+    )
+    expected = [(item, item) for item in PLATFORM_CHANGED_PATHS]
+    if changed != expected:
+        raise VerificationError(
+            f"platform patch paths differ; actual={changed}, expected={expected}"
+        )
+    if "GIT binary patch" in text or re.search(r"(?m)^Binary files ", text):
+        raise VerificationError("platform patch must not contain binary changes")
+    for token, label in (
+        (
+            "Upstream-Status: Inappropriate [oe specific]",
+            "OpenEmbedded-specific upstream status",
+        ),
+        ('+#define TYPE_QEMU_EDU_PLATFORM "qemu-edu-platform"', "QOM type"),
+        ('+                            "qemu,edu-platform");', "FDT compatible"),
+        ("+                           GIC_FDT_IRQ_FLAGS_LEVEL_HI);", "level IRQ"),
+        ("+    .parent = TYPE_DYNAMIC_SYS_BUS_DEVICE,", "dynamic SysBus parent"),
+        (
+            "+    machine_class_allow_dynamic_sysbus_dev(mc, "
+            "TYPE_QEMU_EDU_PLATFORM);",
+            "virt allowlist",
+        ),
+    ):
+        require_once(text, token, label)
+    patch_sha256 = canonical_text_digest(text)
+    if patch_sha256 != PLATFORM_PATCH_SHA256:
+        raise VerificationError(
+            "platform patch differs from the reviewed normalized patch: "
+            + patch_sha256
+        )
+    return patch_sha256
+
+
 def static_checks(root: Path) -> dict[str, Any]:
     append_path = root / APPEND_RELATIVE
     patch_path = root / PATCH_RELATIVE
+    platform_patch_path = root / PLATFORM_PATCH_RELATIVE
     machine_path = root / MACHINE_RELATIVE
-    for path in (append_path, patch_path, machine_path):
+    platform_machine_path = root / PLATFORM_MACHINE_RELATIVE
+    for path in (
+        append_path,
+        patch_path,
+        platform_patch_path,
+        machine_path,
+        platform_machine_path,
+    ):
         if not path.is_file():
             raise VerificationError(f"required A007 input is missing: {path}")
 
@@ -124,7 +219,7 @@ def static_checks(root: Path) -> dict[str, Any]:
     if append_text != EXPECTED_APPEND_TEXT:
         raise VerificationError(
             "qemu-system-native append must exactly match the reviewed "
-            f"{QEMU_MACHINE}-scoped backport integration"
+            "project-machine patch-set integration"
         )
 
     machine_text = read_text(machine_path)
@@ -132,6 +227,11 @@ def static_checks(root: Path) -> dict[str, Any]:
         machine_text,
         f'REQUIRED_VERSION_{QEMU_RECIPE} = "{QEMU_VERSION}"',
         "required QEMU recipe version",
+    )
+    require_once(
+        read_text(platform_machine_path),
+        f'REQUIRED_VERSION_{QEMU_RECIPE} = "{QEMU_VERSION}"',
+        "ARM64 required QEMU recipe version",
     )
 
     patch_text = read_text(patch_path)
@@ -170,6 +270,7 @@ def static_checks(root: Path) -> dict[str, Any]:
         raise VerificationError(
             "backport differs from the reviewed normalized patch: " + patch_sha256
         )
+    platform_patch_sha256 = verify_platform_patch(platform_patch_path)
 
     return {
         "schema_version": 1,
@@ -180,6 +281,7 @@ def static_checks(root: Path) -> dict[str, Any]:
         "qemu_machine": QEMU_MACHINE,
         "upstream_commit": UPSTREAM_COMMIT,
         "patch_sha256": patch_sha256,
+        "platform_patch_sha256": platform_patch_sha256,
         "machine_scope_verified": True,
         "selected": False,
         "source_guard_verified": False,
@@ -196,8 +298,12 @@ def metadata_checks(
     src_uri: str,
     testimage_depends: str,
     helper_depends: str,
+    profile: str = PCI_PROFILE,
 ) -> dict[str, Any]:
     result = static_checks(root)
+    rule = PROFILE_RULES.get(profile)
+    if rule is None:
+        raise VerificationError(f"unknown QEMU preflight profile: {profile}")
     normalized_appends = show_appends.replace("\\", "/")
     append_suffix = "/" + APPEND_RELATIVE.as_posix()
     if normalized_appends.count(append_suffix) != 1:
@@ -222,9 +328,13 @@ def metadata_checks(
         raise VerificationError(
             "qemu-system-native FILE is not the exact locked OE-Core 10.2.0 recipe"
         )
-    patch_token = f"file://{PATCH_NAME}"
-    if src_uri.split().count(patch_token) != 1:
-        raise VerificationError("effective SRC_URI must contain the backport once")
+    selected_uri = src_uri.split()
+    for patch in PROJECT_PATCHES:
+        patch_token = f"file://{patch}"
+        if selected_uri.count(patch_token) != 1:
+            raise VerificationError(
+                "effective SRC_URI must contain every project-machine patch once"
+            )
     missing_helper_tasks = TESTIMAGE_HELPER_TASKS - set(testimage_depends.split())
     if missing_helper_tasks:
         raise VerificationError(
@@ -238,6 +348,8 @@ def metadata_checks(
     result.update(
         {
             "check": "metadata",
+            "profile": profile,
+            "qemu_machine": rule["machine"],
             "selected": True,
             "testimage_dependency_verified": True,
         }
@@ -245,7 +357,47 @@ def metadata_checks(
     return result
 
 
-def source_checks(source_tree: Path) -> dict[str, Any]:
+def platform_source_checks(source_tree: Path) -> dict[str, Any]:
+    for relative, expected in PLATFORM_SOURCE_SHA256.items():
+        path = source_tree / relative
+        actual = canonical_text_digest(read_text(path))
+        if actual != expected:
+            raise VerificationError(
+                f"patched platform source differs at {relative}: {actual}"
+            )
+    device = read_text(source_tree / "hw/misc/qemu_edu_platform.c")
+    for token in (
+        "TYPE_QEMU_EDU_PLATFORM",
+        "QEMU_EDU_PLATFORM_MMIO_SIZE",
+        "QEMU_EDU_PLATFORM_IRQ_RAISE_REG",
+        "QEMU_EDU_PLATFORM_IRQ_ACK_REG",
+        "TYPE_DYNAMIC_SYS_BUS_DEVICE",
+    ):
+        if token not in device and token not in read_text(
+            source_tree / "include/hw/misc/qemu_edu_platform.h"
+        ):
+            raise VerificationError(f"patched platform source omits {token}")
+    if re.search(r"\bdma\b", device, re.IGNORECASE):
+        raise VerificationError("platform teaching device must not expose DMA")
+    return {
+        "schema_version": 1,
+        "kind": "qemu-edu-emulator-security-check",
+        "check": "source",
+        "profile": PLATFORM_PROFILE,
+        "qemu_recipe": QEMU_RECIPE,
+        "qemu_version": QEMU_VERSION,
+        "source_group_sha256": PLATFORM_SOURCE_SHA256,
+        "source_guard_verified": True,
+    }
+
+
+def source_checks(
+    source_tree: Path, profile: str = PCI_PROFILE
+) -> dict[str, Any]:
+    if profile == PLATFORM_PROFILE:
+        return platform_source_checks(source_tree)
+    if profile != PCI_PROFILE:
+        raise VerificationError(f"unknown QEMU preflight profile: {profile}")
     source_path = source_tree / "hw/misc/edu.c"
     source = read_text(source_path)
     if not re.search(r"static\s+bool\s+edu_check_range\s*\(", source):
@@ -265,6 +417,7 @@ def source_checks(source_tree: Path) -> dict[str, Any]:
         "schema_version": 1,
         "kind": "qemu-edu-emulator-security-check",
         "check": "source",
+        "profile": PCI_PROFILE,
         "qemu_recipe": QEMU_RECIPE,
         "qemu_version": QEMU_VERSION,
         "upstream_commit": UPSTREAM_COMMIT,
@@ -273,7 +426,12 @@ def source_checks(source_tree: Path) -> dict[str, Any]:
     }
 
 
-def consumer_checks(staging_bindir_native: Path) -> dict[str, Any]:
+def consumer_checks(
+    staging_bindir_native: Path, profile: str = PCI_PROFILE
+) -> dict[str, Any]:
+    rule = PROFILE_RULES.get(profile)
+    if rule is None:
+        raise VerificationError(f"unknown QEMU preflight profile: {profile}")
     if not staging_bindir_native.is_absolute():
         raise VerificationError("STAGING_BINDIR_NATIVE must be an absolute path")
     try:
@@ -285,7 +443,7 @@ def consumer_checks(staging_bindir_native: Path) -> dict[str, Any]:
     if not staging.is_dir():
         raise VerificationError(f"native staging path is not a directory: {staging}")
 
-    candidate = staging / QEMU_BINARY
+    candidate = staging / rule["binary"]
     try:
         resolved = candidate.resolve(strict=True)
     except OSError as exc:
@@ -305,6 +463,7 @@ def consumer_checks(staging_bindir_native: Path) -> dict[str, Any]:
         "schema_version": 1,
         "kind": "qemu-edu-emulator-security-check",
         "check": "consumer",
+        "profile": profile,
         "qemu_recipe": QEMU_RECIPE,
         "qemu_version": QEMU_VERSION,
         "upstream_commit": UPSTREAM_COMMIT,
@@ -318,16 +477,25 @@ def emit(result: dict[str, Any], output_format: str) -> None:
     if output_format == "json":
         print(json.dumps(result, sort_keys=True))
         return
-    detail = ""
+    details: list[str] = []
     if result.get("patch_sha256"):
-        detail = f" patch_sha256={result['patch_sha256']}"
-    if result.get("source_sha256"):
-        detail = f" source_sha256={result['source_sha256']}"
-    if result.get("qemu_binary_sha256"):
-        detail = (
-            f" qemu_binary={result['qemu_binary']}"
-            f" qemu_binary_sha256={result['qemu_binary_sha256']}"
+        details.append(f"patch_sha256={result['patch_sha256']}")
+    if result.get("platform_patch_sha256"):
+        details.append(
+            f"platform_patch_sha256={result['platform_patch_sha256']}"
         )
+    if result.get("source_sha256"):
+        details.append(f"source_sha256={result['source_sha256']}")
+    if result.get("source_group_sha256"):
+        details.append(f"source_files={len(result['source_group_sha256'])}")
+    if result.get("qemu_binary_sha256"):
+        details.extend(
+            (
+                f"qemu_binary={result['qemu_binary']}",
+                f"qemu_binary_sha256={result['qemu_binary_sha256']}",
+            )
+        )
+    detail = " " + " ".join(details) if details else ""
     print(f"qemu-security: PASS: {result['check']}{detail}")
 
 
@@ -348,15 +516,24 @@ def main() -> int:
     metadata.add_argument("--src-uri", required=True)
     metadata.add_argument("--testimage-depends", required=True)
     metadata.add_argument("--helper-depends", required=True)
+    metadata.add_argument(
+        "--profile", choices=tuple(PROFILE_RULES), default=PCI_PROFILE
+    )
 
     source = subparsers.add_parser(
         "source", help="verify both guards in a patched QEMU source tree"
     )
     source.add_argument("--source-tree", required=True)
+    source.add_argument(
+        "--profile", choices=tuple(PROFILE_RULES), default=PCI_PROFILE
+    )
     consumer = subparsers.add_parser(
         "consumer", help="reject runqemu host fallback and verify its native emulator"
     )
     consumer.add_argument("--staging-bindir-native", required=True)
+    consumer.add_argument(
+        "--profile", choices=tuple(PROFILE_RULES), default=PCI_PROFILE
+    )
     args = parser.parse_args()
 
     try:
@@ -372,11 +549,12 @@ def main() -> int:
                 src_uri=args.src_uri,
                 testimage_depends=args.testimage_depends,
                 helper_depends=args.helper_depends,
+                profile=args.profile,
             )
         elif args.command == "source":
-            result = source_checks(Path(args.source_tree))
+            result = source_checks(Path(args.source_tree), args.profile)
         else:
-            result = consumer_checks(Path(args.staging_bindir_native))
+            result = consumer_checks(Path(args.staging_bindir_native), args.profile)
         emit(result, args.format)
         return 0
     except VerificationError as exc:

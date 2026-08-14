@@ -3,6 +3,29 @@
 # SPDX-License-Identifier: MIT
 set -eo pipefail
 ROOT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+LAB_ID=${QEMU_EDU_LAB:-}
+
+usage() {
+    echo "Usage: ./runtime-test.sh [--lab LAB]" >&2
+}
+
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        --lab)
+            [ "$#" -ge 2 ] || { echo "--lab requires a value" >&2; exit 2; }
+            [ -n "$2" ] || { echo "--lab requires a non-empty value" >&2; exit 2; }
+            LAB_ID=$2
+            shift
+            ;;
+        --help|-h) usage; exit 0 ;;
+        *) echo "Unknown option: $1" >&2; usage; exit 2 ;;
+    esac
+    shift
+done
+if [ -n "$LAB_ID" ]; then
+    QEMU_EDU_LAB=$LAB_ID
+    export QEMU_EDU_LAB
+fi
 
 if ! command -v ssh >/dev/null 2>&1; then
     echo "runtime-test.sh requires an OpenSSH client (ssh) on the build host" >&2
@@ -11,11 +34,12 @@ fi
 
 # shellcheck source=environment.sh
 source "$ROOT_DIR/environment.sh"
-LOCK_TOOL="$ROOT_DIR/scripts/source_lock.py"
-EVIDENCE_TOOL="$ROOT_DIR/scripts/runtime_evidence.py"
+LAB_TOOL="$ROOT_DIR/scripts/lab_config.py"
 QEMU_PREFLIGHT="$ROOT_DIR/scripts/qemu_security_preflight.sh"
-MACHINE=$(python3 "$LOCK_TOOL" --repo "$ROOT_DIR" get build.machine)
-TARGET_TEXT=$(python3 "$LOCK_TOOL" --repo "$ROOT_DIR" get build.targets --lines)
+MACHINE=$(python3 "$LAB_TOOL" --repo "$ROOT_DIR" --lab "$QEMU_EDU_LAB" \
+    get build.machine)
+TARGET_TEXT=$(python3 "$LAB_TOOL" --repo "$ROOT_DIR" --lab "$QEMU_EDU_LAB" \
+    get build.targets --lines)
 mapfile -t TARGETS <<<"$TARGET_TEXT"
 if [ "${#TARGETS[@]}" -ne 1 ]; then
     echo "runtime-test.sh requires exactly one locked image target" >&2
@@ -23,9 +47,31 @@ if [ "${#TARGETS[@]}" -ne 1 ]; then
 fi
 TARGET=${TARGETS[0]}
 
-bash "$QEMU_PREFLIGHT" "$ROOT_DIR" "$TARGET"
+bash "$QEMU_PREFLIGHT" "$ROOT_DIR" "$QEMU_EDU_LAB" "$TARGET"
 
-EVIDENCE_OUTPUT=${EVIDENCE_OUTPUT:-"$BUILD_DIR/evidence/qemu-edu-runtime-v3.json"}
+EVIDENCE_FILENAME=$(
+    python3 "$LAB_TOOL" --repo "$ROOT_DIR" --lab "$QEMU_EDU_LAB" \
+        get runtime.evidence_filename
+)
+EVIDENCE_PROFILE=$(
+    python3 "$LAB_TOOL" --repo "$ROOT_DIR" --lab "$QEMU_EDU_LAB" \
+        get runtime.evidence_profile
+)
+case "$EVIDENCE_PROFILE" in
+    pci-v3)
+        EVIDENCE_TOOL="$ROOT_DIR/scripts/runtime_evidence.py"
+        EVIDENCE_EXTRA_ARGS=()
+        ;;
+    platform-v1)
+        EVIDENCE_TOOL="$ROOT_DIR/scripts/platform_runtime_evidence.py"
+        EVIDENCE_EXTRA_ARGS=(--lab "$QEMU_EDU_LAB")
+        ;;
+    *)
+        echo "Unsupported runtime evidence profile: $EVIDENCE_PROFILE" >&2
+        exit 1
+        ;;
+esac
+EVIDENCE_OUTPUT=${EVIDENCE_OUTPUT:-"$BUILD_DIR/evidence/$EVIDENCE_FILENAME"}
 install -d "$BUILD_DIR/evidence"
 OEQA_JSON_RESULT_DIR=$(mktemp -d "$BUILD_DIR/evidence/oeqa.XXXXXXXX")
 export OEQA_JSON_RESULT_DIR
@@ -42,7 +88,8 @@ python3 "$EVIDENCE_TOOL" --repo "$ROOT_DIR" collect \
     --output "$EVIDENCE_OUTPUT" \
     --machine "$MACHINE" \
     --image "$TARGET" \
-    --testimage-exit-code "$test_status" || evidence_status=$?
+    --testimage-exit-code "$test_status" \
+    "${EVIDENCE_EXTRA_ARGS[@]}" || evidence_status=$?
 
 if [ "$test_status" -ne 0 ]; then
     echo "testimage failed with status $test_status" >&2

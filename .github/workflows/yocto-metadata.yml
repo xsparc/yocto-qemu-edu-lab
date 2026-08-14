@@ -6,7 +6,9 @@ on:
     paths:
       - ".github/workflows/yocto-metadata.yml"
       - "config/sources.lock.json"
+      - "config/labs/**"
       - "scripts/source_lock.py"
+      - "scripts/lab_config.py"
       - "scripts/configure_build.py"
       - "scripts/qemu_security_preflight.sh"
       - "scripts/verify_qemu_security.py"
@@ -14,6 +16,8 @@ on:
       - "environment.sh"
       - "build.sh"
       - "inspect.sh"
+      - "run.sh"
+      - "runtime-test.sh"
       - "Makefile"
       - "meta-qemu-edu/**"
   push:
@@ -21,7 +25,9 @@ on:
     paths:
       - ".github/workflows/yocto-metadata.yml"
       - "config/sources.lock.json"
+      - "config/labs/**"
       - "scripts/source_lock.py"
+      - "scripts/lab_config.py"
       - "scripts/configure_build.py"
       - "scripts/qemu_security_preflight.sh"
       - "scripts/verify_qemu_security.py"
@@ -29,6 +35,8 @@ on:
       - "environment.sh"
       - "build.sh"
       - "inspect.sh"
+      - "run.sh"
+      - "runtime-test.sh"
       - "Makefile"
       - "meta-qemu-edu/**"
   workflow_dispatch:
@@ -105,6 +113,34 @@ jobs:
             --src-uri "$QEMU_SRC_URI" \
             --testimage-depends "$TESTIMAGE_DEPENDS" \
             --helper-depends "$HELPER_DEPENDS"
+      - name: Parse and inspect ARM64 platform metadata
+        env:
+          BUILD_DIR: ${{ runner.temp }}/yocto-build-platform-arm64
+        run: |
+          ./setup.sh --lab platform-arm64 --offline
+          ./inspect.sh --lab platform-arm64
+          export QEMU_EDU_LAB=platform-arm64
+          # shellcheck source=environment.sh
+          source ./environment.sh
+          bitbake -p
+          SHOW_APPENDS="$RUNNER_TEMP/qemu-system-native-platform-appends.txt"
+          bitbake-layers show-appends qemu-system-native | tee "$SHOW_APPENDS"
+          QEMU_PN=$(bitbake-getvar --value --recipe qemu-system-native PN)
+          QEMU_PV=$(bitbake-getvar --value --recipe qemu-system-native PV)
+          QEMU_FILE=$(bitbake-getvar --value --recipe qemu-system-native FILE)
+          QEMU_SRC_URI=$(bitbake-getvar --value --recipe qemu-system-native SRC_URI)
+          TESTIMAGE_DEPENDS=$(bitbake-getvar --value --recipe qemu-edu-image TESTIMAGEDEPENDS)
+          HELPER_DEPENDS=$(bitbake-getvar --value --recipe qemu-helper-native DEPENDS)
+          python3 "$GITHUB_WORKSPACE/scripts/verify_qemu_security.py" \
+            --repo "$GITHUB_WORKSPACE" metadata \
+            --show-appends "$SHOW_APPENDS" \
+            --pn "$QEMU_PN" \
+            --pv "$QEMU_PV" \
+            --recipe-file "$QEMU_FILE" \
+            --src-uri "$QEMU_SRC_URI" \
+            --testimage-depends "$TESTIMAGE_DEPENDS" \
+            --helper-depends "$HELPER_DEPENDS" \
+            --profile qemu-edu-platform-v1
       - name: Check the project layer
         run: |
           CHECK_LAYER_BUILD_DIR="$RUNNER_TEMP/yocto-check-layer-build"
@@ -135,5 +171,5 @@ jobs:
             --no-auto \
             --no-auto-dependency \
             --dependency "$EXPECTED_CORE_LAYER" \
-            --machines qemu-edu-x86-64 \
+            --machines qemu-edu-x86-64 qemu-edu-platform-arm64 \
             -- "$GITHUB_WORKSPACE/meta-qemu-edu"

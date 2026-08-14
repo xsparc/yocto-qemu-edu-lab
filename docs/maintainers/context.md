@@ -5,13 +5,19 @@ SPDX-License-Identifier: MIT
 
 # Project context
 
-- Active task: none. A005 and A006 remain Proposed and require explicit approval.
-- Merged runtime baseline: A004 correction commit `ebbf1db0a5f8f2b30d7580a2435f67e9db5cc940`.
+- Active task: A005, the approved M5 ARM64 platform-driver learning slice.
+- Current public baseline: A004 documentation closeout commit `01ff717`; the
+  last runtime-affecting A004 baseline remains correction commit
+  `ebbf1db0a5f8f2b30d7580a2435f67e9db5cc940`.
 - Baseline: one x86-64 Yocto 6.0 (`wrynose`) learning machine using QEMU EDU PCI device `1234:11e8`.
 - Existing merged runtime features: PCI discovery, BAR0 MMIO, managed MSI/INTx
   selection, sysfs, factorial/liveness operations, and automated guest
   verification.
-- Current license boundary: infrastructure and learning material are MIT; kernel module source and its module Makefile are GPL-2.0-only.
+- Current license boundary: infrastructure, learning material, recipes, and
+  user-space tools are MIT; both example kernel-module implementations and the
+  project-local QEMU platform patch are GPL-2.0-only; the platform Device Tree
+  binding is dual licensed GPL-2.0-only OR BSD-2-Clause; the attributed QEMU
+  EDU bounds backport remains MIT.
 - Yocto 6.0 uses separate BitBake, OE-Core, and meta-yocto repositories; the old Poky combo repository is not a valid Wrynose source.
 - M1 locks Yocto 6.0.2 source metadata through `config/sources.lock.json`; recipe downloads, full image output, and runtime evidence remain separate claims.
 - Full Yocto builds require Linux/WSL2 and substantial disk/time; the present Windows session can run repository-local checks and Git Bash syntax checks, while GitHub-hosted Linux validates source resolution and metadata.
@@ -37,10 +43,11 @@ SPDX-License-Identifier: MIT
   continuing the copy. Upstream commit
   `42f599172ae023924f288e20af0ceed681674747` makes the check fail closed in
   both directions. Released QEMU 10.2.4 predates that fix.
-- A007 backports the fix only to `qemu-system-native` when the configured
-  machine is `qemu-edu-x86-64`; adding the layer to an unrelated machine must
-  remain signature-neutral. The native recipe reaches testimage through
-  `qemu-helper-native`. Manual and OEQA boot paths share an exact append,
+- A007 originally scoped the bounds fix to `qemu-edu-x86-64`. A005 composes it
+  with the platform-device patch as one identical `qemu-system-native` input set
+  for both project machines, while unrelated machines remain signature-neutral.
+  The native recipe reaches testimage through `qemu-helper-native`. Manual and
+  OEQA boot paths share an exact append,
   patch/source, and consumer-executable gate, refusing `runqemu` host fallback.
   Unsafe out-of-bounds input is never executed as a validation method.
 - A007 clean commit `46e2280` passed patched-emulator compilation, exact
@@ -54,14 +61,15 @@ SPDX-License-Identifier: MIT
   round trip, DMA completion and timeout handling, fail-closed teardown, guest
   interface version 3, and closed runtime evidence version 3. Arbitrary DMA
   addresses, streaming DMA, physical-hardware claims, and source-lock updates
-  remain out of scope. M5 and M6 remain Proposed and unapproved.
+  remain out of scope.
 - A004 clean implementation commit
   `8574eaffe206f8235a5da57461ded0ecbdbbf60b` passed the complete 94-test Linux
   repository suite, the exact Yocto 6.0.2 driver and image build, software-QEMU
   boot, ping, SSH, and all 19 project cases. Closed version-3 evidence records
   `dirty=false`, `testimage_exit_code=0`, 19/19 project passes, and all five DMA
-  completion claims true. The isolated exact-lock layer check also passed all
-  13 applicable BSP/common checks. The evidence SHA-256 is
+  completion claims true. The isolated exact-lock layer check ran 13
+  BSP/common checks: 12 passed and the distro-class check was skipped as
+  expected for a BSP layer. The evidence SHA-256 is
   `f97b24335cd9579eaf825cf1c06e54ae1742f069f1afa2a4c8e6fa2f162856c2`; the
   bound native OEQA SHA-256 is
   `1f8b1756faf079a0996070846f4e4aee5535e71d205f5e232c9cbeff395e07c5`.
@@ -83,5 +91,37 @@ SPDX-License-Identifier: MIT
   Final pull-request head `89a4be3` passed Fast checks run `31404164447` and
   Yocto metadata run `31404164649`; pull request #7 then squash-merged as
   `ebbf1db0a5f8f2b30d7580a2435f67e9db5cc940`. A004 is Done. No tag or release
-  was published.
+  was published. Focused documentation closeout commit `5506322` then passed
+  repository, static, and licensing jobs in Fast checks run `31491533350`;
+  pull request #8 squash-merged that record as `01ff717` without changing the
+  qualified implementation.
+- A005 is approved as an additive ARM64 `virt` lab. It introduces a separate
+  project-local SysBus device and generated `qemu,edu-platform` Device Tree
+  node, a platform driver, versioned lab manifests, and separate platform
+  evidence while preserving the x86-64 PCI lab as the no-argument default.
+  RISC-V, DMA, physical validation, source-version upgrades, upstream QEMU
+  submission, publication, merge, tag, and release remain outside A005.
+- A005 implementation qualification covers clean commit `3244a0c` after
+  replay onto public A004 closeout `01ff717`. All 141 Linux tests ran without
+  skips; pinned static checks, REUSE 6.2.0 over 95/95 files, both metadata
+  profiles, and the fresh dual-machine layer audit passed. The layer audit's
+  machine-signature test confirms that both project machines select the same
+  reviewed native QEMU patch set.
+- The clean project driver/image reruns completed all 4,738 PCI tasks and all
+  4,702 ARM64 tasks. Software QEMU passed 21/21 PCI tests and 11/11 ARM64 tests
+  with no skips, failures, or errors. Platform-v1 evidence SHA-256 is
+  `432e391555346582f7ccd2a8572fadd3f9c8200058d9a180f17a10fe46928824`; PCI-v3
+  evidence SHA-256 is
+  `823bffd64153516c928b108ce23a695e9d50d34bcc6754578edf3519cbb1d79e`.
+  Following review corrections, clean final implementation revision `340621a`
+  passed all 144 Linux tests without skips and REUSE 95/95. The affected ARM64
+  tool and driver were rebuilt from cleansstate; the image completed 4,702
+  tasks and software QEMU passed 11/11 tests. The no-argument wrapper selected
+  PCI and passed 21/21 tests. Fresh platform-v1 evidence SHA-256 is
+  `40550c299ec26e216c62ef5489774b53dc37c74658fab14d79588946fc311a9e`;
+  fresh PCI-v3 evidence SHA-256 is
+  `1a443dd4183eb843511e97f7751e72aa4e57b249dca545bc0c2dbba6e640a94d`.
+  Architecture, quality, DevOps, security, licensing, and independent-diff
+  reviews approved with no remaining P0-P2 findings. Publication and hosted
+  pull-request gates remain open, so A005 stays In Progress and unpublished.
 - Public workflow state uses tool-neutral maintainer paths while preserving the same task, approval, validation, review, and handoff semantics.

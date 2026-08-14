@@ -2,7 +2,7 @@
 
 # Mapping this lab to a real custom SoC
 
-| QEMU EDU lab | Real custom SoC |
+| QEMU lesson | Real custom SoC |
 |---|---|
 | `-device edu` | RTL/peripheral physically present in the SoC |
 | PCI enumeration | Device Tree or ACPI description |
@@ -11,7 +11,11 @@
 | PCI interrupt routing | Device Tree `interrupts` entry |
 | `struct pci_driver` | Usually `struct platform_driver` |
 | `pcim_iomap_region()` | Usually `devm_platform_ioremap_resource()` |
-| `pdev->irq` | Usually `platform_get_irq()` |
+| `pci_irq_vector()` | Usually `platform_get_irq()` |
+| `qemu-edu-platform` dynamic SysBus device | A peripheral integrated into the SoC address map |
+| Generated `qemu,edu-platform` node | Board/SoC Device Tree maintained with the hardware description |
+| `devm_platform_ioremap_resource()` | Managed mapping of the described peripheral resource |
+| `platform_get_irq()` | Resolve an interrupt described by firmware |
 | Machine `.conf` | Your board/SoC machine `.conf` |
 | QEMU firmware | Boot ROM, TF-A/OpenSBI, SPL, U-Boot on the board |
 | `dma_set_mask_and_coherent()` | Negotiate the address width implemented by the device and interconnect |
@@ -21,11 +25,12 @@
 
 The software lifecycle concepts transfer, but QEMU does not prove real cache
 coherency, IOMMU translation, interconnect ordering, DMA security domains, or
-silicon error handling. The major pieces absent from this first lab are
-DDR bring-up, clocks, resets, pin control, boot firmware, Device Tree, and real
-signal/timing problems.
+silicon error handling. The ARM64 platform lab now teaches generated Device
+Tree discovery, managed MMIO resources, one level interrupt, and platform
+driver lifecycle on QEMU `virt`. It deliberately omits DMA and does not prove a
+physical interrupt controller, real firmware handoff, or board integration.
 
-A useful second lab is an ARM64 QEMU `virt` machine with a custom QEMU SysBus
-peripheral, a Device Tree node, and a platform driver.  That is closer to a
-custom SoC, but it also requires maintaining a QEMU patch, so it is better after
-this project is comfortable.
+The major pieces still absent are DDR bring-up, clocks, resets, pin control,
+secure and non-secure boot firmware, board-specific Device Tree ownership, and
+real signal/timing problems. Treat the ARM64 lab as a clearer software mapping
+exercise, not as hardware qualification.

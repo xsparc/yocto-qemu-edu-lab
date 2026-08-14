@@ -31,6 +31,7 @@ jobs:
       - name: Repository checks
         run: |
           python3 scripts/source_lock.py validate
+          python3 scripts/lab_config.py validate
           python3 scripts/validate_workflow.py
           python3 scripts/validate_ci.py
           python3 scripts/verify_qemu_security.py static
@@ -79,11 +80,13 @@ jobs:
         run: |
           bash -n setup.sh environment.sh build.sh inspect.sh run.sh \
             runtime-test.sh scripts/qemu_security_preflight.sh
-          sh -n meta-qemu-edu/recipes-support/qemu-edu-tools/files/qemu-edu-test
+          sh -n meta-qemu-edu/recipes-support/qemu-edu-tools/files/qemu-edu-test \
+            meta-qemu-edu/recipes-support/qemu-edu-platform-tools/files/qemu-edu-platform-test
           "$RUNNER_TEMP/m1-tools/shellcheck/shellcheck" --severity=warning \
             setup.sh environment.sh build.sh inspect.sh run.sh runtime-test.sh \
             scripts/qemu_security_preflight.sh \
-            meta-qemu-edu/recipes-support/qemu-edu-tools/files/qemu-edu-test
+            meta-qemu-edu/recipes-support/qemu-edu-tools/files/qemu-edu-test \
+            meta-qemu-edu/recipes-support/qemu-edu-platform-tools/files/qemu-edu-platform-test
           "$RUNNER_TEMP/m1-tools/actionlint/actionlint" \
             -shellcheck="$RUNNER_TEMP/m1-tools/shellcheck/shellcheck"
 

@@ -1,0 +1,277 @@
+# SPDX-FileCopyrightText: 2026 Yocto QEMU EDU learning project contributors
+# SPDX-License-Identifier: GPL-2.0-only
+# This device exists only as infrastructure for the OpenEmbedded lab profile.
+Upstream-Status: Inappropriate [oe specific]
+
+diff --git a/hw/arm/Kconfig b/hw/arm/Kconfig
+index 7877506..924587e 100644
+--- a/hw/arm/Kconfig
++++ b/hw/arm/Kconfig
+@@ -23,6 +23,7 @@ config ARM_VIRT
+     select PL061 # GPIO
+     select GPIO_PWR
+     select PLATFORM_BUS
++    select QEMU_EDU_PLATFORM
+     select SMBIOS
+     select VIRTIO_MMIO
+     select ACPI_PCI
+diff --git a/hw/arm/virt.c b/hw/arm/virt.c
+index 25fb2ba..74133b2 100644
+--- a/hw/arm/virt.c
++++ b/hw/arm/virt.c
+@@ -69,6 +69,7 @@
+ #include "hw/intc/arm_gicv3_common.h"
+ #include "hw/intc/arm_gicv3_its_common.h"
+ #include "hw/irq.h"
++#include "hw/misc/qemu_edu_platform.h"
+ #include "kvm_arm.h"
+ #include "hvf_arm.h"
+ #include "hw/firmware/smbios.h"
+@@ -3302,6 +3303,7 @@ static void virt_machine_class_init(ObjectClass *oc, const void *data)
+     machine_class_allow_dynamic_sysbus_dev(mc, TYPE_RAMFB_DEVICE);
+     machine_class_allow_dynamic_sysbus_dev(mc, TYPE_UEFI_VARS_SYSBUS);
+     machine_class_allow_dynamic_sysbus_dev(mc, TYPE_ARM_SMMUV3);
++    machine_class_allow_dynamic_sysbus_dev(mc, TYPE_QEMU_EDU_PLATFORM);
+ #ifdef CONFIG_TPM
+     machine_class_allow_dynamic_sysbus_dev(mc, TYPE_TPM_TIS_SYSBUS);
+ #endif
+diff --git a/hw/core/sysbus-fdt.c b/hw/core/sysbus-fdt.c
+index 59f1d17..8bba0d5 100644
+--- a/hw/core/sysbus-fdt.c
++++ b/hw/core/sysbus-fdt.c
+@@ -36,6 +36,7 @@
+ #include "hw/display/ramfb.h"
+ #include "hw/uefi/var-service-api.h"
+ #include "hw/arm/fdt.h"
++#include "hw/misc/qemu_edu_platform.h"
+ 
+ /*
+  * internal struct that contains the information to create dynamic
+@@ -123,6 +124,30 @@ static int no_fdt_node(SysBusDevice *sbdev, void *opaque)
+     return 0;
+ }
+ 
++static int add_qemu_edu_platform_fdt_node(SysBusDevice *sbdev, void *opaque)
++{
++    PlatformBusFDTData *data = opaque;
++    PlatformBusDevice *pbus = data->pbus;
++    hwaddr mmio_base = platform_bus_get_mmio_addr(pbus, sbdev, 0);
++    int irq = platform_bus_get_irqn(pbus, sbdev, 0);
++    char *nodename;
++
++    assert(mmio_base != (hwaddr)-1);
++    assert(irq >= 0);
++    nodename = g_strdup_printf("%s/qemu-edu@%" PRIx64,
++                               data->pbus_node_name, mmio_base);
++    qemu_fdt_add_subnode(data->fdt, nodename);
++    qemu_fdt_setprop_string(data->fdt, nodename, "compatible",
++                            "qemu,edu-platform");
++    qemu_fdt_setprop_cells(data->fdt, nodename, "reg",
++                           mmio_base, QEMU_EDU_PLATFORM_MMIO_SIZE);
++    qemu_fdt_setprop_cells(data->fdt, nodename, "interrupts",
++                           GIC_FDT_IRQ_TYPE_SPI, data->irq_start + irq,
++                           GIC_FDT_IRQ_FLAGS_LEVEL_HI);
++    g_free(nodename);
++    return 0;
++}
++
+ /* Device type based matching */
+ static bool type_match(SysBusDevice *sbdev, const BindingEntry *entry)
+ {
+@@ -140,6 +165,7 @@ static const BindingEntry bindings[] = {
+     TYPE_BINDING(TYPE_ARM_SMMUV3, no_fdt_node),
+     TYPE_BINDING(TYPE_RAMFB_DEVICE, no_fdt_node),
+     TYPE_BINDING(TYPE_UEFI_VARS_SYSBUS, add_uefi_vars_node),
++    TYPE_BINDING(TYPE_QEMU_EDU_PLATFORM, add_qemu_edu_platform_fdt_node),
+     TYPE_BINDING("", NULL), /* last element */
+ };
+ 
+diff --git a/hw/misc/Kconfig b/hw/misc/Kconfig
+index fccd735..abf58b9 100644
+--- a/hw/misc/Kconfig
++++ b/hw/misc/Kconfig
+@@ -30,6 +30,10 @@ config EDU
+     default y if TEST_DEVICES
+     depends on PCI && MSI_NONBROKEN
+ 
++config QEMU_EDU_PLATFORM
++    bool
++    depends on PLATFORM_BUS
++
+ config I2C_ECHO
+     bool
+     default y if TEST_DEVICES
+diff --git a/hw/misc/meson.build b/hw/misc/meson.build
+index b1d8d8e..3e4838e 100644
+--- a/hw/misc/meson.build
++++ b/hw/misc/meson.build
+@@ -1,5 +1,7 @@
+ system_ss.add(when: 'CONFIG_APPLESMC', if_true: files('applesmc.c'))
+ system_ss.add(when: 'CONFIG_EDU', if_true: files('edu.c'))
++system_ss.add(when: 'CONFIG_QEMU_EDU_PLATFORM',
++              if_true: files('qemu_edu_platform.c'))
+ system_ss.add(when: 'CONFIG_FW_CFG_DMA', if_true: files('vmcoreinfo.c'))
+ system_ss.add(when: 'CONFIG_ISA_DEBUG', if_true: files('debugexit.c'))
+ system_ss.add(when: 'CONFIG_ISA_TESTDEV', if_true: files('pc-testdev.c'))
+diff --git a/hw/misc/qemu_edu_platform.c b/hw/misc/qemu_edu_platform.c
+new file mode 100644
+index 0000000..0874926
+--- /dev/null
++++ b/hw/misc/qemu_edu_platform.c
+@@ -0,0 +1,140 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++/*
++ * QEMU educational platform device
++ *
++ * Copyright (c) 2026 Yocto QEMU EDU learning project contributors
++ */
++
++#include "qemu/osdep.h"
++#include "hw/misc/qemu_edu_platform.h"
++#include "hw/irq.h"
++#include "qemu/log.h"
++#include "qemu/module.h"
++#include "qom/object.h"
++
++#define QEMU_EDU_PLATFORM_ID 0x0100a64e
++#define QEMU_EDU_PLATFORM_ID_REG 0x00
++#define QEMU_EDU_PLATFORM_SCRATCH_REG 0x04
++#define QEMU_EDU_PLATFORM_IRQ_STATUS_REG 0x20
++#define QEMU_EDU_PLATFORM_IRQ_RAISE_REG 0x60
++#define QEMU_EDU_PLATFORM_IRQ_ACK_REG 0x64
++
++typedef struct QemuEduPlatformState QemuEduPlatformState;
++DECLARE_INSTANCE_CHECKER(QemuEduPlatformState, QEMU_EDU_PLATFORM,
++                         TYPE_QEMU_EDU_PLATFORM)
++
++struct QemuEduPlatformState {
++    SysBusDevice parent_obj;
++    MemoryRegion mmio;
++    qemu_irq irq;
++    uint32_t scratch;
++    uint32_t irq_status;
++};
++
++static void qemu_edu_platform_update_irq(QemuEduPlatformState *s)
++{
++    qemu_set_irq(s->irq, s->irq_status != 0);
++}
++
++static uint64_t qemu_edu_platform_read(void *opaque, hwaddr offset,
++                                       unsigned int size)
++{
++    QemuEduPlatformState *s = opaque;
++
++    switch (offset) {
++    case QEMU_EDU_PLATFORM_ID_REG:
++        return QEMU_EDU_PLATFORM_ID;
++    case QEMU_EDU_PLATFORM_SCRATCH_REG:
++        return s->scratch;
++    case QEMU_EDU_PLATFORM_IRQ_STATUS_REG:
++        return s->irq_status;
++    default:
++        qemu_log_mask(LOG_GUEST_ERROR,
++                      "%s: invalid read at 0x%" HWADDR_PRIx "\n",
++                      TYPE_QEMU_EDU_PLATFORM, offset);
++        return UINT32_MAX;
++    }
++}
++
++static void qemu_edu_platform_write(void *opaque, hwaddr offset,
++                                    uint64_t value, unsigned int size)
++{
++    QemuEduPlatformState *s = opaque;
++    uint32_t value32 = value;
++
++    switch (offset) {
++    case QEMU_EDU_PLATFORM_SCRATCH_REG:
++        s->scratch = value32;
++        break;
++    case QEMU_EDU_PLATFORM_IRQ_RAISE_REG:
++        s->irq_status |= value32;
++        qemu_edu_platform_update_irq(s);
++        break;
++    case QEMU_EDU_PLATFORM_IRQ_ACK_REG:
++        s->irq_status &= ~value32;
++        qemu_edu_platform_update_irq(s);
++        break;
++    default:
++        qemu_log_mask(LOG_GUEST_ERROR,
++                      "%s: invalid write at 0x%" HWADDR_PRIx "\n",
++                      TYPE_QEMU_EDU_PLATFORM, offset);
++        break;
++    }
++}
++
++static const MemoryRegionOps qemu_edu_platform_ops = {
++    .read = qemu_edu_platform_read,
++    .write = qemu_edu_platform_write,
++    .endianness = DEVICE_LITTLE_ENDIAN,
++    .valid = {
++        .min_access_size = 4,
++        .max_access_size = 4,
++    },
++    .impl = {
++        .min_access_size = 4,
++        .max_access_size = 4,
++    },
++};
++
++static void qemu_edu_platform_reset(DeviceState *dev)
++{
++    QemuEduPlatformState *s = QEMU_EDU_PLATFORM(dev);
++
++    s->scratch = 0;
++    s->irq_status = 0;
++    qemu_edu_platform_update_irq(s);
++}
++
++static void qemu_edu_platform_init(Object *obj)
++{
++    QemuEduPlatformState *s = QEMU_EDU_PLATFORM(obj);
++
++    memory_region_init_io(&s->mmio, obj, &qemu_edu_platform_ops, s,
++                          TYPE_QEMU_EDU_PLATFORM,
++                          QEMU_EDU_PLATFORM_MMIO_SIZE);
++    sysbus_init_mmio(SYS_BUS_DEVICE(obj), &s->mmio);
++    sysbus_init_irq(SYS_BUS_DEVICE(obj), &s->irq);
++}
++
++static void qemu_edu_platform_class_init(ObjectClass *klass, const void *data)
++{
++    DeviceClass *dc = DEVICE_CLASS(klass);
++
++    device_class_set_legacy_reset(dc, qemu_edu_platform_reset);
++    set_bit(DEVICE_CATEGORY_MISC, dc->categories);
++}
++
++static const TypeInfo qemu_edu_platform_info = {
++    .name = TYPE_QEMU_EDU_PLATFORM,
++    .parent = TYPE_DYNAMIC_SYS_BUS_DEVICE,
++    .instance_size = sizeof(QemuEduPlatformState),
++    .instance_init = qemu_edu_platform_init,
++    .class_init = qemu_edu_platform_class_init,
++};
++
++static void qemu_edu_platform_register_types(void)
++{
++    type_register_static(&qemu_edu_platform_info);
++}
++
++type_init(qemu_edu_platform_register_types)
+diff --git a/include/hw/misc/qemu_edu_platform.h b/include/hw/misc/qemu_edu_platform.h
+new file mode 100644
+index 0000000..cddb13a
+--- /dev/null
++++ b/include/hw/misc/qemu_edu_platform.h
+@@ -0,0 +1,10 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef HW_MISC_QEMU_EDU_PLATFORM_H
++#define HW_MISC_QEMU_EDU_PLATFORM_H
++
++#include "hw/sysbus.h"
++
++#define TYPE_QEMU_EDU_PLATFORM "qemu-edu-platform"
++#define QEMU_EDU_PLATFORM_MMIO_SIZE 0x1000
++
++#endif

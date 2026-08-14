@@ -5,9 +5,13 @@ from __future__ import annotations
 
 import copy
 import importlib.util
+import io
+import sys
 import tempfile
 import unittest
+from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
+from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -197,6 +201,43 @@ class RuntimeEvidenceTests(unittest.TestCase):
         evidence["project"]["dirty"] = True
         with self.assertRaisesRegex(MODULE.EvidenceError, "clean project tree"):
             MODULE.validate_evidence(evidence, require_pass=True)
+
+    def test_required_revision_rejects_stale_or_invalid_evidence(self) -> None:
+        evidence = self.build()
+        evidence["project"]["dirty"] = False
+        revision = evidence["project"]["revision"]
+        MODULE.validate_evidence(
+            evidence, require_pass=True, expected_revision=revision
+        )
+        with self.assertRaisesRegex(MODULE.EvidenceError, "required revision must"):
+            MODULE.validate_evidence(evidence, expected_revision="not-a-revision")
+        with self.assertRaisesRegex(MODULE.EvidenceError, "project.revision is"):
+            MODULE.validate_evidence(evidence, expected_revision="0" * 40)
+
+    def test_cli_enforces_required_revision(self) -> None:
+        evidence = self.build()
+        evidence["project"]["dirty"] = False
+        revision = evidence["project"]["revision"]
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "evidence.json"
+            MODULE.write_evidence(path, evidence)
+            arguments = [
+                "runtime_evidence.py",
+                "validate",
+                str(path),
+                "--require-pass",
+                "--require-revision",
+            ]
+            with redirect_stdout(io.StringIO()), patch.object(
+                sys, "argv", [*arguments, revision]
+            ):
+                self.assertEqual(MODULE.main(), 0)
+            error = io.StringIO()
+            with redirect_stderr(error), patch.object(
+                sys, "argv", [*arguments, "0" * 40]
+            ):
+                self.assertEqual(MODULE.main(), 1)
+            self.assertIn("project.revision is", error.getvalue())
 
     def test_invalid_native_digest_is_rejected(self) -> None:
         with self.assertRaisesRegex(MODULE.EvidenceError, "digest"):

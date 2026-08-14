@@ -5,29 +5,34 @@ SPDX-License-Identifier: MIT
 
 # Automated runtime testing and evidence
 
-The M4 suite uses the Yocto Project's native `testimage` and OEQA runtime framework. The
-image inherits `testimage`, enables Dropbear for the development-only empty-root
-login, selects `ping ssh qemu_edu`, uses unprivileged SLIRP networking, and
-disables KVM for portable evidence. Under SLIRP, OEQA's `ping` bootstrap sees a
-localhost target and does not send ICMP; `ssh` is the actual transport check.
+The PCI M4 suite and ARM64 M5 suite use the Yocto Project's native `testimage`
+and OEQA runtime framework. The image inherits `testimage`, enables Dropbear
+for the development-only empty-root login, selects the manifest's suite, uses
+unprivileged SLIRP networking, and disables KVM for portable evidence. Under
+SLIRP, OEQA's `ping` bootstrap sees a localhost target and does not send ICMP;
+`ssh` is the actual transport check.
 
 Run the complete path on a supported Linux build host after setup:
 
 ```bash
 ./setup.sh
 ./runtime-test.sh
+
+# Independent ARM64 platform path
+./setup.sh --lab platform-arm64
+./runtime-test.sh --lab platform-arm64
 ```
 
 The host must provide the OpenSSH `ssh` client used by OEQA. The wrapper checks
 for it before starting an expensive image build and reports the missing package
 directly.
 
-Before any guest boot, the wrapper fails closed through five host-emulator
-checks:
+Before the default PCI guest boots, the wrapper fails closed through five
+host-emulator checks:
 
 1. the exact `qemu-system-native_10.2.0.bbappend` is selected once;
 2. effective `PN`, `PV`, `FILE`, and `SRC_URI` identify the reviewed recipe and
-   backport;
+   complete two-patch project-machine set;
 3. testimage reaches that recipe through `qemu-helper-native`;
 4. the normalized patch and post-patch `edu.c` match reviewed digests, and both
    DMA copies remain inside their range guards;
@@ -38,6 +43,15 @@ checks:
 The verifier intentionally inspects source instead of executing invalid-range
 input. An unpatched EDU DMA out-of-bounds test could corrupt the QEMU host
 process and is outside the supported validation boundary.
+
+For `platform-arm64`, the shared preflight dispatches to a separate closed
+profile. Both project profiles require the same bounds and platform patches in
+effective `SRC_URI`, keeping the shared native provider signature-invariant.
+The ARM profile then pins all seven platform-related post-patch QEMU source
+files, proves the model has no DMA surface, populates the same helper-native
+consumer, and requires `qemu-system-aarch64` inside that sysroot. The PCI
+profile independently pins the patched `edu.c` guard contract and its x86-64
+consumer. Neither patch is selected for an unrelated machine.
 
 After that preflight, the wrapper builds the one locked image target and runs:
 
@@ -50,6 +64,7 @@ into:
 
 ```text
 build/evidence/qemu-edu-runtime-v3.json
+build-platform-arm64/evidence/qemu-edu-platform-runtime-v1.json
 ```
 
 Set `BUILD_DIR` to relocate build products or `EVIDENCE_OUTPUT` to choose a
@@ -99,6 +114,25 @@ Policy and negative tests use `try/finally` restoration. A failed unload,
 DMA addresses, streaming DMA, multiple devices, and real hardware remain out of
 scope.
 
+### ARM64 platform suite
+
+`qemu_edu_platform` has nine exact, ordered cases:
+
+- module registration;
+- the single generated FDT node, exact `qemu,edu-platform` compatible,
+  4 KiB `reg`, and level-high interrupt specifier;
+- one bound Linux platform device, one MMIO resource, and one requested IRQ;
+- exact identification `0x0100a64e` and zeroed initial state;
+- 32-bit scratch boundaries and rejection of negative, overflow, and malformed
+  inputs without changing the last valid value;
+- two distinct `0x00000400` and `0x00000800` interrupt
+  raise/status/acknowledgement cycles;
+- rejection of a zero interrupt mask without a count change; and
+- unload cleanup followed by module rebind and a known-good interrupt.
+
+The suite does not exercise DMA, claim a physical interrupt controller, or
+generalize QEMU `virt` timing to hardware.
+
 ## Evidence versions
 
 The collector emits the closed version-3 schema at
@@ -135,6 +169,93 @@ source, and the native executable that locked `runqemu` selects. The same gate
 protects `run.sh`, and it rejects the locked script's otherwise-permitted host
 `PATH` fallback. Historical runtime schemas 1 and 2 remain unchanged; M4 uses a
 new version because the guest contract and required case list change.
+
+The ARM64 path emits the separate closed
+`qemu-edu-platform-runtime-evidence-v1.schema.json` kind. It records the
+source-lock, lab-index, selected-manifest, and native OEQA digests; the exact
+nine cases; and conservative Device Tree, scratch, interrupt, negative-input,
+and lifecycle completion claims. A failed, skipped, missing, reordered, or
+stale case cannot produce a passing document. This new kind does not translate
+or mutate historical PCI evidence versions 1 through 3.
+
+The lifecycle case also compares regular device files while the platform driver
+is bound and unbound. The exact difference must be the five documented sysfs
+attributes, so an accidental sixth driver-created file cannot silently expand
+the guest contract. Restoration remains in `finally`; an oracle failure cannot
+leave the module unloaded for later cases.
+
+A005/M5 exact-revision qualification completed at clean commit
+`3244a0cc9bc8042544943fca9d0e9deb5c0cc356` after the unpublished work was
+replayed onto public A004 closeout `01ff717`. A resource-capped Debian 12
+container exposed 16 CPUs and 15.2 GiB memory, had about 697 GB free at the
+start, used `BB_NUMBER_THREADS=4` and `PARALLEL_MAKE=-j 4`, and had no
+`/dev/kvm`. All 141 repository tests ran on Linux with no skips. Pinned
+ShellCheck 0.11.0, actionlint 1.7.12, and network-disabled REUSE 6.2.0 also
+passed; REUSE covered all 95 files with BSD-2-Clause, GPL-2.0-only, and MIT.
+
+The fresh OE-Core-only layer audit tested both project machines together. It
+ran 13 checks: 12 passed, including `test_machine_signatures`, and the
+distro-only test class was skipped because `meta-qemu-edu` is a BSP layer. Both
+project metadata profiles parsed and selected the complete two-patch QEMU input
+set. The PCI and ARM64 helper sysroots contained the reviewed emulators rather
+than a host fallback: `qemu-system-x86_64` SHA-256
+`26aad3da474c044c517b675e0e6c88d13bcfda5d9317119dfecce77e8cfaaf8ef` and
+`qemu-system-aarch64` SHA-256
+`e4401eb5907becb790aeae31b714b19894f5f69fe6df63a3e9b4a2281619866f`.
+
+After invalidating the project driver and image state, the default PCI graph
+completed all 4,738 tasks and the ARM64 graph completed all 4,702 tasks. Both
+generated SPDX/SBOM output. Software-QEMU `testimage` then passed ping, SSH,
+and all 19 PCI project cases (21/21 total) plus ping, SSH, and all nine ARM64
+project cases (11/11 total), with no skips, failures, or errors.
+
+Both closed reports record exact revision `3244a0c`, `dirty=false`, and
+`testimage_exit_code=0`, and validate with `--require-pass` and
+`--require-revision`. Platform-v1 evidence SHA-256 is
+`432e391555346582f7ccd2a8572fadd3f9c8200058d9a180f17a10fe46928824`; its
+native OEQA SHA-256 is
+`b87805d86263a2956b860b95ad5d281f516bbab0ecb5c882ab0b26445c2fcdd5`.
+PCI-v3 evidence SHA-256 is
+`823bffd64153516c928b108ce23a695e9d50d34bcc6754578edf3519cbb1d79e`; its
+native OEQA SHA-256 is
+`bacc75f23275afaed5988b0cb2e4149aafc4c4e7c2ece4df3eadb1b10b31ffb5`.
+These are local software-QEMU results, not hosted attestations,
+physical-hardware results, independent reviews, publication, merge, tags, or
+releases.
+
+Review findings produced two focused correction commits. `ef65188` makes the
+extensionless platform diagnostic tool checkout-portable with exact LF bytes
+and aligns the layer guide with the shared native-QEMU patch set. `340621a`
+makes explicit empty lab selectors fail closed in the central selector and all
+five public wrappers; omitted selection still resolves to PCI. At clean exact
+revision `340621afe3108d074e03f638b238d724bc10de5c`, all 144 repository tests
+passed on Linux with no skips and network-disabled REUSE 6.2.0 covered 95/95
+files with zero issues.
+
+The proportional final-head qualification invalidated
+`qemu-edu-platform-tools` and `qemu-edu-platform-driver` through cleansstate,
+then completed all 4,702 ARM64 image tasks including fresh packaging and SPDX
+generation. Software-QEMU passed ping, SSH, and all nine platform cases (11/11
+total) with no skips, failures, or errors. The no-argument runtime wrapper then
+selected the default PCI lab and passed ping, SSH, and all 19 PCI cases (21/21
+total) with the same clean revision. Both reports record `dirty=false` and
+`testimage_exit_code=0` and validate with `--require-pass` and
+`--require-revision 340621afe3108d074e03f638b238d724bc10de5c`.
+
+Final implementation-head platform-v1 evidence SHA-256 is
+`40550c299ec26e216c62ef5489774b53dc37c74658fab14d79588946fc311a9e`; its
+native OEQA SHA-256 is
+`9a877ffb6e6def3f6050a1d176df7048bbe1855d7bc988971b8586bef22970e4`.
+Final implementation-head PCI-v3 evidence SHA-256 is
+`1a443dd4183eb843511e97f7751e72aa4e57b249dca545bc0c2dbba6e640a94d`; its
+native OEQA SHA-256 is
+`ef7a88b977a3b5ab3fad42cd50c77649d425935473f4839f0c18a5daf9ff9cc6`.
+All six required reviews approved the implementation with no remaining P0-P2
+findings. These remain unsigned local software-QEMU results; publication,
+hosted pull-request gates, merge, physical-hardware validation, tag, and
+release are not claimed. This documentation-only review record follows the
+qualified implementation without changing its build, runtime, manifest,
+schema, wrapper, or test surface.
 
 A007 was qualified locally at clean commit
 `46e2280448cf2a857f8599f677f1b1bd0284fa13`. After clearing an inherited forced
@@ -196,9 +317,54 @@ diagnosis; do not mistake a schema-valid failure document for a passing run.
 Validate an existing document with:
 
 ```bash
+revision=$(git rev-parse HEAD)
 python3 scripts/runtime_evidence.py validate \
-  build/evidence/qemu-edu-runtime-v3.json --require-pass
+  build/evidence/qemu-edu-runtime-v3.json \
+  --require-pass --require-revision "$revision"
+python3 scripts/platform_runtime_evidence.py validate \
+  build-platform-arm64/evidence/qemu-edu-platform-runtime-v1.json \
+  --require-pass --require-revision "$revision"
 ```
+
+`--require-revision` is an independent closeout check. It does not change any
+evidence schema or historical document; it rejects a valid but stale report
+when the caller is qualifying a different commit.
+
+## A005 exact-revision closeout order
+
+Use this order for the final M5 evidence-bearing commit:
+
+1. Freeze a committed implementation revision and require an empty tracked and
+   untracked status before starting. Record the revision, worker distribution,
+   CPU/memory/storage limits, BitBake concurrency, QEMU acceleration mode, and
+   whether `/dev/kvm` is available.
+2. Run `make check`, Bash syntax, pinned ShellCheck/actionlint, and pinned
+   network-disabled REUSE on Linux. Every repository test must run; a skip is
+   a gap, not a pass.
+3. Run the source/setup, parse, expanded-metadata, per-machine QEMU selection,
+   and dual-machine `yocto-check-layer` steps from
+   `.github/workflows/yocto-metadata.yml` at that same revision.
+4. Run both profiles explicitly so inherited environment cannot select the
+   wrong lab:
+
+   ```bash
+   ./setup.sh --lab pci-x86-64 --offline
+   ./runtime-test.sh --lab pci-x86-64
+   ./setup.sh --lab platform-arm64 --offline
+   ./runtime-test.sh --lab platform-arm64
+   ```
+
+5. Validate both reports with `--require-pass --require-revision "$revision"`,
+   recompute the evidence and bound native-OEQA SHA-256 values, and confirm the
+   repository remains clean. Record each lab separately; one cannot qualify the
+   other.
+6. Freeze the complete diff for architecture, quality, DevOps, security,
+   licensing, and independent-diff review. Documentation-only review records
+   may follow, but any implementation, test, manifest, schema, or wrapper change
+   invalidates the final qualification subject and requires proportional rerun.
+7. After authorized publication, require the hosted Fast checks and Yocto
+   metadata job on the current pull-request head. Do not translate those green
+   metadata checks into build or runtime evidence.
 
 ## Host and CI boundary
 

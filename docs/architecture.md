@@ -31,6 +31,25 @@ Linux PCI core -> qemu_edu.ko -> probe()
 qemu-edu-test
 ```
 
+The independent ARM64 path reuses the same source lock and wrappers but keeps
+its hardware contract separate:
+
+```text
+qemu-edu-platform-arm64.conf
+    |
+    |-- derives from qemuarm64 / QEMU virt
+    |-- appends: -device qemu-edu-platform
+    |-- consumes the shared project-machine native-QEMU patch set
+    v
+qemu-system-aarch64 -> dynamic platform bus -> generated qemu,edu-platform FDT
+                                                       |
+                                                       v
+Linux OF/platform core -> qemu_edu_platform.ko -> managed MMIO + level IRQ
+                                                       |
+                                                       v
+/sys/bus/platform/devices/<generated-name>/ -> qemu-edu-platform-test
+```
+
 ## What each boundary teaches
 
 1. **Machine configuration** describes the target and makes QEMU instantiate the
@@ -64,20 +83,21 @@ qemu-edu-test
   and explicit INTx policies for comparison, and implements only a length-only
   1..4096 coherent DMA round trip. It does not expose DMA addresses, arbitrary
   device offsets, streaming mappings, scatter-gather, or queues.
-- The host emulator is a build input as well as a teaching tool. The EDU
-  machine requires `qemu-system-native` 10.2.0 plus the exact upstream bounds
-  backport until a supported recipe includes that fix. The append evaluates the
-  configured machine explicitly and changes the native recipe only for
-  `qemu-edu-x86-64`, leaving unrelated machines signature-neutral. It is kept
+- The host emulator is a build input as well as a teaching tool. Both machines
+  require `qemu-system-native` 10.2.0. Its exact append applies the same reviewed
+  upstream EDU bounds backport and project-local platform-device patch to both
+  project machines, and nothing to unrelated machines. Keeping a machine-invariant
+  input set across the two labs preserves shared native-task signatures; boot
+  arguments still select only the device each lab teaches. The append is kept
   separate from target and user-mode QEMU recipes because only the system-mode
-  native binary crosses the `runqemu` boundary. A shared preflight pins the
-  machine-scoped integration, normalized patch, and post-patch source,
-  populates `qemu-helper-native`'s consumer sysroot, and requires its executable
-  before either manual or OEQA boot; host-`PATH` fallback is outside the
-  project boundary.
-- The user-facing sysfs control surface is documented as guest-interface
-  contract version 3. It remains pre-1.0 and may evolve only with an explicit
-  project-version and compatibility decision.
+  native binary crosses the `runqemu` boundary. A shared profile-aware preflight
+  pins the complete integration and its profile-relevant post-patch source,
+  populates `qemu-helper-native`'s consumer sysroot, and requires the matching
+  x86-64 or AArch64 executable before either manual or OEQA boot; host-`PATH`
+  fallback is outside the project boundary.
+- The PCI sysfs surface is guest-interface contract version 3. The independent
+  ARM64 platform sysfs surface begins at version 1. Both remain pre-1.0 and may
+  evolve only with an explicit project-version and compatibility decision.
 - The repository has no physical-hardware target and must not imply QEMU
   validates electrical or silicon behavior.
 - Public CI has fast and Linux metadata lanes. A full image/runtime lane is not
@@ -110,9 +130,9 @@ human learning       CI / optional tool adapter
 External repositories and revisions must be explicit and lockable. The build
 declaration owns source identity, layer order, machine, image, and configuration
 fragments; caches remain replaceable performance aids, not source of truth.
-The current version-1 declaration is project-owned and intentionally maps to
-kas and upstream `bitbake-setup` concepts if the source graph later justifies a
-migration.
+The current source-lock version 1 and lab-manifest version 1 declarations are
+project-owned and intentionally map to kas and upstream `bitbake-setup`
+concepts if the source graph later justifies a migration.
 
 Recipe-local backports are also explicit inputs. A version-specific append,
 upstream commit identity, patch digest, effective `SRC_URI`, patched-source
@@ -125,6 +145,20 @@ removing the append.
 Each lab is a coherent machine/device/driver/test combination. The x86-64 PCI
 lab remains usable when later labs add Device Tree or another architecture.
 Shared helpers must not erase the distinctions the project is teaching.
+
+The approved M5 composition uses a closed lab index and digest-bound manifests.
+Each manifest owns its build directory, machine, driver, image, emulator
+preflight, runtime suite, and evidence profile. `pci-x86-64` remains the no-argument
+default and retains `build/`; `platform-arm64` uses a separate build directory.
+The source lock continues to identify external repositories independently of a
+lab's build composition.
+
+The ARM64 lab derives from OE-Core `qemuarm64` and QEMU `virt`. A project-local
+`qemu-edu-platform` SysBus model is placed on `virt`'s dynamic platform bus, and
+the reviewed QEMU patch adds its explicit generated-FDT binding. Linux discovers
+the resulting `qemu,edu-platform` node as a platform device with one MMIO
+resource and one level interrupt. It is an independent device contract, not an
+adaptation of the PCI EDU ABI, and it has no DMA surface.
 
 ### Boundary 3: guest interface
 
@@ -151,6 +185,12 @@ statuses, durations, source-lock identity, project revision/dirty state, and the
 native task exit. Raw logs and arbitrary upstream fields remain diagnostic
 inputs rather than public schema fields.
 
+The ARM64 lab emits a different closed evidence kind at version 1. It binds the
+source lock, lab index, selected manifest, native OEQA input, exact nine-case
+platform suite, Device Tree contract, bounded scratch behavior, interrupt
+acknowledgement, and lifecycle restoration. It neither extends nor translates
+PCI evidence versions 1 through 3.
+
 ### Boundary 5: integrations
 
 CI, dashboards, and optional MCP or other automation tools consume the same
@@ -167,6 +207,9 @@ transport, credentials, and hosted storage remain outside the core lab.
   image recipes.
 - Add architectures only with a documented learning objective, maintenance
   owner, and build/runtime gate.
+- Keep source identity separate from lab composition. Lab manifests are closed,
+  digest-bound inputs; wrappers select one manifest and fail closed on unknown
+  fields, paths, profiles, or effective BitBake values.
 - Prefer Yocto-native validation (`yocto-check-layer`, BitBake parse, OEQA
   runtime tests, SPDX output) before inventing parallel tooling.
 - Preserve command-line and JSON/TOML interfaces so alternative CI systems and

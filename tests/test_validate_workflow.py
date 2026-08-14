@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import shutil
 import tempfile
 import unittest
@@ -19,6 +20,16 @@ MODULE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(MODULE)
 
 
+def lab_build_roots() -> set[str]:
+    roots = set()
+    for manifest in (ROOT / "config/labs").glob("*.json"):
+        if manifest.name == "index.json":
+            continue
+        data = json.loads(manifest.read_text(encoding="utf-8"))
+        roots.add(Path(data["build"]["build_dir"]).parts[0])
+    return roots
+
+
 class WorkflowValidationTests(unittest.TestCase):
     def copy_repository(self) -> Path:
         temporary = tempfile.TemporaryDirectory()
@@ -31,14 +42,17 @@ class WorkflowValidationTests(unittest.TestCase):
                 ".git",
                 "__pycache__",
                 "*.pyc",
-                "build",
                 "downloads",
                 "layers",
                 "poky",
                 "sstate-cache",
+                *sorted(lab_build_roots()),
             ),
         )
         return destination
+
+    def test_repository_copy_excludes_every_lab_build_root(self) -> None:
+        self.assertEqual({"build", "build-platform-arm64"}, lab_build_roots())
 
     def replace_in_task(
         self, text: str, task_id: str, old: str, new: str
@@ -55,6 +69,64 @@ class WorkflowValidationTests(unittest.TestCase):
 
     def test_repository_workflow_is_valid(self) -> None:
         self.assertEqual([], MODULE.validate(ROOT))
+
+    def test_lab_validation_command_is_required(self) -> None:
+        root = self.copy_repository()
+        path = root / "docs/maintainers/config.toml"
+        text = path.read_text(encoding="utf-8").replace(
+            '  "python3 scripts/lab_config.py validate",\n', "", 1
+        )
+        path.write_text(text, encoding="utf-8")
+        self.assertIn(
+            "validation_commands is missing: python3 scripts/lab_config.py validate",
+            MODULE.validate(root),
+        )
+
+    def test_platform_evidence_schema_path_is_required(self) -> None:
+        root = self.copy_repository()
+        path = root / "schemas/qemu-edu-platform-runtime-evidence-v1.schema.json"
+        path.unlink()
+        errors = MODULE.validate(root)
+        self.assertIn(
+            "missing required file: schemas/qemu-edu-platform-runtime-evidence-v1.schema.json",
+            errors,
+        )
+        self.assertIn(
+            "configured path is missing: platform_runtime_evidence_schema_path="
+            "'schemas/qemu-edu-platform-runtime-evidence-v1.schema.json'",
+            errors,
+        )
+
+    def test_historical_evidence_schema_list_is_closed(self) -> None:
+        root = self.copy_repository()
+        path = root / "docs/maintainers/config.toml"
+        text = path.read_text(encoding="utf-8").replace(
+            '  "schemas/qemu-edu-runtime-evidence-v2.schema.json",\n', "", 1
+        )
+        path.write_text(text, encoding="utf-8")
+        self.assertTrue(
+            any(
+                error.startswith(
+                    "configured path list differs: "
+                    "historical_runtime_evidence_schema_paths="
+                )
+                for error in MODULE.validate(root)
+            )
+        )
+
+    def test_every_historical_evidence_schema_file_is_required(self) -> None:
+        for name in (
+            "qemu-edu-runtime-evidence-v1.schema.json",
+            "qemu-edu-runtime-evidence-v2.schema.json",
+        ):
+            with self.subTest(name=name):
+                root = self.copy_repository()
+                (root / "schemas" / name).unlink()
+                self.assertIn(
+                    "configured path is missing: "
+                    f"historical_runtime_evidence_schema_paths='schemas/{name}'",
+                    MODULE.validate(root),
+                )
 
     def test_task_ids_are_unique(self) -> None:
         state = MODULE.load_toml(ROOT / "docs/maintainers/tasks.toml")

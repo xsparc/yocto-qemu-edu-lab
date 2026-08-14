@@ -33,10 +33,31 @@ REQUIRED_FILES = (
     "docs/guest-interface.md",
     "docs/runtime-testing.md",
     "config/sources.lock.json",
+    "config/labs/index.json",
+    "scripts/lab_config.py",
     "schemas/qemu-edu-runtime-evidence-v1.schema.json",
+    "schemas/qemu-edu-platform-runtime-evidence-v1.schema.json",
     ".github/workflows/fast-checks.yml",
     ".github/workflows/yocto-metadata.yml",
 )
+
+REQUIRED_VALIDATION_COMMANDS = (
+    "python3 scripts/source_lock.py validate",
+    "python3 scripts/lab_config.py validate",
+    "python3 scripts/validate_workflow.py",
+    "python3 scripts/validate_ci.py",
+    "python3 scripts/verify_qemu_security.py static",
+    "python3 -m unittest discover -s tests -p test_*.py",
+    "python3 scripts/update_checksums.py --check",
+    "git diff --check",
+)
+
+REQUIRED_PATH_LISTS = {
+    "historical_runtime_evidence_schema_paths": (
+        "schemas/qemu-edu-runtime-evidence-v1.schema.json",
+        "schemas/qemu-edu-runtime-evidence-v2.schema.json",
+    ),
+}
 
 
 def load_toml(path: Path) -> dict[str, Any]:
@@ -68,6 +89,18 @@ def validate(root: Path) -> list[str]:
     if not isinstance(statuses, list) or not statuses:
         errors.append("workflow.statuses must be a non-empty list")
         statuses = []
+
+    validation_commands = config.get("validation_commands", [])
+    if not isinstance(validation_commands, list) or not all(
+        isinstance(command, str) and command for command in validation_commands
+    ):
+        errors.append("validation_commands must be an array of non-empty strings")
+        validation_commands = []
+    if len(validation_commands) != len(set(validation_commands)):
+        errors.append("validation_commands contains duplicates")
+    for command in REQUIRED_VALIDATION_COMMANDS:
+        if command not in validation_commands:
+            errors.append(f"validation_commands is missing: {command}")
 
     prefix = config.get("task_id_prefix", "A")
     if task_state.get("task_id_prefix") != prefix:
@@ -161,15 +194,29 @@ def validate(root: Path) -> list[str]:
         "license_policy_path",
         "source_lock_path",
         "source_lock_policy_path",
+        "lab_index_path",
         "ci_policy_path",
         "versioning_path",
         "guest_interface_path",
         "runtime_testing_path",
         "runtime_evidence_schema_path",
+        "platform_runtime_evidence_schema_path",
     ):
         relative = config.get(key)
         if not relative or not (root / str(relative)).is_file():
             errors.append(f"configured path is missing: {key}={relative!r}")
+
+    for key, expected in REQUIRED_PATH_LISTS.items():
+        configured = config.get(key)
+        if configured != list(expected):
+            errors.append(
+                f"configured path list differs: {key}={configured!r}; "
+                f"expected {list(expected)!r}"
+            )
+            continue
+        for relative in configured:
+            if not (root / relative).is_file():
+                errors.append(f"configured path is missing: {key}={relative!r}")
 
     return errors
 

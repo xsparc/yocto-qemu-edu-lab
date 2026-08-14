@@ -26,7 +26,9 @@ BANNED = {
 METADATA_REQUIRED_PATHS = {
     ".github/workflows/yocto-metadata.yml",
     "config/sources.lock.json",
+    "config/labs/**",
     "scripts/source_lock.py",
+    "scripts/lab_config.py",
     "scripts/configure_build.py",
     "scripts/qemu_security_preflight.sh",
     "scripts/verify_qemu_security.py",
@@ -34,6 +36,8 @@ METADATA_REQUIRED_PATHS = {
     "environment.sh",
     "build.sh",
     "inspect.sh",
+    "run.sh",
+    "runtime-test.sh",
     "Makefile",
     "meta-qemu-edu/**",
 }

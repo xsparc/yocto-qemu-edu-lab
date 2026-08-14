@@ -4,6 +4,7 @@
 # Source this file to enter the exact OpenEmbedded environment from the lock.
 QEMU_EDU_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 QEMU_EDU_LOCK_TOOL="$QEMU_EDU_ROOT/scripts/source_lock.py"
+QEMU_EDU_LAB_TOOL="$QEMU_EDU_ROOT/scripts/lab_config.py"
 
 if ! command -v python3 >/dev/null; then
     echo "python3 is required" >&2
@@ -14,6 +15,32 @@ if ! python3 "$QEMU_EDU_LOCK_TOOL" --repo "$QEMU_EDU_ROOT" status >/dev/null; th
     return 1 2>/dev/null || exit 1
 fi
 
+if [ -n "${QEMU_EDU_LAB:-}" ]; then
+    if QEMU_EDU_SELECTED_LAB=$(
+        python3 "$QEMU_EDU_LAB_TOOL" --repo "$QEMU_EDU_ROOT" \
+            --lab "$QEMU_EDU_LAB" get id
+    ); then
+        :
+    else
+        echo "The requested lab is not declared by config/labs/index.json." >&2
+        unset QEMU_EDU_SELECTED_LAB
+        return 1 2>/dev/null || exit 1
+    fi
+else
+    if QEMU_EDU_SELECTED_LAB=$(
+        python3 "$QEMU_EDU_LAB_TOOL" --repo "$QEMU_EDU_ROOT" get id
+    ); then
+        :
+    else
+        echo "The lab catalog is invalid." >&2
+        unset QEMU_EDU_SELECTED_LAB
+        return 1 2>/dev/null || exit 1
+    fi
+fi
+QEMU_EDU_LAB=$QEMU_EDU_SELECTED_LAB
+export QEMU_EDU_LAB
+unset QEMU_EDU_SELECTED_LAB
+
 QEMU_EDU_ENVIRONMENT=$(
     python3 "$QEMU_EDU_LOCK_TOOL" --repo "$QEMU_EDU_ROOT" \
         get build.environment_script
@@ -22,7 +49,8 @@ QEMU_EDU_BITBAKE_BIN=$(
     python3 "$QEMU_EDU_LOCK_TOOL" --repo "$QEMU_EDU_ROOT" get build.bitbake_bin
 )
 QEMU_EDU_DEFAULT_BUILD=$(
-    python3 "$QEMU_EDU_LOCK_TOOL" --repo "$QEMU_EDU_ROOT" get build.build_dir
+    python3 "$QEMU_EDU_LAB_TOOL" --repo "$QEMU_EDU_ROOT" \
+        --lab "$QEMU_EDU_LAB" get build.build_dir
 )
 BUILD_DIR=${BUILD_DIR:-"$QEMU_EDU_ROOT/$QEMU_EDU_DEFAULT_BUILD"}
 case ":$PATH:" in

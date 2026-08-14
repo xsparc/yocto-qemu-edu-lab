@@ -1,0 +1,66 @@
+#!/bin/sh
+# SPDX-License-Identifier: MIT
+set -eu
+
+find_device() {
+    found=""
+    for candidate in /sys/bus/platform/devices/*; do
+        [ -e "$candidate/identification" ] || continue
+        [ -L "$candidate/driver" ] || continue
+        [ "$(basename "$(readlink -f "$candidate/driver")")" = qemu_edu_platform ] || continue
+        [ -z "$found" ] || {
+            echo "multiple qemu_edu_platform devices found" >&2
+            return 1
+        }
+        found=$candidate
+    done
+    [ -n "$found" ] || {
+        echo "bound qemu_edu_platform device not found" >&2
+        return 1
+    }
+    printf '%s\n' "$found"
+}
+
+usage() {
+    echo "usage: qemu-edu-platform-test identify|status|scratch VALUE|raise MASK" >&2
+    exit 2
+}
+
+[ "$#" -ge 1 ] || usage
+device=$(find_device)
+command=$1
+shift
+
+case "$command" in
+    identify)
+        [ "$#" -eq 0 ] || usage
+        cat "$device/identification"
+        ;;
+    status)
+        [ "$#" -eq 0 ] || usage
+        printf 'interrupt_count=%s\n' "$(cat "$device/interrupt_count")"
+        printf 'last_irq_status=%s\n' "$(cat "$device/last_irq_status")"
+        printf 'scratch=%s\n' "$(cat "$device/scratch")"
+        ;;
+    scratch)
+        [ "$#" -eq 1 ] || usage
+        printf '%s\n' "$1" > "$device/scratch"
+        cat "$device/scratch"
+        ;;
+    raise)
+        [ "$#" -eq 1 ] || usage
+        before=$(cat "$device/interrupt_count")
+        printf '%s\n' "$1" > "$device/raise_irq"
+        attempts=0
+        while [ "$(cat "$device/interrupt_count")" -le "$before" ]; do
+            attempts=$((attempts + 1))
+            [ "$attempts" -lt 50 ] || {
+                echo "interrupt did not complete" >&2
+                exit 1
+            }
+            sleep 0.1
+        done
+        cat "$device/last_irq_status"
+        ;;
+    *) usage ;;
+esac

@@ -1,11 +1,16 @@
-This repository contains files under two licenses.
+This repository contains files under several licenses.
 
 The project scaffolding, documentation, Yocto layer metadata, helper scripts,
 and user-space test utility are licensed under the MIT License. See
 LICENSES/MIT.txt.
 
-The example Linux kernel module source and its kernel-module build file are
-licensed under GPL-2.0-only. See LICENSES/GPL-2.0-only.txt.
+The example Linux kernel module sources, their kernel-module build files, and
+the project-local QEMU platform-device patch are licensed under
+GPL-2.0-only. See LICENSES/GPL-2.0-only.txt.
+
+The project-local Device Tree binding is dual licensed under GPL-2.0-only OR
+BSD-2-Clause, following the Linux binding convention. See
+LICENSES/BSD-2-Clause.txt.
 
 Individual files may carry SPDX-License-Identifier comments that state the
 applicable license for that file. When present, the file-level SPDX identifier

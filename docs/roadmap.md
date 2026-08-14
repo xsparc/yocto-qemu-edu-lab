@@ -154,7 +154,7 @@ Qualification status: clean implementation commit `8574eaf` passed the full
 94-test Linux repository suite, all 4,738 exact Yocto 6.0.2 image tasks, and a
 software-QEMU run containing ping, SSH, and all 19 project cases. All 21 tests
 passed without skips, failures, or errors. The isolated exact-lock
-`yocto-check-layer` run also passed all 13 applicable BSP/common checks, with
+`yocto-check-layer` run completed 13 BSP/common checks: 12 passed, with
 only the expected distro-class skip for a BSP layer. Closed version-3 evidence
 records a clean tree and successful testimage exit; its SHA-256 is
 `f97b24335cd9579eaf825cf1c06e54ae1742f069f1afa2a4c8e6fa2f162856c2`, and
@@ -176,8 +176,10 @@ the correction with no P0-P2 findings. Review-record commit `a3a42b6` passed
 hosted Fast checks run `31397396385` and Yocto metadata run `31397396470`.
 Final pull-request head `89a4be3` passed Fast checks run `31404164447` and Yocto
 metadata run `31404164649`, then pull request #7 squash-merged as
-`ebbf1db0a5f8f2b30d7580a2435f67e9db5cc940`. A004 is Done. The local runtime
-result is not a hosted attestation, physical-hardware result, tag, or release.
+`ebbf1db0a5f8f2b30d7580a2435f67e9db5cc940`. Documentation closeout pull request
+#8 passed hosted Fast checks and squash-merged as `01ff717` without changing the
+qualified implementation. A004 is Done. The local runtime result is not a
+hosted attestation, physical-hardware result, tag, or release.
 
 Rollback: keep DMA opt-in and preserve the M3 image as a known-good stage.
 
@@ -186,15 +188,52 @@ Rollback: keep DMA opt-in and preserve the M3 image as a known-good stage.
 Outcome: one non-PCI lab teaches Device Tree discovery and a platform driver
 without weakening the original PCI lesson.
 
-Decision gate: compare ARM64 `virt`, RISC-V `virt`, and the cost of maintaining a
-small QEMU device patch. Choose one based on learning value, upstream fit,
-runtime cost, and maintenance burden.
+Approved on 2026-08-11: use ARM64 `virt`, one project-local
+`qemu-edu-platform` SysBus device, and a generated `qemu,edu-platform` node.
+ARM64 reuses OE-Core's direct `qemuarm64` path and keeps the new lesson focused
+on Device Tree, MMIO, interrupts, and platform-driver lifecycle. RISC-V remains
+deferred because its additional OpenSBI/U-Boot boot chain does not improve this
+stage's learning objective.
 
-Acceptance gate: both labs build and boot independently; the new lab proves
-Device Tree, MMIO, interrupt, and teardown behavior; shared and different
-concepts are explicit.
+Approved composition: closed lab manifests select an independent build
+directory, machine, driver, image, preflight, runtime suite, and evidence profile. The
+existing PCI lab remains the default for every no-argument command. The ARM64
+lab adds no DMA and does not modify PCI guest or evidence contracts.
 
-Rollback: the new lab is additive and can be removed without changing x86-64.
+Acceptance gate: both labs parse, build, and boot independently from the exact
+Yocto 6.0.2/QEMU 10.2.0 inputs; the ARM64 lab verifies the generated FDT node,
+platform-device binding, identification, bounded scratch MMIO, two exact
+interrupt acknowledgement cycles, unload cleanup, and rebind recovery; PCI
+evidence versions 1 through 3 remain valid; closed platform evidence version 1
+is clean and complete; licensing and all required reviews pass; shared and
+architecture-specific concepts are explicit.
+
+Qualification status: clean exact revision `3244a0c` passed all 141 Linux tests
+without skips, pinned static and licensing checks, both metadata profiles, and
+the fresh dual-machine layer audit. The previously failing machine-signature
+check now passes because both project machines select the same reviewed native
+QEMU patch set. After clean project driver/image invalidation, the PCI graph
+completed all 4,738 tasks and the ARM64 graph completed all 4,702 tasks. The
+software-QEMU results passed 21/21 PCI tests and 11/11 ARM64 tests with zero
+skips, failures, or errors. Platform-v1 evidence SHA-256 is
+`432e391555346582f7ccd2a8572fadd3f9c8200058d9a180f17a10fe46928824`; PCI-v3
+evidence SHA-256 is
+`823bffd64153516c928b108ce23a695e9d50d34bcc6754578edf3519cbb1d79e`.
+Following review corrections, clean revision `340621a` passed all 144 Linux
+tests without skips and REUSE 95/95. The affected ARM64 tool and driver were
+rebuilt from cleansstate, the image completed 4,702 tasks, and software QEMU
+passed 11/11 tests. The no-argument wrapper selected the default PCI lab and
+passed 21/21 tests. Fresh platform-v1 evidence SHA-256 is
+`40550c299ec26e216c62ef5489774b53dc37c74658fab14d79588946fc311a9e`;
+fresh PCI-v3 evidence SHA-256 is
+`1a443dd4183eb843511e97f7751e72aa4e57b249dca545bc0c2dbba6e640a94d`.
+All six required reviews approved with no remaining P0-P2 findings. A005
+remains In Progress until publication, hosted pull-request gates, and merge.
+No tag or release is implied.
+
+Rollback: remove the ARM manifest, machine, patch, driver, test, and evidence
+profile. The default PCI manifest and its existing build directory remain the
+known-good path. No source-version rollback or evidence translation is needed.
 
 ## M6 — Provider-neutral diagnostics and optional tool access
 

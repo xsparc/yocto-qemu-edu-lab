@@ -1,0 +1,165 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:yocto-qemu-edu-lab:qemu-edu-platform-runtime-evidence:1",
+  "title": "QEMU EDU platform runtime evidence version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "kind", "contract", "project", "inputs", "build", "result", "summary", "tests"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "kind": {"const": "qemu-edu-platform-runtime"},
+    "contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["guest_interface", "suite", "device_tree", "scratch_mmio", "interrupts", "lifecycle"],
+      "properties": {
+        "guest_interface": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["name", "version"],
+          "properties": {
+            "name": {"const": "qemu-edu-platform-sysfs"},
+            "version": {"const": 1}
+          }
+        },
+        "suite": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["name", "version", "test_type"],
+          "properties": {
+            "name": {"const": "qemu-edu-platform-baseline"},
+            "version": {"const": 1},
+            "test_type": {"const": "runtime"}
+          }
+        },
+        "device_tree": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["case_id", "exercised", "compatible", "mmio_size_bytes", "interrupt_trigger"],
+          "properties": {
+            "case_id": {"$ref": "#/$defs/string"},
+            "exercised": {"type": "boolean"},
+            "compatible": {"const": "qemu,edu-platform"},
+            "mmio_size_bytes": {"const": 4096},
+            "interrupt_trigger": {"const": "level-high"}
+          }
+        },
+        "scratch_mmio": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["case_id", "negative_case_id", "exercised", "invalid_input_rejected", "width_bits"],
+          "properties": {
+            "case_id": {"$ref": "#/$defs/string"},
+            "negative_case_id": {"$ref": "#/$defs/string"},
+            "exercised": {"type": "boolean"},
+            "invalid_input_rejected": {"type": "boolean"},
+            "width_bits": {"const": 32}
+          }
+        },
+        "interrupts": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["case_id", "zero_rejection_case_id", "exercised", "zero_rejected", "masks", "acknowledged"],
+          "properties": {
+            "case_id": {"$ref": "#/$defs/string"},
+            "zero_rejection_case_id": {"$ref": "#/$defs/string"},
+            "exercised": {"type": "boolean"},
+            "zero_rejected": {"type": "boolean"},
+            "masks": {
+              "type": "array",
+              "prefixItems": [{"const": "0x00000400"}, {"const": "0x00000800"}],
+              "items": false,
+              "minItems": 2,
+              "maxItems": 2
+            },
+            "acknowledged": {"type": "boolean"}
+          }
+        },
+        "lifecycle": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["case_id", "exercised", "mechanism", "restored"],
+          "properties": {
+            "case_id": {"$ref": "#/$defs/string"},
+            "exercised": {"type": "boolean"},
+            "mechanism": {"const": "module-reload"},
+            "restored": {"type": "boolean"}
+          }
+        }
+      }
+    },
+    "project": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version", "revision", "dirty"],
+      "properties": {
+        "name": {"const": "yocto-qemu-edu-lab"},
+        "version": {"$ref": "#/$defs/string"},
+        "revision": {"type": "string", "pattern": "^[0-9a-f]{40}$", "maxLength": 40},
+        "dirty": {"type": "boolean"}
+      }
+    },
+    "inputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_lock_sha256", "lab_index_sha256", "lab_manifest_sha256", "oeqa_result_sha256", "yocto_version", "yocto_series"],
+      "properties": {
+        "source_lock_sha256": {"$ref": "#/$defs/sha256"},
+        "lab_index_sha256": {"$ref": "#/$defs/sha256"},
+        "lab_manifest_sha256": {"$ref": "#/$defs/sha256"},
+        "oeqa_result_sha256": {"$ref": "#/$defs/sha256"},
+        "yocto_version": {"$ref": "#/$defs/string"},
+        "yocto_series": {"$ref": "#/$defs/string"}
+      }
+    },
+    "build": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["lab", "machine", "image", "distro", "host_distro", "started_at", "oeqa_result_id", "testimage_exit_code"],
+      "properties": {
+        "lab": {"const": "platform-arm64"},
+        "machine": {"const": "qemu-edu-platform-arm64"},
+        "image": {"const": "qemu-edu-image"},
+        "distro": {"$ref": "#/$defs/string"},
+        "host_distro": {"$ref": "#/$defs/string"},
+        "started_at": {"$ref": "#/$defs/string"},
+        "oeqa_result_id": {"$ref": "#/$defs/string"},
+        "testimage_exit_code": {"type": "integer", "minimum": 0, "maximum": 255}
+      }
+    },
+    "result": {"enum": ["passed", "failed"]},
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["total", "passed", "failed", "errors", "skipped", "expected_failures", "unknown"],
+      "properties": {
+        "total": {"type": "integer", "minimum": 0},
+        "passed": {"type": "integer", "minimum": 0},
+        "failed": {"type": "integer", "minimum": 0},
+        "errors": {"type": "integer", "minimum": 0},
+        "skipped": {"type": "integer", "minimum": 0},
+        "expected_failures": {"type": "integer", "minimum": 0},
+        "unknown": {"type": "integer", "minimum": 0}
+      }
+    },
+    "tests": {
+      "type": "array",
+      "minItems": 9,
+      "maxItems": 9,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "status", "duration_seconds"],
+        "properties": {
+          "id": {"$ref": "#/$defs/string"},
+          "status": {"enum": ["PASSED", "FAILED", "ERROR", "SKIPPED", "EXPECTEDFAIL", "UNKNOWN"]},
+          "duration_seconds": {"type": "number", "minimum": 0}
+        }
+      }
+    }
+  },
+  "$defs": {
+    "string": {"type": "string", "minLength": 1, "maxLength": 4096},
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$", "maxLength": 64}
+  }
+}
