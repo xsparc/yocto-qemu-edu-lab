@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -73,7 +74,7 @@ class DiagnosticsCliTests(unittest.TestCase):
             assert spec is not None
             module = importlib.util.module_from_spec(spec)
             loader.exec_module(module)
-            with patch.object(module, "command_document", side_effect=RuntimeError(str(ROOT))):
+            with patch.object(module, "load_runtime", side_effect=RuntimeError(str(ROOT))):
                 with patch.object(sys, "argv", ["qemu-edu-lab", "status"]):
                     with patch.object(sys, "stdout") as stdout, patch.object(sys, "stderr") as stderr:
                         stdout.buffer.write = unittest.mock.Mock()
@@ -85,6 +86,24 @@ class DiagnosticsCliTests(unittest.TestCase):
                         )
         finally:
             sys.path.remove(str(ROOT))
+
+    def test_project_module_import_failure_is_sanitized(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            shutil.copy2(CLI, root / CLI.name)
+            scripts = root / "scripts"
+            scripts.mkdir()
+            (scripts / "diagnostics.py").write_text("def malformed(:\n", encoding="utf-8")
+            result = subprocess.run(
+                [sys.executable, "-B", str(root / CLI.name), "status"],
+                cwd=root,
+                capture_output=True,
+                check=False,
+            )
+        self.assertEqual(1, result.returncode)
+        self.assertEqual(b"", result.stdout)
+        self.assertEqual(b"qemu-edu-lab: internal diagnostic failure\n", result.stderr)
+        self.assertNotIn(str(root).encode(), result.stderr)
 
     @unittest.skipUnless(os.name == "posix", "direct executable contract requires POSIX")
     def test_posix_checkout_runs_the_entry_point_directly(self) -> None:

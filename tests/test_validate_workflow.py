@@ -171,6 +171,46 @@ class WorkflowValidationTests(unittest.TestCase):
         path.write_text(text, encoding="utf-8")
         self.assertIn("A000 is executable without approval evidence", MODULE.validate(root))
 
+    def test_policy_flags_cannot_disable_approval_or_closeout_gates(self) -> None:
+        root = self.copy_repository()
+        config_path = root / "docs/maintainers/config.toml"
+        text = config_path.read_text(encoding="utf-8")
+        for policy in (
+            "ready_requires_user_approval",
+            "done_requires_validation_evidence",
+            "done_requires_review_evidence",
+        ):
+            text = text.replace(f"{policy} = true", f"{policy} = false", 1)
+        config_path.write_text(text, encoding="utf-8")
+
+        tasks_path = root / "docs/maintainers/tasks.toml"
+        tasks = tasks_path.read_text(encoding="utf-8")
+        tasks = self.replace_in_task(
+            tasks,
+            "A006",
+            next(
+                line
+                for line in tasks.splitlines()
+                if line.startswith(
+                    'approval = "Repository owner explicitly approved A006'
+                )
+            ),
+            'approval = ""',
+        )
+        tasks_path.write_text(tasks, encoding="utf-8")
+
+        errors = MODULE.validate(root)
+        self.assertIn(
+            "workflow.ready_requires_user_approval must be true", errors
+        )
+        self.assertIn(
+            "workflow.done_requires_validation_evidence must be true", errors
+        )
+        self.assertIn(
+            "workflow.done_requires_review_evidence must be true", errors
+        )
+        self.assertIn("A006 is executable without approval evidence", errors)
+
     def test_unknown_dependency_is_reported_without_crashing(self) -> None:
         root = self.copy_repository()
         path = root / "docs/maintainers/tasks.toml"
@@ -261,7 +301,7 @@ class WorkflowValidationTests(unittest.TestCase):
             encoding="utf-8",
         )
         self.assertIn(
-            "workflow.max_in_progress must be a non-negative integer",
+            "workflow.max_in_progress must be exactly 1",
             MODULE.validate(root),
         )
 

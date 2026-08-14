@@ -69,6 +69,23 @@ REQUIRED_PATH_LISTS = {
 }
 MAX_TOML_BYTES = 256 * 1024
 MAX_LEDGER_BYTES = 256 * 1024
+EXPECTED_STATUSES = ["Proposed", "Ready", "In Progress", "Blocked", "Done"]
+WORKFLOW_KEYS = {
+    "statuses",
+    "max_in_progress",
+    "ready_requires_user_approval",
+    "done_requires_validation_evidence",
+    "done_requires_review_evidence",
+    "one_pull_request_per_milestone",
+    "public_actions_require_explicit_scope",
+}
+REQUIRED_TRUE_POLICIES = (
+    "ready_requires_user_approval",
+    "done_requires_validation_evidence",
+    "done_requires_review_evidence",
+    "one_pull_request_per_milestone",
+    "public_actions_require_explicit_scope",
+)
 
 
 def load_toml(path: Path) -> dict[str, Any]:
@@ -108,15 +125,18 @@ def validate_models(
         workflow: dict[str, Any] = {}
     else:
         workflow = workflow_value
-    statuses = workflow.get("statuses", [])
-    if (
-        not isinstance(statuses, list)
-        or not statuses
-        or not all(isinstance(status, str) and status for status in statuses)
-        or len(statuses) != len(set(statuses))
-    ):
-        errors.append("workflow.statuses must be a unique non-empty string list")
-        statuses = []
+    if set(workflow) != WORKFLOW_KEYS:
+        errors.append("workflow fields differ from the closed policy contract")
+    if workflow.get("statuses") != EXPECTED_STATUSES:
+        errors.append("workflow.statuses differs from the closed status contract")
+    statuses = EXPECTED_STATUSES
+    if type(workflow.get("max_in_progress")) is not int or workflow.get(
+        "max_in_progress"
+    ) != 1:
+        errors.append("workflow.max_in_progress must be exactly 1")
+    for policy in REQUIRED_TRUE_POLICIES:
+        if workflow.get(policy) is not True:
+            errors.append(f"workflow.{policy} must be true")
 
     validation_commands = config.get("validation_commands", [])
     if not isinstance(validation_commands, list) or not all(
@@ -165,9 +185,9 @@ def validate_models(
         if status == "In Progress":
             active_tasks.append({"id": task_id, "status": status})
         approval = task.get("approval", "")
-        if status in {"Ready", "In Progress", "Done"} and workflow.get(
-            "ready_requires_user_approval", True
-        ) and (not isinstance(approval, str) or not approval.strip()):
+        if status in {"Ready", "In Progress", "Done"} and (
+            not isinstance(approval, str) or not approval.strip()
+        ):
             errors.append(f"{task_id} is executable without approval evidence")
         for field in ("milestone", "title", "outcome", "scope", "acceptance_criteria", "validation"):
             value = task.get(field)
@@ -177,13 +197,9 @@ def validate_models(
             result = task.get("result", "")
             if not isinstance(result, str) or not result.strip():
                 errors.append(f"{task_id} is Done without a result")
-            if workflow.get("done_requires_validation_evidence", True) and not task.get(
-                "validation_evidence"
-            ):
+            if not task.get("validation_evidence"):
                 errors.append(f"{task_id} is Done without validation evidence")
-            if workflow.get("done_requires_review_evidence", True) and not task.get(
-                "review_evidence"
-            ):
+            if not task.get("review_evidence"):
                 errors.append(f"{task_id} is Done without review evidence")
             required_value = task.get("reviews_required", [])
             completed_value = task.get("reviews_completed", [])
@@ -213,12 +229,7 @@ def validate_models(
             dependency_value = []
         dependencies_by_id[task_id] = dependency_value
 
-    max_in_progress_value = workflow.get("max_in_progress", 1)
-    if type(max_in_progress_value) is not int or max_in_progress_value < 0:
-        max_in_progress = 1
-        errors.append("workflow.max_in_progress must be a non-negative integer")
-    else:
-        max_in_progress = max_in_progress_value
+    max_in_progress = 1
     if len(active_tasks) > max_in_progress:
         errors.append(f"{len(active_tasks)} tasks are In Progress")
 

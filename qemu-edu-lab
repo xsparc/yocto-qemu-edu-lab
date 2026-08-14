@@ -18,9 +18,6 @@ SCRIPT_DIR = ROOT / "scripts"
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
-from diagnostics import command_document, json_bytes, text_bytes  # noqa: E402
-
-
 class BoundedArgumentParser(argparse.ArgumentParser):
     """Reject invalid arguments without reflecting attacker-controlled bytes."""
 
@@ -51,9 +48,17 @@ def parser() -> argparse.ArgumentParser:
     return result
 
 
+def load_runtime():
+    """Import project code only inside the fixed diagnostic error boundary."""
+    from diagnostics import command_document, json_bytes, text_bytes
+
+    return command_document, json_bytes, text_bytes
+
+
 def main() -> int:
     arguments = parser().parse_args()
     try:
+        command_document, json_bytes, text_bytes = load_runtime()
         document, exit_code = command_document(ROOT, arguments.command, arguments.lab)
         payload = json_bytes(document) if arguments.format == "json" else text_bytes(document)
         sys.stdout.buffer.write(payload)

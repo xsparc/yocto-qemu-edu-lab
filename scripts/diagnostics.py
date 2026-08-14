@@ -29,6 +29,7 @@ from diagnostics_inputs import (
 
 PROJECT_NAME = "yocto-qemu-edu-lab"
 SCHEMA_VERSION = 1
+SOURCE_ORDER = ("bitbake", "openembedded-core", "meta-yocto")
 MAX_VERSION_BYTES = 128
 MAX_WORKFLOW_BYTES = 256 * 1024
 MAX_EVIDENCE_BYTES = 1024 * 1024
@@ -484,7 +485,7 @@ def command_document(root: Path, command: str, lab_id: str) -> tuple[dict[str, A
         }
     elif command == "doctor":
         items.extend((ctx.tool_git(), ctx.tool_ssh()))
-        items.extend(ctx.source_checkout(source_id) for source_id in ("bitbake", "openembedded-core", "meta-yocto"))
+        items.extend(ctx.source_checkout(source_id) for source_id in SOURCE_ORDER)
         items.extend((ctx.build_file("local.conf"), ctx.build_file("bblayers.conf")))
         items.extend(evidence_checks(ctx))
         data = {"active_task": ctx.active_task, "evidence": ctx.evidence_summary}
@@ -536,9 +537,19 @@ def inspect_projection(ctx: Context) -> dict[str, Any]:
         return {"release": None, "sources": None, "build": None, "emulator": None, "runtime": None, "source_lock_sha256": None}
     build = ctx.manifest["build"]
     runtime = ctx.manifest["runtime"]
+    sources_by_id = {item["id"]: item for item in ctx.lock["sources"]}
     return {
         "release": {"project_version": ctx.version, "yocto_version": ctx.lock["release"]["version"], "yocto_series": ctx.lock["release"]["series"]},
-        "sources": [{"id": item["id"], "url": item["url"], "branch_ref": item["branch_ref"], "release_ref": item["release_ref"], "commit": item["commit"]} for item in ctx.lock["sources"]],
+        "sources": [
+            {
+                "id": item["id"],
+                "url": item["url"],
+                "branch_ref": item["branch_ref"],
+                "release_ref": item["release_ref"],
+                "commit": item["commit"],
+            }
+            for item in (sources_by_id[source_id] for source_id in SOURCE_ORDER)
+        ],
         "build": {"build_dir": build["build_dir"], "machine": build["machine"], "image": build["targets"][0], "driver": build["driver_target"], "layers": build["layers"]},
         "emulator": {"profile": ctx.manifest["emulator"]["preflight_profile"], "system_binary": ctx.manifest["emulator"]["system_binary"]},
         "runtime": {"suite": runtime["suite"], "evidence_profile": runtime["evidence_profile"], "guest_contract_version": runtime["guest_contract_version"], "evidence_schema_version": runtime["evidence_schema_version"]},

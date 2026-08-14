@@ -6,6 +6,7 @@ from __future__ import annotations
 import copy
 import importlib.util
 import json
+import re
 import tempfile
 import unittest
 from pathlib import Path
@@ -53,6 +54,14 @@ class DiagnosticsSchemaLockTests(unittest.TestCase):
     def test_workflow_uses_only_locked_urls_and_install_options(self) -> None:
         lock = MODULE.load(ROOT / MODULE.LOCK_PATH)
         workflow = (ROOT / ".github/workflows/fast-checks.yml").read_text(encoding="utf-8")
+        schema_job = workflow.split("\n  diagnostics-schema:\n", 1)[1].split(
+            "\n  licensing:\n", 1
+        )[0]
+        locked_urls = [package["url"] for package in lock["packages"]]
+        self.assertEqual(
+            sorted(locked_urls),
+            sorted(re.findall(r"https://[^\s]+", schema_job)),
+        )
         for package in lock["packages"]:
             self.assertEqual(1, workflow.count(package["url"]))
             output_argument = '--output "$wheel_root/' + package["filename"] + '"'

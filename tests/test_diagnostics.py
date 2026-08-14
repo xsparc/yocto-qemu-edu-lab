@@ -75,6 +75,20 @@ class DiagnosticsTests(unittest.TestCase):
         self.assertNotIn(b"\r\n", first)
         self.assertEqual(document, json.loads(first))
 
+    def test_inspect_source_order_is_canonical_not_lock_array_order(self) -> None:
+        ctx = diagnostics.Context(ROOT, "pci-x86-64")
+        self.assertEqual("pass", ctx.project_version().status)
+        self.assertEqual("pass", ctx.source_lock().status)
+        self.assertEqual("pass", ctx.lab_catalog().status)
+        self.assertEqual("pass", ctx.selection().status)
+        assert ctx.lock is not None
+        ctx.lock["sources"].reverse()
+        projection = diagnostics.inspect_projection(ctx)
+        self.assertEqual(
+            list(diagnostics.SOURCE_ORDER),
+            [source["id"] for source in projection["sources"]],
+        )
+
     def test_byte_parsers_reject_duplicate_nonfinite_and_surrogate_json(self) -> None:
         bad = (
             b'{"schema_version":1,"schema_version":1}',
