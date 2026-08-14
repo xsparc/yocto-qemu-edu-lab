@@ -313,7 +313,7 @@ result = "Implemented, independently reviewed, and squash-merged through pull re
 
 [[tasks]]
 id = "A005"
-status = "In Progress"
+status = "Done"
 milestone = "M5"
 title = "Introduce a portable platform-driver lab"
 outcome = "Add one non-PCI architecture path that teaches Device Tree and platform-driver bring-up."
@@ -370,6 +370,7 @@ validation_evidence = [
   "After review corrections, clean exact revision 340621afe3108d074e03f638b238d724bc10de5c passed all 144 repository tests on Linux with no skips, source-lock, lab-catalog, workflow, CI-policy, QEMU static, checksum, Bash-syntax, and diff checks. Network-disabled REUSE 6.2.0 covered 95/95 files with zero issues. Explicit empty lab selectors now fail closed centrally and in all five public wrappers, while omitted selection still resolves to PCI.",
   "At exact revision 340621afe3108d074e03f638b238d724bc10de5c, qemu-edu-platform-tools and qemu-edu-platform-driver were invalidated through cleansstate and the ARM64 image completed all 4,702 tasks including fresh packaging and SPDX generation. Software-QEMU testimage passed ping, SSH, and all nine platform cases with zero skips, failures, or errors. Platform-v1 evidence SHA-256 40550c299ec26e216c62ef5489774b53dc37c74658fab14d79588946fc311a9e validates with --require-pass --require-revision and binds native OEQA SHA-256 9a877ffb6e6def3f6050a1d176df7048bbe1855d7bc988971b8586bef22970e4.",
   "The no-argument runtime wrapper at exact revision 340621afe3108d074e03f638b238d724bc10de5c selected the default PCI lab and passed ping, SSH, and all 19 PCI cases with zero skips, failures, or errors. PCI-v3 evidence SHA-256 1a443dd4183eb843511e97f7751e72aa4e57b249dca545bc0c2dbba6e640a94d validates with --require-pass --require-revision and binds native OEQA SHA-256 ef7a88b977a3b5ab3fad42cd50c77649d425935473f4839f0c18a5daf9ff9cc6.",
+  "Published pull-request head 205384a62ca2a6f0738492aeedfddf850bc8529f passed Fast checks run 31788645763 (repository, static, and licensing) and Yocto metadata run 31788645797 (locked source resolution, both metadata profiles, and the project layer check).",
 ]
 review_evidence = [
   "Architecture review approved the final implementation boundary after verifying closed manifest composition, default PCI compatibility, machine-invariant native-QEMU inputs, ARM64 platform-device separation, IRQ and driver lifecycle, evidence versioning, rollback, LF portability, and fail-closed empty-selector handling with no P0-P2 findings.",
@@ -379,7 +380,7 @@ review_evidence = [
   "Licensing review approved after the SPDX fixture ambiguity was removed; pinned network-disabled REUSE 6.2.0 covered 95/95 files with zero issues, recipe LIC_FILES_CHKSUM values matched tracked LF bytes, and QEMU, kernel, Device Tree, and project provenance remained coherent.",
   "Independent full-diff review found the SPDX fixture and empty-selector defects, verified both corrections at clean revision 340621afe3108d074e03f638b238d724bc10de5c, and approved after source-lock, lab, workflow, CI, QEMU static, checksum, Bash, diff, 144-test Linux, and REUSE gates passed.",
 ]
-result = ""
+result = "Implemented, qualified, independently reviewed, and squash-merged through pull request #9 as commit e2d703ecd017c6c8a2d94a23280bdb9d9da5f361; no tag or release was published."
 
 [[tasks]]
 id = "A006"
