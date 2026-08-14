@@ -227,9 +227,12 @@ passed 21/21 tests. Fresh platform-v1 evidence SHA-256 is
 `40550c299ec26e216c62ef5489774b53dc37c74658fab14d79588946fc311a9e`;
 fresh PCI-v3 evidence SHA-256 is
 `1a443dd4183eb843511e97f7751e72aa4e57b249dca545bc0c2dbba6e640a94d`.
-All six required reviews approved with no remaining P0-P2 findings. A005
-remains In Progress until publication, hosted pull-request gates, and merge.
-No tag or release is implied.
+All six required reviews approved with no remaining P0-P2 findings. Published
+pull-request head `205384a62ca2a6f0738492aeedfddf850bc8529f` passed Fast
+checks run `31788645763` and Yocto metadata run `31788645797`. Pull request #9
+then squash-merged as `e2d703ecd017c6c8a2d94a23280bdb9d9da5f361`. A005 is
+Done; the local runtime reports remain unsigned evidence rather than hosted
+attestations, and no tag or release was published.
 
 Rollback: remove the ARM manifest, machine, patch, driver, test, and evidence
 profile. The default PCI manifest and its existing build directory remain the

@@ -5,14 +5,16 @@ SPDX-License-Identifier: MIT
 
 # Project context
 
-- Active task: A005, the approved M5 ARM64 platform-driver learning slice.
-- Current public baseline: A004 documentation closeout commit `01ff717`; the
-  last runtime-affecting A004 baseline remains correction commit
-  `ebbf1db0a5f8f2b30d7580a2435f67e9db5cc940`.
-- Baseline: one x86-64 Yocto 6.0 (`wrynose`) learning machine using QEMU EDU PCI device `1234:11e8`.
-- Existing merged runtime features: PCI discovery, BAR0 MMIO, managed MSI/INTx
-  selection, sysfs, factorial/liveness operations, and automated guest
-  verification.
+- Active task: none. A005 is Done; A006 remains Proposed and unapproved.
+- Current public baseline: A005 implementation merge
+  `e2d703ecd017c6c8a2d94a23280bdb9d9da5f361`; the qualified final
+  runtime-affecting revision remains `340621afe3108d074e03f638b238d724bc10de5c`.
+- Baseline: two Yocto 6.0 (`wrynose`) labs: the default x86-64 QEMU EDU PCI
+  device `1234:11e8`, and an independent ARM64 `virt` platform device selected
+  with `--lab platform-arm64`.
+- Existing merged runtime features: PCI discovery, BAR0 MMIO, managed MSI/INTx,
+  bounded DMA, Device Tree discovery, platform-driver MMIO and interrupts,
+  sysfs diagnostics, and automated guest verification for both labs.
 - Current license boundary: infrastructure, learning material, recipes, and
   user-space tools are MIT; both example kernel-module implementations and the
   project-local QEMU platform patch are GPL-2.0-only; the platform Device Tree
@@ -99,8 +101,8 @@ SPDX-License-Identifier: MIT
   project-local SysBus device and generated `qemu,edu-platform` Device Tree
   node, a platform driver, versioned lab manifests, and separate platform
   evidence while preserving the x86-64 PCI lab as the no-argument default.
-  RISC-V, DMA, physical validation, source-version upgrades, upstream QEMU
-  submission, publication, merge, tag, and release remain outside A005.
+  RISC-V, platform-device DMA, physical validation, source-version upgrades,
+  upstream QEMU submission, tag, and release remain outside A005.
 - A005 implementation qualification covers clean commit `3244a0c` after
   replay onto public A004 closeout `01ff717`. All 141 Linux tests ran without
   skips; pinned static checks, REUSE 6.2.0 over 95/95 files, both metadata
@@ -122,6 +124,9 @@ SPDX-License-Identifier: MIT
   fresh PCI-v3 evidence SHA-256 is
   `1a443dd4183eb843511e97f7751e72aa4e57b249dca545bc0c2dbba6e640a94d`.
   Architecture, quality, DevOps, security, licensing, and independent-diff
-  reviews approved with no remaining P0-P2 findings. Publication and hosted
-  pull-request gates remain open, so A005 stays In Progress and unpublished.
+  reviews approved with no remaining P0-P2 findings. Published pull-request
+  head `205384a62ca2a6f0738492aeedfddf850bc8529f` passed Fast checks run
+  `31788645763` and Yocto metadata run `31788645797`; pull request #9 then
+  squash-merged as `e2d703ecd017c6c8a2d94a23280bdb9d9da5f361`. A005 is
+  Done. No tag or release was published.
 - Public workflow state uses tool-neutral maintainer paths while preserving the same task, approval, validation, review, and handoff semantics.
