@@ -240,23 +240,39 @@ known-good path. No source-version rollback or evidence translation is needed.
 
 ## M6 — Provider-neutral diagnostics and optional tool access
 
-Outcome: `doctor`, `inspect`, and test evidence are safe and structured enough
+Outcome: `status`, `doctor`, `inspect`, and test evidence are safe and structured enough
 for people, CI, and optional assistants.
 
-Candidate scope:
+Approved on 2026-08-14: implement a standard-library-only, read-only
+`0.6.0-dev` diagnostics core. Its version-1 schema has exact check order,
+deterministic bytes, bounded single-read inputs, fixed Git queries, and honest
+current-versus-historical evidence binding.
 
-- add a dependency-light local CLI with versioned JSON schemas;
-- expose read-only project state and evidence through an adapter only after the
-  CLI contract is stable;
-- evaluate MCP against the current specification without coupling the lab to a
-  particular SDK or model;
-- threat-model paths, subprocess arguments, secrets, untrusted logs, and tool
-  approval boundaries.
+Scope:
+
+- add the four local commands with deterministic text and closed JSON schema 1;
+- preserve pass, warning, fail, and unavailable states with exact exit
+  precedence;
+- bind evidence only from the selected manifest path and reuse the existing
+  source, catalog, workflow, and evidence semantic validators;
+- run independent schema conformance through six exact hash-locked test-only
+  wheels on Linux CPython 3.12;
+- document paths, subprocesses, secrets, untrusted inputs, licensing, rollback,
+  and future-adapter approval boundaries.
+
+Non-scope: MCP, A2A, model or provider SDKs, diagnostic networking, mutation,
+repair, setup, build, boot, test execution, alternate evidence paths, and input
+version updates.
+
+The dated primary-source rationale is recorded in
+[`research/2026-08-14-m6-diagnostics.md`](research/2026-08-14-m6-diagnostics.md).
 
 Acceptance gate: the complete lab remains usable without AI; schema and security
 tests pass; state-changing tools are absent or separately approved.
 
-Rollback: remove the adapter while preserving the CLI and evidence format.
+Rollback: remove the CLI, diagnostics schema, test-only dependency lock, and
+schema CI job. Existing build wrappers, lab manifests, guest interfaces, and
+PCI/platform runtime-evidence formats remain unchanged.
 
 ## Horizon — Physical target bridge and course ecosystem
 

@@ -3,7 +3,7 @@
 
 schema_version = 1
 task_id_prefix = "A"
-updated_on = "2026-08-11"
+updated_on = "2026-08-14"
 
 [[tasks]]
 id = "A000"
@@ -380,32 +380,52 @@ review_evidence = [
   "Licensing review approved after the SPDX fixture ambiguity was removed; pinned network-disabled REUSE 6.2.0 covered 95/95 files with zero issues, recipe LIC_FILES_CHKSUM values matched tracked LF bytes, and QEMU, kernel, Device Tree, and project provenance remained coherent.",
   "Independent full-diff review found the SPDX fixture and empty-selector defects, verified both corrections at clean revision 340621afe3108d074e03f638b238d724bc10de5c, and approved after source-lock, lab, workflow, CI, QEMU static, checksum, Bash, diff, 144-test Linux, and REUSE gates passed.",
 ]
-result = "Implemented, qualified, independently reviewed, and squash-merged through pull request #9 as commit e2d703ecd017c6c8a2d94a23280bdb9d9da5f361; no tag or release was published."
+result = "Implemented and qualified through pull request #9 as commit e2d703ecd017c6c8a2d94a23280bdb9d9da5f361, then independently closed out through pull request #10 as commit 5f1ba4d29e842723029764c290ec3a4e7dff68c9; no tag or release was published."
 
 [[tasks]]
 id = "A006"
-status = "Proposed"
+status = "In Progress"
 milestone = "M6"
 title = "Expose provider-neutral lab diagnostics"
 outcome = "Make build and runtime evidence safely consumable by humans, CI, and optional AI tools."
 scope = [
-  "Add a local lab command with versioned JSON output for status, doctor, inspect, and test evidence.",
-  "Evaluate a read-only MCP adapter only after the CLI contract is stable.",
-  "Define explicit approval boundaries for any state-changing tool.",
+  "Add a standard-library-only local command with deterministic text and closed version-1 JSON output for status, doctor, inspect, and evidence.",
+  "Read only manifest-selected repository, checkout, build-file, and runtime-evidence state through bounded single-read and native-executable adapters.",
+  "Preserve unavailable, failed, warning, and passing states through exact check ordering and aggregate exit precedence.",
+  "Independently validate the diagnostics schema with six exact hash-locked test-only wheels in an isolated Linux CPython 3.12 CI job.",
+  "Document safe CI consumption, evidence binding, licensing, compatibility, rollback, and explicit future adapter boundaries.",
 ]
-non_scope = ["Requiring an LLM", "Sending source or logs to hosted AI by default", "Autonomous production changes"]
+non_scope = [
+  "Adding MCP, A2A, an SDK, an LLM dependency, or any network access to the diagnostic command.",
+  "Adding mutation, repair, setup, build, boot, test execution, or arbitrary path selection.",
+  "Updating source, lab, guest-interface, or runtime-evidence input versions.",
+  "Publishing, merging, tagging, or releasing the implementation.",
+]
 acceptance_criteria = [
-  "The lab works fully without AI or network services.",
-  "Machine-readable schemas are versioned and tested.",
-  "Any MCP surface is a replaceable adapter over the same deterministic core.",
-  "Unsafe or secret-bearing operations are absent or explicitly gated.",
+  "The four commands remain read-only, offline, standard-library-only at runtime, and emit no absolute host paths, usernames, hostnames, timestamps, logs, or secret-bearing values.",
+  "JSON is byte-deterministic and schema-versioned; command branches, check records, data records, and aggregate exit meanings are closed and tested.",
+  "Selected evidence is read once from the selected manifest path, bounded to one MiB, validated with the existing semantic authority, and reports honest bound or not-recorded lab inputs.",
+  "Git and repository inputs fail closed under fixed commands, bounded resources, no shell, no hooks, no network, and explicit unavailable-versus-invalid behavior.",
+  "The exact six-wheel external schema oracle verifies hashes, embedded licenses, installed versions, positive documents, and adversarial negative documents without index or resolver expansion.",
+  "Repository, licensing, Linux read-only/network-disabled, schema, security, and all required independent reviews pass.",
 ]
-dependencies = ["A002"]
-risks = ["ai", "security", "privacy", "interface", "compatibility"]
-validation = ["schema tests", "CLI contract tests", "security review", "project fast-check suite"]
-approval = ""
-reviews_required = ["architecture", "quality", "security", "documentation", "independent-diff"]
+dependencies = ["A005"]
+risks = ["security", "privacy", "interface", "compatibility", "supply-chain", "licensing", "determinism"]
+validation = [
+  "project fast-check and licensing suite",
+  "standard-library semantic, CLI, byte-serialization, path, Git, timeout, and failure-precedence tests",
+  "isolated Linux CPython 3.12 JSON Schema Draft 2020-12 conformance through the exact test-only wheel lock",
+  "network-disabled read-only Linux execution for every command and both labs",
+  "architecture, quality, DevOps, security, licensing, documentation, and independent-diff reviews",
+]
+approval = "Repository owner explicitly approved A006/M6 using the documented deterministic, read-only diagnostics boundary and its exact hash-locked, test-only validator dependencies on 2026-08-14."
+reviews_required = ["architecture", "quality", "devops", "security", "licensing", "documentation", "independent-diff"]
 reviews_completed = []
-validation_evidence = []
+validation_evidence = [
+  "Frozen Windows CPython 3.12 validation passed all 172 repository tests with 16 expected native-Linux skips; source-lock, lab-catalog, workflow, CI-policy, both QEMU patch, exact diagnostics-lock, independent Draft 2020-12 schema, checksum, actionlint 1.7.12, ShellCheck 0.11.0, and staged/worktree diff gates passed.",
+  "A pinned network-disabled, capability-free, read-only Linux container ran every status, doctor, inspect, and evidence JSON command for both labs with the declared result/exit combinations, then passed all 26 focused A006 POSIX tests without skips, including direct executable and symbolic-link rejection contracts.",
+  "All six authorized Linux CPython 3.12 wheel files independently matched their exact lock digests, package metadata, dependency metadata, and embedded-license digests. An exact-version local CPython 3.12 environment passed installed-package and schema-oracle validation; the isolated Linux wheel installation remains a hosted pre-merge gate.",
+  "Pinned network-disabled, capability-free, read-only REUSE 6.2.0 passed 108/108 files with no issue; the source tree redistributes none of the six test-only wheels.",
+]
 review_evidence = []
 result = ""

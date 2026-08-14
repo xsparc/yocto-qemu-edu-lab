@@ -37,6 +37,11 @@ project.
 - Full Yocto builds and generated images are not sandbox guarantees.
 - Optional future automation integrations begin read-only and require separate
   review before gaining state-changing tools.
+- `qemu-edu-lab` performs only bounded local reads. It accepts no arbitrary
+  path or URL, emits no raw logs or local identity, and uses fixed no-shell Git
+  queries with hooks, prompting, paging, optional writes, and network operations
+  disabled. Its host Git executable and concurrently mutable local filesystem
+  remain documented trust boundaries.
 
 Do not report ordinary setup questions as vulnerabilities; use a normal issue
 and remove secrets from logs first.

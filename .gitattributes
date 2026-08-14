@@ -15,5 +15,6 @@
 *.yaml text eol=lf
 Makefile text eol=lf
 VERSION text eol=lf
+qemu-edu-lab text eol=lf
 meta-qemu-edu/recipes-support/qemu-edu-tools/files/qemu-edu-test text eol=lf
 meta-qemu-edu/recipes-support/qemu-edu-platform-tools/files/qemu-edu-platform-test text eol=lf

@@ -21,6 +21,9 @@ historical_runtime_evidence_schema_paths = [
 ]
 runtime_evidence_schema_path = "schemas/qemu-edu-runtime-evidence-v3.schema.json"
 platform_runtime_evidence_schema_path = "schemas/qemu-edu-platform-runtime-evidence-v1.schema.json"
+diagnostics_schema_path = "schemas/qemu-edu-diagnostics-v1.schema.json"
+diagnostics_schema_validator_lock_path = "config/diagnostics-schema-validator.lock.json"
+diagnostics_documentation_path = "docs/diagnostics.md"
 
 validation_commands = [
   "python3 scripts/source_lock.py validate",
@@ -28,6 +31,7 @@ validation_commands = [
   "python3 scripts/validate_workflow.py",
   "python3 scripts/validate_ci.py",
   "python3 scripts/verify_qemu_security.py static",
+  "python3 scripts/verify_diagnostics_schema_lock.py",
   "python3 -m unittest discover -s tests -p test_*.py",
   "python3 scripts/update_checksums.py --check",
   "git diff --check",

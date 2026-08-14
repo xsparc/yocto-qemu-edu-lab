@@ -213,3 +213,24 @@ SPDX-License-Identifier: MIT
 - Revisit when: a later QEMU version includes either change, or upstream recipe
   structure provides a machine-independent equivalent. Any change must retain
   exact source verification and unrelated-machine signature neutrality.
+
+## D-017: Make diagnostics deterministic, read-only, and provider-neutral
+
+- Status: Accepted on 2026-08-14 for A006; publication, merge, tag, and release
+  are not authorized by this decision.
+- Decision: Advance the development identity to `0.6.0-dev`. Add a
+  standard-library-only `qemu-edu-lab` command with `status`, `doctor`,
+  `inspect`, and `evidence` reads, deterministic text and closed JSON schema 1,
+  fixed aggregate exit precedence, bounded single-read repository inputs, and
+  a hardened native Git adapter. Keep the command offline and free of mutation,
+  setup, build, boot, test execution, arbitrary paths, MCP, A2A, and model SDKs.
+  Validate its schema independently only in an isolated Linux CPython 3.12 job
+  using the six exact hash-verified wheels in the test-only dependency lock.
+- Reason: One stable local contract serves maintainers, CI, dashboards, and
+  future optional adapters without making a hosted provider or third-party
+  package part of the lab runtime. Explicit `unavailable`, `fail`, `warning`,
+  and `pass` states prevent missing inputs or historical evidence from being
+  mislabeled as current readiness.
+- Revisit when: the version-1 CLI has merged evidence and a separately approved
+  use case justifies a replaceable read-only transport adapter. Such an adapter
+  must consume the same command model and cannot broaden its authority.

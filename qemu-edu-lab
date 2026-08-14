@@ -1,0 +1,60 @@
+#!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 Yocto QEMU EDU learning project contributors
+# SPDX-License-Identifier: MIT
+"""Read-only project diagnostics entry point."""
+
+from __future__ import annotations
+
+import sys
+
+sys.dont_write_bytecode = True
+
+import argparse  # noqa: E402
+from pathlib import Path  # noqa: E402
+
+
+ROOT = Path(__file__).resolve().parent
+SCRIPT_DIR = ROOT / "scripts"
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+from diagnostics import command_document, json_bytes, text_bytes  # noqa: E402
+
+
+def parser() -> argparse.ArgumentParser:
+    result = argparse.ArgumentParser(
+        prog="qemu-edu-lab",
+        description="Inspect deterministic, read-only QEMU EDU lab state.",
+    )
+    result.add_argument(
+        "--lab",
+        choices=("pci-x86-64", "platform-arm64"),
+        default="pci-x86-64",
+        help="closed lab manifest selection (default: pci-x86-64)",
+    )
+    result.add_argument(
+        "--format",
+        choices=("text", "json"),
+        default="text",
+        help="output format (default: text)",
+    )
+    result.add_argument("command", choices=("status", "doctor", "inspect", "evidence"))
+    return result
+
+
+def main() -> int:
+    arguments = parser().parse_args()
+    try:
+        document, exit_code = command_document(ROOT, arguments.command, arguments.lab)
+        payload = json_bytes(document) if arguments.format == "json" else text_bytes(document)
+        sys.stdout.buffer.write(payload)
+    except BrokenPipeError:
+        return 1
+    except Exception:
+        sys.stderr.buffer.write(b"qemu-edu-lab: internal diagnostic failure\n")
+        return 1
+    return exit_code
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -16,4 +16,4 @@ SPDX-License-Identifier: MIT
 | A007 | M3.1 | Done | Harden the host EDU DMA bounds | A003 | Squash-merged through pull request #5 as `083ddf5` |
 | A004 | M4 | Done | Bounded EDU DMA support | A003, A007 | Documentation closeout squash-merged through pull request #8 as `01ff717` |
 | A005 | M5 | Done | Portable ARM64 platform-driver lab | A004 | Squash-merged through pull request #9 as `e2d703e` |
-| A006 | M6 | Proposed | Provider-neutral lab diagnostics | A002 | Stable evidence contract and explicit approval |
+| A006 | M6 | In Progress | Provider-neutral lab diagnostics | A005 | Deterministic read-only CLI and exact test-only schema dependencies approved |

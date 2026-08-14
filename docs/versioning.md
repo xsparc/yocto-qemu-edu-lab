@@ -6,7 +6,7 @@ SPDX-License-Identifier: MIT
 # Versioning and compatibility
 
 The project follows Semantic Versioning 2.0.0 for tagged releases. `VERSION`
-currently contains `0.5.0-dev`, a development identity rather than a published
+currently contains `0.6.0-dev`, a development identity rather than a published
 release. Creating a tag, release, or artifact remains a separate maintainer
 decision.
 
@@ -44,6 +44,7 @@ automatically public APIs.
 | `0.3.1-dev` | 6.0.2 | `wrynose` | Clean commit `46e2280` compiled and staged the exact patched native emulator, rebuilt the driver/image without taint, and passed ping, SSH, and all 14 project cases with validated version-2 evidence; pull request #5 passed hosted gates and squash-merged as `083ddf5`, with no tag or release |
 | `0.4.0-dev` | 6.0.2 | `wrynose` | Clean implementation commit `8574eaf` completed the exact locked image path and passed all 19 project cases; clean correction commit `fe08e73` then passed the strengthened sysfs oracle and complete 19-case suite with validated version-3 evidence. Pull request #6 squash-merged as `918efaa`; correction pull request #7 squash-merged as `ebbf1db`; documentation closeout pull request #8 passed hosted Fast checks and squash-merged as `01ff717`. Every required review passed; no tag or release was published. |
 | `0.5.0-dev` | 6.0.2 | `wrynose` | Clean implementation revision `3244a0c` passed both metadata profiles, the dual-machine layer audit, clean project driver/image reruns, and both complete software-QEMU suites. After review corrections, clean revision `340621a` passed 144 Linux tests without skips, rebuilt the affected ARM64 tool/driver/image path, and passed both suites again with closed PCI-v3 and platform-v1 evidence bound to that exact revision. All six required reviews passed. Published head `205384a` passed Fast checks run `31788645763` and Yocto metadata run `31788645797`; pull request #9 squash-merged as `e2d703e`. No tag or release was published. |
+| `0.6.0-dev` | 6.0.2 | `wrynose` | A006 is in progress. The approved line adds a deterministic, read-only diagnostics CLI and closed schema 1 without changing the source lock, lab manifests, guest interfaces, or runtime-evidence schemas. No publication, merge, tag, or release is yet claimed. |
 
 Runtime documents are unsigned local reports. Their task records state whether
 a digest was independently recomputed. They are not hosted provenance
@@ -53,9 +54,11 @@ attestations or physical-hardware results.
 without changing the guest contract, runtime evidence schema, or curriculum
 interface. `0.4.0-dev` added a bounded
 DMA curriculum stage, guest-interface version 3, five required runtime
-cases, and evidence schema 3. `0.5.0-dev` is the current development line
-because A005 adds a second architecture, lab selection, an independent guest
-interface, and a separate evidence schema. No identity implies a tag or release.
+cases, and evidence schema 3. `0.5.0-dev` added a second architecture, lab
+selection, an independent guest interface, and a separate evidence schema.
+`0.6.0-dev` is the current development line because A006 adds a public local
+command and diagnostics schema while preserving every build and guest contract.
+No identity implies a tag or release.
 
 Compatibility is declared only after evidence. A newer Wrynose point release
 can be proposed with source-resolution, metadata, build, and regression results.

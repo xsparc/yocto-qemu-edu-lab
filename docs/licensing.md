@@ -18,6 +18,7 @@ having the right to submit their work.
 | Project-local QEMU platform-device patch | GPL-2.0-only | A project-maintained teaching model and ARM `virt` integration; not an upstream contribution |
 | `qemu,edu-platform.yaml` | GPL-2.0-only OR BSD-2-Clause | Dual license follows the Linux Device Tree binding convention |
 | Third-party checkouts and build output | Their own licenses; not vendored here | `layers/`, legacy `poky/`, downloads, shared state, and build output are ignored |
+| Diagnostics schema validator wheels | Five MIT packages and one PSF-2.0 package; test execution only | Exact wheels are hash-locked for an isolated CI oracle and are not redistributed in this repository |
 
 The top-level `LICENSE` summarizes the mixed-license repository and `LICENSES/`
 contains the corresponding SPDX-named license texts.
@@ -72,6 +73,12 @@ boundaries change.
 - Locked external Git checkouts retain their upstream licensing and are not
   covered by this repository's REUSE report. CI tools are fetched for execution
   and are not redistributed in the source tree.
+- The diagnostics runtime has no third-party Python dependency. Its independent
+  schema job temporarily installs exact wheels for `attrs`, `jsonschema`,
+  `jsonschema-specifications`, `referencing`, and `rpds-py` under MIT, plus
+  `typing-extensions` under PSF-2.0. The lock records wheel and embedded-license
+  hashes; the job uses no package index or dependency resolver and retains no
+  wheel or environment artifact.
 - Yocto-generated SPDX SBOMs describe image contents; they complement rather
   than replace repository file licensing.
 - Release artifacts should include source revision, build input identity,

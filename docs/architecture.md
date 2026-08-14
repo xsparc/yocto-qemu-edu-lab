@@ -197,6 +197,23 @@ CI, dashboards, and optional MCP or other automation tools consume the same
 read-only evidence and invoke the same bounded commands as a person. Provider,
 transport, credentials, and hosted storage remain outside the core lab.
 
+### Boundary 6: diagnostics core
+
+`qemu-edu-lab` projects source-lock, selected-lab, maintenance, repository, and
+runtime-evidence state through four deterministic reads. Repository files enter
+through bounded single-read adapters and existing semantic validators; fixed
+Git queries enter through the only subprocess adapter. Rendering consumes the
+same typed document for text and JSON. The dependency direction is therefore:
+
+```text
+CLI rendering -> diagnostics orchestration -> bounded inputs / fixed Git
+                                      -> existing project validators
+```
+
+The core has no network or mutation capability and accepts no arbitrary path.
+Its Draft 2020-12 schema oracle is a test-only CI consumer, not a runtime
+dependency. MCP, A2A, and provider SDKs remain outside this boundary.
+
 ## Scalability and interoperability rules
 
 - Scale through lab manifests and reusable tests, not conditional logic spread

@@ -97,6 +97,27 @@ class WorkflowValidationTests(unittest.TestCase):
             errors,
         )
 
+    def test_diagnostics_contract_files_and_lock_command_are_required(self) -> None:
+        root = self.copy_repository()
+        (root / "schemas/qemu-edu-diagnostics-v1.schema.json").unlink()
+        errors = MODULE.validate(root)
+        self.assertIn(
+            "missing required file: schemas/qemu-edu-diagnostics-v1.schema.json",
+            errors,
+        )
+
+        root = self.copy_repository()
+        config_path = root / "docs/maintainers/config.toml"
+        config_path.write_text(
+            config_path.read_text(encoding="utf-8").replace(
+                '  "python3 scripts/verify_diagnostics_schema_lock.py",\n', "", 1
+            ),
+            encoding="utf-8",
+        )
+        self.assertIn(
+            "validation_commands is missing: python3 scripts/verify_diagnostics_schema_lock.py",
+            MODULE.validate(root),
+        )
     def test_historical_evidence_schema_list_is_closed(self) -> None:
         root = self.copy_repository()
         path = root / "docs/maintainers/config.toml"
@@ -179,14 +200,12 @@ class WorkflowValidationTests(unittest.TestCase):
         root = self.copy_repository()
         tasks_path = root / "docs/maintainers/tasks.toml"
         state = MODULE.load_toml(tasks_path)
-        task = next(task for task in state["tasks"] if task["status"] == "Proposed")
+        task = next(task for task in state["tasks"] if task["status"] != "Done")
         task_id = task["id"]
+        original_status = task["status"]
         text = tasks_path.read_text(encoding="utf-8")
         text = self.replace_in_task(
-            text, task_id, 'status = "Proposed"', 'status = "Done"'
-        )
-        text = self.replace_in_task(
-            text, task_id, 'approval = ""', 'approval = "Test approval"'
+            text, task_id, f'status = "{original_status}"', 'status = "Done"'
         )
         text = self.replace_in_task(
             text,
@@ -213,7 +232,7 @@ class WorkflowValidationTests(unittest.TestCase):
         ledger_path = root / "docs/maintainers/ledger.md"
         ledger_path.write_text(
             ledger_path.read_text(encoding="utf-8").replace(
-                f'| {task_id} | {task["milestone"]} | Proposed |',
+                f'| {task_id} | {task["milestone"]} | {original_status} |',
                 f'| {task_id} | {task["milestone"]} | Done |',
                 1,
             ),
@@ -225,6 +244,30 @@ class WorkflowValidationTests(unittest.TestCase):
             f"{task_id} is Done without completed reviews: " + ", ".join(missing),
             errors,
         )
+
+    def test_malformed_limits_and_dependency_types_fail_without_crashing(self) -> None:
+        root = self.copy_repository()
+        config_path = root / "docs/maintainers/config.toml"
+        config_path.write_text(
+            config_path.read_text(encoding="utf-8").replace(
+                "max_in_progress = 1", "max_in_progress = true", 1
+            ),
+            encoding="utf-8",
+        )
+        self.assertIn(
+            "workflow.max_in_progress must be a non-negative integer",
+            MODULE.validate(root),
+        )
+
+        root = self.copy_repository()
+        tasks_path = root / "docs/maintainers/tasks.toml"
+        tasks_path.write_text(
+            tasks_path.read_text(encoding="utf-8").replace(
+                'dependencies = ["A005"]', 'dependencies = "A005"', 1
+            ),
+            encoding="utf-8",
+        )
+        self.assertIn("A006 dependencies must be a string array", MODULE.validate(root))
 
 
 if __name__ == "__main__":

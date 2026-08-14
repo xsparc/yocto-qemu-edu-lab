@@ -9,6 +9,7 @@ path = [
   "MAINTAINERS.md",
   "CONTRIBUTING.md",
   "Makefile",
+  "qemu-edu-lab",
   "README.md",
   "SECURITY.md",
   "SHA256SUMS",

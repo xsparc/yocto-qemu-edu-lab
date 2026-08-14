@@ -5,9 +5,11 @@ SPDX-License-Identifier: MIT
 
 # Project context
 
-- Active task: none. A005 is Done; A006 remains Proposed and unapproved.
-- Current public baseline: A005 implementation merge
-  `e2d703ecd017c6c8a2d94a23280bdb9d9da5f361`; the qualified final
+- Active task: A006, provider-neutral lab diagnostics. Its deterministic,
+  read-only CLI boundary and exact hash-locked test-only schema-validator
+  dependencies were approved on 2026-08-14; publication remains unapproved.
+- Current public baseline: A005 closeout merge
+  `5f1ba4d29e842723029764c290ec3a4e7dff68c9`; the qualified final
   runtime-affecting revision remains `340621afe3108d074e03f638b238d724bc10de5c`.
 - Baseline: two Yocto 6.0 (`wrynose`) labs: the default x86-64 QEMU EDU PCI
   device `1234:11e8`, and an independent ARM64 `virt` platform device selected
@@ -128,5 +130,19 @@ SPDX-License-Identifier: MIT
   head `205384a62ca2a6f0738492aeedfddf850bc8529f` passed Fast checks run
   `31788645763` and Yocto metadata run `31788645797`; pull request #9 then
   squash-merged as `e2d703ecd017c6c8a2d94a23280bdb9d9da5f361`. A005 is
-  Done. No tag or release was published.
+  Done; its documentation closeout then squash-merged through pull request #10
+  as `5f1ba4d29e842723029764c290ec3a4e7dff68c9`. No tag or release was published.
+- A006 advances the development identity to `0.6.0-dev` and adds four local,
+  standard-library-only read commands over current project inputs and retained
+  evidence. MCP, A2A, diagnostic network access, mutation, build orchestration,
+  alternate evidence paths, publication, merge, tag, and release remain out of
+  scope. The independent schema oracle is isolated to CI and may download only
+  the six exact wheels in the checked-in lock after SHA-256 verification.
+- The frozen local A006 candidate passes 172 Windows-host tests with 16 expected
+  native-Linux skips, all 26 focused read-only Linux tests without skips, every
+  command for both labs in a network-disabled read-only container, the exact
+  six-wheel metadata/digest/license verifier, the installed Draft 2020-12
+  oracle, actionlint, ShellCheck, staged checksums, and REUSE 108/108. The exact
+  Linux wheel installation, hosted jobs, required independent reviews,
+  publication, and merge remain pending.
 - Public workflow state uses tool-neutral maintainer paths while preserving the same task, approval, validation, review, and handoff semantics.
