@@ -418,7 +418,11 @@ def validate_document(document: dict[str, Any]) -> None:
     expected_root = {"kind", "schema_version", "command", "result", "project", "lab", "checks", "data"}
     if not isinstance(document, dict) or set(document) != expected_root:
         raise ValueError("diagnostics document fields differ from the contract")
-    if document["kind"] != "qemu-edu-diagnostics" or document["schema_version"] != 1:
+    if (
+        document["kind"] != "qemu-edu-diagnostics"
+        or type(document["schema_version"]) is not int
+        or document["schema_version"] != 1
+    ):
         raise ValueError("diagnostics document identity is invalid")
     command = document["command"]
     if command not in SEQUENCES or not isinstance(document["checks"], list):
@@ -429,7 +433,11 @@ def validate_document(document: dict[str, Any]) -> None:
     for expected_id, raw in zip(SEQUENCES[command], document["checks"], strict=True):
         if not isinstance(raw, dict) or set(raw) != {"id", "status", "required", "summary"}:
             raise ValueError("diagnostics check fields differ from the contract")
-        if raw["id"] != expected_id or raw["status"] not in {"pass", "warning", "fail", "unavailable"}:
+        if (
+            raw["id"] != expected_id
+            or raw["status"] not in {"pass", "warning", "fail", "unavailable"}
+            or type(raw["required"]) is not bool
+        ):
             raise ValueError("diagnostics check identity or status is invalid")
         expected = check(expected_id, raw["status"])
         if raw != expected.object():

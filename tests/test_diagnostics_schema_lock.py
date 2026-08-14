@@ -26,6 +26,7 @@ class DiagnosticsSchemaLockTests(unittest.TestCase):
         lock = MODULE.load(ROOT / MODULE.LOCK_PATH)
         self.assertFalse(lock["runtime_dependency"])
         self.assertEqual(6, len(lock["packages"]))
+        self.assertTrue(all(item["size"] <= MODULE.MAXIMUM_WHEEL_BYTES for item in lock["packages"]))
         self.assertEqual({"MIT", "PSF-2.0"}, {item["license_expression"] for item in lock["packages"]})
 
     def test_tampered_url_digest_dependency_and_license_fail(self) -> None:
@@ -60,6 +61,7 @@ class DiagnosticsSchemaLockTests(unittest.TestCase):
             self.assertIn(option, workflow)
         self.assertNotIn("pip download", workflow)
         self.assertNotIn("--index-url", workflow)
+        self.assertEqual(6, workflow.count('--max-filesize "$MAX_WHEEL_BYTES"'))
 
 
 if __name__ == "__main__":

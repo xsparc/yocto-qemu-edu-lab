@@ -12,6 +12,7 @@
   },
   "installation": {
     "network_scope": "six exact HTTPS wheel URLs",
+    "maximum_wheel_bytes": 1048576,
     "verify_before_install": "sha256",
     "source_distributions": "forbidden",
     "package_index_resolution": "forbidden",
@@ -32,6 +33,7 @@
       "requires_python": ">=3.9",
       "dependencies": [],
       "filename": "attrs-26.1.0-py3-none-any.whl",
+      "size": 67548,
       "url": "https://files.pythonhosted.org/packages/64/b4/17d4b0b2a2dc85a6df63d1157e028ed19f90d4cd97c36717afef2bc2f395/attrs-26.1.0-py3-none-any.whl",
       "sha256": "c647aa4a12dfbad9333ca4e71fe62ddc36f4e63b2d260a37a8b83d2f043ac309",
       "license_file": "attrs-26.1.0.dist-info/licenses/LICENSE",
@@ -49,6 +51,7 @@
         "rpds-py>=0.25.0"
       ],
       "filename": "jsonschema-4.26.0-py3-none-any.whl",
+      "size": 90630,
       "url": "https://files.pythonhosted.org/packages/69/90/f63fb5873511e014207a475e2bb4e8b2e570d655b00ac19a9a0ca0a385ee/jsonschema-4.26.0-py3-none-any.whl",
       "sha256": "d489f15263b8d200f8387e64b4c3a75f06629559fb73deb8fdfb525f2dab50ce",
       "license_file": "jsonschema-4.26.0.dist-info/licenses/COPYING",
@@ -63,6 +66,7 @@
         "referencing>=0.31.0"
       ],
       "filename": "jsonschema_specifications-2025.9.1-py3-none-any.whl",
+      "size": 18437,
       "url": "https://files.pythonhosted.org/packages/41/45/1a4ed80516f02155c51f51e8cedb3c1902296743db0bbc66608a0db2814f/jsonschema_specifications-2025.9.1-py3-none-any.whl",
       "sha256": "98802fee3a11ee76ecaca44429fda8a41bff98b00a0f2838151b113f210cc6fe",
       "license_file": "jsonschema_specifications-2025.9.1.dist-info/licenses/COPYING",
@@ -79,6 +83,7 @@
         "typing-extensions>=4.4.0; python_version < '3.13'"
       ],
       "filename": "referencing-0.37.0-py3-none-any.whl",
+      "size": 26766,
       "url": "https://files.pythonhosted.org/packages/2c/58/ca301544e1fa93ed4f80d724bf5b194f6e4b945841c5bfd555878eea9fcb/referencing-0.37.0-py3-none-any.whl",
       "sha256": "381329a9f99628c9069361716891d34ad94af76e461dcb0335825aecc7692231",
       "license_file": "referencing-0.37.0.dist-info/licenses/COPYING",
@@ -91,6 +96,7 @@
       "requires_python": ">=3.11",
       "dependencies": [],
       "filename": "rpds_py-2026.6.3-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+      "size": 366189,
       "url": "https://files.pythonhosted.org/packages/04/8f/d2f3f532616be4d06c316ef119683e832bd3d41e112bf3a88f4151c95b17/rpds_py-2026.6.3-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
       "sha256": "ecabd69db66de867690f9797f2f8fa27ba501bbc24540cbdbdc649cd15888ba6",
       "license_file": "rpds_py-2026.6.3.dist-info/licenses/LICENSE",
@@ -103,6 +109,7 @@
       "requires_python": ">=3.9",
       "dependencies": [],
       "filename": "typing_extensions-4.16.0-py3-none-any.whl",
+      "size": 45571,
       "url": "https://files.pythonhosted.org/packages/49/d3/b8441a820a491ddfc024b0b0cf0393375b75ea13866d9c66727e54c2fc80/typing_extensions-4.16.0-py3-none-any.whl",
       "sha256": "481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8",
       "license_file": "typing_extensions-4.16.0.dist-info/licenses/LICENSE",

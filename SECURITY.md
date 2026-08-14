@@ -39,9 +39,12 @@ project.
   review before gaining state-changing tools.
 - `qemu-edu-lab` performs only bounded local reads. It accepts no arbitrary
   path or URL, emits no raw logs or local identity, and uses fixed no-shell Git
-  queries with hooks, prompting, paging, optional writes, and network operations
-  disabled. Its host Git executable and concurrently mutable local filesystem
-  remain documented trust boundaries.
+  queries with hooks, prompting, paging, optional writes, and replacement refs
+  disabled. Included or worktree-scoped configuration and partial/promisor
+  repositories are rejected before object queries, removing the lazy-fetch
+  path; the adapter also exports Git's no-lazy-fetch guard. Raw origin checks
+  do not honor URL rewrites. Its host Git executable and
+  concurrently mutable local filesystem remain documented trust boundaries.
 
 Do not report ordinary setup questions as vulnerabilities; use a normal issue
 and remove secrets from logs first.

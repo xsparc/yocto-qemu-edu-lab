@@ -138,11 +138,12 @@ SPDX-License-Identifier: MIT
   alternate evidence paths, publication, merge, tag, and release remain out of
   scope. The independent schema oracle is isolated to CI and may download only
   the six exact wheels in the checked-in lock after SHA-256 verification.
-- The frozen local A006 candidate passes 172 Windows-host tests with 16 expected
-  native-Linux skips, all 26 focused read-only Linux tests without skips, every
-  command for both labs in a network-disabled read-only container, the exact
-  six-wheel metadata/digest/license verifier, the installed Draft 2020-12
-  oracle, actionlint, ShellCheck, staged checksums, and REUSE 108/108. The exact
-  Linux wheel installation, hosted jobs, required independent reviews,
+- The hardened local A006 candidate passes all 180 Windows-host tests with 16
+  expected native-Linux skips and all 180 tests in a network-disabled,
+  capability-free Linux CPython 3.12 environment with no skips and a read-only
+  repository. Every JSON command for both labs emits a valid document with its
+  declared exit, and the exact six-wheel size/digest/metadata/license verifier,
+  ephemeral installed Draft 2020-12 oracle, actionlint, ShellCheck, and pinned
+  REUSE 108/108 gates pass. Hosted jobs, required independent reviews,
   publication, and merge remain pending.
 - Public workflow state uses tool-neutral maintainer paths while preserving the same task, approval, validation, review, and handoff semantics.

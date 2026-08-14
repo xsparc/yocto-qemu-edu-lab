@@ -207,27 +207,33 @@ class WorkflowValidationTests(unittest.TestCase):
         text = self.replace_in_task(
             text, task_id, f'status = "{original_status}"', 'status = "Done"'
         )
+        completed = ", ".join(
+            f'"{review}"' for review in task["reviews_completed"]
+        )
         text = self.replace_in_task(
             text,
             task_id,
-            "reviews_completed = []",
+            f"reviews_completed = [{completed}]",
             'reviews_completed = ["quality"]',
         )
-        text = self.replace_in_task(
-            text,
-            task_id,
-            "validation_evidence = []",
-            'validation_evidence = ["tests passed"]',
-        )
-        text = self.replace_in_task(
-            text,
-            task_id,
-            "review_evidence = []",
-            'review_evidence = ["quality reviewed"]',
-        )
-        text = self.replace_in_task(
-            text, task_id, 'result = ""', 'result = "complete"'
-        )
+        if not task["validation_evidence"]:
+            text = self.replace_in_task(
+                text,
+                task_id,
+                "validation_evidence = []",
+                'validation_evidence = ["tests passed"]',
+            )
+        if not task["review_evidence"]:
+            text = self.replace_in_task(
+                text,
+                task_id,
+                "review_evidence = []",
+                'review_evidence = ["quality reviewed"]',
+            )
+        if not task["result"]:
+            text = self.replace_in_task(
+                text, task_id, 'result = ""', 'result = "complete"'
+            )
         tasks_path.write_text(text, encoding="utf-8")
         ledger_path = root / "docs/maintainers/ledger.md"
         ledger_path.write_text(

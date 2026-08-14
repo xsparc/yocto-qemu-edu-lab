@@ -32,6 +32,19 @@ checked before freezing the A006 diagnostics boundary.
   importing repository state through a library or shell. Sources:
   <https://git-scm.com/docs/git> and
   <https://git-scm.com/docs/git-config/2.54.0#Documentation/git-config.txt-safedirectory>
+- Git replacement refs can make an object name resolve to different content,
+  while `url.*.insteadOf` rewrites the display returned by `remote get-url`.
+  Diagnostics therefore disables replacement objects and compares the one raw
+  local origin value without configuration includes or URL expansion. Included
+  and per-worktree configuration are rejected before other repository queries.
+  Source: <https://git-scm.com/docs/git>
+- Partial clones may lazily fetch a missing object during an otherwise local
+  object query. Diagnostics rejects included configuration and every local
+  partial/promisor marker before reading objects, then exports
+  `GIT_NO_LAZY_FETCH` as defense in depth. The public command retains Git 2.36
+  compatibility instead of depending on the `--no-lazy-fetch` option added in
+  Git 2.45. Sources: <https://git-scm.com/docs/git> and
+  <https://github.com/git/git/blob/master/Documentation/RelNotes/2.45.0.adoc>
 
 ## Independent schema oracle
 
@@ -41,10 +54,11 @@ checked before freezing the A006 diagnostics boundary.
   Source: <https://pypi.org/project/jsonschema/4.26.0/>
 - A resolver-selected dependency set would make the test oracle change over
   time. M6 instead records six exact CPython 3.12 Linux wheels, their SHA-256
-  digests, embedded metadata, license-file digests, and direct dependency
-  relationships. CI downloads those URLs directly, installs with no index and
-  no dependency resolution, disables schema retrieval, and deletes the
-  temporary environment on exit.
+  digests, exact sizes, embedded metadata, license-file digests, and direct
+  dependency relationships. CI caps each transfer at one MiB, downloads those
+  URLs directly, requires the recorded size and digest before opening or
+  installing a wheel, installs with no index and no dependency resolution,
+  disables schema retrieval, and deletes the temporary environment on exit.
 - The lock is specific to Linux CPython 3.12. It is not a runtime dependency,
   a general-purpose package lock, or evidence that another platform can install
   the same binary wheel set.

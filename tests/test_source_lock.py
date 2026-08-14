@@ -223,6 +223,40 @@ class SourceLockTests(unittest.TestCase):
         with self.assertRaisesRegex(MODULE.LockError, "different origin"):
             MODULE.sync_source(root, source, offline=True)
 
+    def test_url_rewrite_cannot_disguise_a_wrong_origin(self) -> None:
+        root = self.temporary_root()
+        source = copy.deepcopy(self.lock()["sources"][0])
+        self.create_checkout(root, source)
+        path = root / source["path"]
+        wrong = "https://wrong.example/bitbake"
+        self.git(path, "remote", "set-url", "origin", wrong)
+        self.git(
+            path,
+            "config",
+            "url.https://git.openembedded.org/.insteadOf",
+            "https://wrong.example/",
+        )
+        self.assertEqual(source["url"], self.git(path, "remote", "get-url", "origin"))
+        with self.assertRaisesRegex(MODULE.LockError, "different origin"):
+            MODULE.sync_source(root, source, offline=True)
+
+    def test_replacement_ref_cannot_disguise_a_different_clean_tree(self) -> None:
+        root = self.temporary_root()
+        source = copy.deepcopy(self.lock()["sources"][0])
+        locked = self.create_checkout(root, source)
+        path = root / source["path"]
+        marker = path / source["required_paths"][0]
+        marker.write_text("replacement\n", encoding="utf-8")
+        self.git(path, "add", ".")
+        self.git(path, "commit", "--quiet", "-m", "replacement")
+        replacement = self.git(path, "rev-parse", "HEAD")
+        self.git(path, "replace", locked, replacement)
+        self.git(path, "checkout", "--quiet", "--detach", locked)
+        self.assertEqual("", self.git(path, "status", "--porcelain=v1"))
+        result = MODULE.inspect_source(root, source)
+        self.assertEqual("drifted", result["state"])
+        self.assertFalse(result["clean"])
+
     def test_unexpected_head_is_refused(self) -> None:
         root = self.temporary_root()
         source = copy.deepcopy(self.lock()["sources"][0])

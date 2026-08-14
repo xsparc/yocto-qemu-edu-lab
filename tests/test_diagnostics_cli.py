@@ -45,6 +45,15 @@ class DiagnosticsCliTests(unittest.TestCase):
                 self.assertEqual(b"", result.stdout)
                 self.assertIn(b"qemu-edu-lab", result.stderr)
 
+    def test_invalid_argument_diagnostics_are_bounded_and_do_not_echo_input(self) -> None:
+        supplied = "x" * 20_000
+        result = self.run_cli("--format", supplied, "status")
+        self.assertEqual(2, result.returncode)
+        self.assertEqual(b"", result.stdout)
+        self.assertLess(len(result.stderr), 1024)
+        self.assertNotIn(supplied.encode(), result.stderr)
+        self.assertIn(b"qemu-edu-lab: invalid arguments", result.stderr)
+
     def test_text_and_json_reach_the_same_aggregate_result(self) -> None:
         json_result = self.run_cli("--format", "json", "status")
         text_result = self.run_cli("--format", "text", "status")

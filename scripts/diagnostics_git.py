@@ -17,6 +17,7 @@ from pathlib import Path
 
 OUTPUT_LIMIT = 64 * 1024
 TIMEOUT_SECONDS = 8
+MINIMUM_GIT = (2, 36, 0)
 PROJECT_REF_PREFIX = "refs/yocto-qemu-edu-lab"
 
 
@@ -64,6 +65,8 @@ def _environment(path: Path) -> dict[str, str]:
         "GIT_TRACE_CURL": "0",
         "GIT_CONFIG_GLOBAL": os.devnull,
         "GIT_CONFIG_SYSTEM": os.devnull,
+        "GIT_NO_LAZY_FETCH": "1",
+        "GIT_NO_REPLACE_OBJECTS": "1",
     }
     if os.name == "nt" and "SystemRoot" in os.environ:
         environment["SystemRoot"] = os.environ["SystemRoot"]
@@ -140,6 +143,7 @@ def invoke(executable: Path, cwd: Path, arguments: list[str]) -> tuple[int, byte
 
 def git_arguments(root: Path, arguments: list[str]) -> list[str]:
     return [
+        "--no-replace-objects",
         "-c", f"safe.directory={root}",
         "-c", "core.fsmonitor=false",
         "-c", "core.untrackedCache=false",
@@ -163,13 +167,57 @@ def git_version(executable: Path, cwd: Path) -> tuple[int, int, int]:
     if code or not match:
         raise ToolContractError("Git version output is invalid")
     version = tuple(int(part) for part in match.groups())
-    if version < (2, 36, 0):
+    if version < MINIMUM_GIT:
         raise ToolContractError("Git version is below 2.36.0")
     return version
 
 
+def has_unsupported_repository_config(executable: Path, path: Path) -> bool:
+    """Detect includes and partial-clone settings before any object query."""
+    output = git_query(
+        executable,
+        path,
+        "config",
+        "--local",
+        "--no-includes",
+        "--null",
+        "--list",
+    )
+    for record in output.split(b"\0"):
+        key = record.partition(b"\n")[0].lower()
+        if key == b"include.path":
+            return True
+        if key.startswith(b"includeif.") and key.endswith(b".path"):
+            return True
+        if key in {b"extensions.partialclone", b"extensions.worktreeconfig"}:
+            return True
+        if key.startswith(b"remote.") and key.endswith(b".promisor"):
+            return True
+    return False
+
+
+def origin_matches(executable: Path, path: Path, expected: str) -> bool:
+    """Compare the one raw local origin URL without rewrite expansion or includes."""
+    output = git_query(
+        executable,
+        path,
+        "config",
+        "--local",
+        "--no-includes",
+        "--null",
+        "--get-all",
+        "remote.origin.url",
+        allow=(0, 1),
+    )
+    return output == expected.encode("utf-8") + b"\0"
+
+
 def repository_state(executable: Path, root: Path) -> tuple[str, bool]:
     root = root.resolve(strict=True)
+    if has_unsupported_repository_config(executable, root):
+        raise ToolContractError(
+            "included, worktree-scoped, partial, or promisor repository configuration is unsupported"
+        )
     top = git_query(executable, root, "rev-parse", "--show-toplevel").decode("utf-8").strip()
     if Path(top).resolve(strict=True) != root:
         raise ToolContractError("Git top level differs from the project root")
@@ -184,6 +232,8 @@ def repository_state(executable: Path, root: Path) -> tuple[str, bool]:
 
 def checkout_matches(executable: Path, path: Path, source: dict[str, object]) -> bool:
     path = path.resolve(strict=True)
+    if has_unsupported_repository_config(executable, path):
+        return False
     top = git_query(executable, path, "rev-parse", "--show-toplevel").decode("utf-8").strip()
     if Path(top).resolve(strict=True) != path:
         return False
@@ -202,7 +252,7 @@ def checkout_matches(executable: Path, path: Path, source: dict[str, object]) ->
         ),
     )
     queries = (
-        git_query(executable, path, "remote", "get-url", "origin").decode("utf-8").strip() == source["url"],
+        origin_matches(executable, path, str(source["url"])),
         git_query(executable, path, "rev-parse", "--show-object-format").strip() == b"sha1",
         git_query(executable, path, "rev-parse", "--verify", "HEAD").decode("ascii").strip() == expected,
         git_query(executable, path, "symbolic-ref", "-q", "HEAD", allow=(0, 1)).strip() == b"",

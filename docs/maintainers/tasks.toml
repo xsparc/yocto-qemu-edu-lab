@@ -422,9 +422,9 @@ approval = "Repository owner explicitly approved A006/M6 using the documented de
 reviews_required = ["architecture", "quality", "devops", "security", "licensing", "documentation", "independent-diff"]
 reviews_completed = []
 validation_evidence = [
-  "Frozen Windows CPython 3.12 validation passed all 172 repository tests with 16 expected native-Linux skips; source-lock, lab-catalog, workflow, CI-policy, both QEMU patch, exact diagnostics-lock, independent Draft 2020-12 schema, checksum, actionlint 1.7.12, ShellCheck 0.11.0, and staged/worktree diff gates passed.",
-  "A pinned network-disabled, capability-free, read-only Linux container ran every status, doctor, inspect, and evidence JSON command for both labs with the declared result/exit combinations, then passed all 26 focused A006 POSIX tests without skips, including direct executable and symbolic-link rejection contracts.",
-  "All six authorized Linux CPython 3.12 wheel files independently matched their exact lock digests, package metadata, dependency metadata, and embedded-license digests. An exact-version local CPython 3.12 environment passed installed-package and schema-oracle validation; the isolated Linux wheel installation remains a hosted pre-merge gate.",
+  "Post-hardening Windows CPython 3.12 validation passed all 180 repository tests with 16 expected native-Linux skips; source-lock, lab-catalog, workflow, CI-policy, both QEMU patch, exact diagnostics-lock, independent Draft 2020-12 schema, actionlint 1.7.12, and ShellCheck 0.11.0 gates passed.",
+  "A content-addressed, network-disabled, capability-free Linux CPython 3.12 environment with a read-only repository passed all 180 tests without skips and ran every status, doctor, inspect, and evidence JSON command for both labs with valid documents and the declared result/exit combinations.",
+  "All six authorized Linux CPython 3.12 wheel files independently matched their exact sizes, lock digests, package metadata, dependency metadata, and embedded-license digests. An ephemeral network-disabled CPython 3.12 environment installed only those wheels and passed installed-package and independent schema-oracle validation; the isolated hosted rerun remains a pre-merge gate.",
   "Pinned network-disabled, capability-free, read-only REUSE 6.2.0 passed 108/108 files with no issue; the source tree redistributes none of the six test-only wheels.",
 ]
 review_evidence = []

@@ -12,6 +12,7 @@ import importlib
 import importlib.metadata
 import json
 import re
+import stat
 import sys
 import zipfile
 from pathlib import Path
@@ -21,9 +22,10 @@ from typing import Any
 LOCK_PATH = "config/diagnostics-schema-validator.lock.json"
 MAX_LOCK_BYTES = 64 * 1024
 SHA256 = re.compile(r"[0-9a-f]{64}")
-EXPECTED_CANONICAL_SHA256 = "5e19001d5e2fa0405c963123ca09f2c14c66a02d21264a7fac9e951c284b967e"
+EXPECTED_CANONICAL_SHA256 = "a9faafce4a20178088718ba41f007091f0e663559dd7f6fb1771db7b8946ca64"
 ROOT_KEYS = {"schema_version", "purpose", "runtime_dependency", "environment", "installation", "packages", "license_summary", "verification"}
-PACKAGE_KEYS = {"name", "version", "license_expression", "requires_python", "dependencies", "filename", "url", "sha256", "license_file", "license_sha256"}
+PACKAGE_KEYS = {"name", "version", "license_expression", "requires_python", "dependencies", "filename", "size", "url", "sha256", "license_file", "license_sha256"}
+MAXIMUM_WHEEL_BYTES = 1024 * 1024
 EXPECTED = (
     ("attrs", "26.1.0", "attrs-26.1.0-py3-none-any.whl", "MIT", "c647aa4a12dfbad9333ca4e71fe62ddc36f4e63b2d260a37a8b83d2f043ac309", "attrs-26.1.0.dist-info/licenses/LICENSE", "882115c95dfc2af1eeb6714f8ec6d5cbcabf667caff8729f42420da63f714e9f", ()),
     ("jsonschema", "4.26.0", "jsonschema-4.26.0-py3-none-any.whl", "MIT", "d489f15263b8d200f8387e64b4c3a75f06629559fb73deb8fdfb525f2dab50ce", "jsonschema-4.26.0.dist-info/licenses/COPYING", "4f92a015a13c4d1a040bef018aa13430b4f1bc73b41b16bb846c346766de7439", ("attrs>=22.2.0", "jsonschema-specifications>=2023.03.6", "referencing>=0.28.4", "rpds-py>=0.25.0")),
@@ -39,6 +41,14 @@ EXPECTED_URLS = {
     "referencing": "https://files.pythonhosted.org/packages/2c/58/ca301544e1fa93ed4f80d724bf5b194f6e4b945841c5bfd555878eea9fcb/referencing-0.37.0-py3-none-any.whl",
     "rpds-py": "https://files.pythonhosted.org/packages/04/8f/d2f3f532616be4d06c316ef119683e832bd3d41e112bf3a88f4151c95b17/rpds_py-2026.6.3-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
     "typing-extensions": "https://files.pythonhosted.org/packages/49/d3/b8441a820a491ddfc024b0b0cf0393375b75ea13866d9c66727e54c2fc80/typing_extensions-4.16.0-py3-none-any.whl",
+}
+EXPECTED_SIZES = {
+    "attrs": 67548,
+    "jsonschema": 90630,
+    "jsonschema-specifications": 18437,
+    "referencing": 26766,
+    "rpds-py": 366189,
+    "typing-extensions": 45571,
 }
 
 
@@ -87,9 +97,11 @@ def load(path: Path) -> dict[str, Any]:
     environment = exact(value["environment"], {"operating_system", "architecture", "python_implementation", "python_version", "python_abi", "runner_label"}, "environment")
     if environment != {"operating_system": "linux", "architecture": "x86_64", "python_implementation": "cpython", "python_version": "3.12", "python_abi": "cp312", "runner_label": "ubuntu-24.04"}:
         raise LockError("dependency environment differs from the approved platform")
-    installation = exact(value["installation"], {"network_scope", "verify_before_install", "source_distributions", "package_index_resolution", "dependency_resolution", "required_options"}, "installation")
+    installation = exact(value["installation"], {"network_scope", "maximum_wheel_bytes", "verify_before_install", "source_distributions", "package_index_resolution", "dependency_resolution", "required_options"}, "installation")
     if installation["network_scope"] != "six exact HTTPS wheel URLs" or installation["verify_before_install"] != "sha256":
         raise LockError("installation network or integrity policy differs")
+    if type(installation["maximum_wheel_bytes"]) is not int or installation["maximum_wheel_bytes"] != MAXIMUM_WHEEL_BYTES:
+        raise LockError("installation wheel byte limit differs")
     if any(installation[key] != "forbidden" for key in ("source_distributions", "package_index_resolution", "dependency_resolution")):
         raise LockError("installation policy permits dependency expansion")
     if installation["required_options"] != ["--no-index", "--no-deps", "--only-binary=:all:", "--disable-pip-version-check", "--no-input"]:
@@ -104,6 +116,8 @@ def load(path: Path) -> dict[str, Any]:
             raise LockError(f"package identity differs for {expected[0]}")
         if package["url"] != EXPECTED_URLS[expected[0]]:
             raise LockError(f"package URL is not an exact PyPI file URL for {expected[0]}")
+        if type(package["size"]) is not int or package["size"] != EXPECTED_SIZES[expected[0]]:
+            raise LockError(f"package size differs for {expected[0]}")
         if not SHA256.fullmatch(package["sha256"]) or not SHA256.fullmatch(package["license_sha256"]):
             raise LockError(f"package digest is invalid for {expected[0]}")
         if not isinstance(package["dependencies"], list) or not all(isinstance(item, str) and item for item in package["dependencies"]):
@@ -117,13 +131,19 @@ def load(path: Path) -> dict[str, Any]:
 
 def verify_files(lock: dict[str, Any], directory: Path) -> None:
     expected_names = {package["filename"] for package in lock["packages"]}
-    actual_names = {path.name for path in directory.iterdir() if path.is_file()}
+    actual_names = {path.name for path in directory.iterdir()}
     if actual_names != expected_names:
         raise LockError("wheel directory differs from the locked six-file set")
     for package in lock["packages"]:
         path = directory / package["filename"]
-        raw = path.read_bytes()
-        if hashlib.sha256(raw).hexdigest() != package["sha256"]:
+        info = path.lstat()
+        if stat.S_ISLNK(info.st_mode) or not stat.S_ISREG(info.st_mode):
+            raise LockError(f"wheel is not a direct regular file for {package['name']}")
+        if info.st_size != package["size"] or info.st_size > MAXIMUM_WHEEL_BYTES:
+            raise LockError(f"wheel size differs for {package['name']}")
+        with path.open("rb") as handle:
+            digest = hashlib.file_digest(handle, "sha256").hexdigest()
+        if digest != package["sha256"]:
             raise LockError(f"wheel digest differs for {package['name']}")
         with zipfile.ZipFile(path) as archive:
             try:

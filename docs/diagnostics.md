@@ -106,12 +106,17 @@ paths, or arbitrary evidence fields.
 The Git adapter is the only subprocess boundary. It resolves a native Git 2.36
 or newer executable, uses no shell, applies fixed read-only queries, disables
 hooks, paging, prompting, optional locks, fsmonitor, untracked-cache updates,
-maintenance, system/global configuration, and network operations, and bounds
-time and combined output. The selected host executable remains a host trust
-boundary. POSIX uses a new process group for termination; Windows guarantees
-direct-child termination for these fixed Git built-ins, not arbitrary process
-tree containment. File controls detect stable and observable replacement but
-do not claim protection against a privileged concurrently mutating host.
+maintenance, replacement refs, system/global configuration, and network
+operations. Included or worktree-scoped configuration and partial or promisor
+repositories are rejected from the raw local configuration before object
+queries, removing the lazy-fetch path; the adapter also exports Git's
+no-lazy-fetch guard. Locked origin checks read the one raw local URL without
+`url.*.insteadOf` expansion or configuration includes. Time and combined
+output are bounded. The selected host executable remains a host trust boundary.
+POSIX uses a new process group for termination; Windows guarantees direct-child
+termination for these fixed Git built-ins, not arbitrary process-tree
+containment. File controls detect stable and observable replacement but do not
+claim protection against a privileged concurrently mutating host.
 
 ## Independent schema dependency boundary
 
@@ -122,7 +127,8 @@ inside the `diagnostics-schema` CI job. The complete six-wheel Linux CPython
 `config/diagnostics-schema-validator.lock.json` with exact file URLs, wheel
 hashes, embedded-license paths and hashes, versions, and dependency metadata.
 
-CI downloads only those six files, verifies them before installation, disables
+CI limits each download to one MiB, requires its exact recorded file size,
+verifies it before installation, disables
 the package index and resolver, forbids source distributions, installs into an
 ephemeral environment, checks installed versions, runs positive and adversarial
 schema cases, and publishes no artifact. Five wheels are MIT and

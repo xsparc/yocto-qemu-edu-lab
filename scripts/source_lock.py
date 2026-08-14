@@ -308,7 +308,7 @@ def locked_path(root: Path, relative: str) -> Path:
 
 def git(path: Path, *arguments: str, check: bool = True) -> subprocess.CompletedProcess[str]:
     result = subprocess.run(
-        ["git", "-C", str(path), *arguments],
+        ["git", "--no-replace-objects", "-C", str(path), *arguments],
         check=False,
         capture_output=True,
         text=True,
@@ -321,6 +321,26 @@ def git(path: Path, *arguments: str, check: bool = True) -> subprocess.Completed
 
 def git_output(path: Path, *arguments: str) -> str:
     return git(path, *arguments).stdout.strip()
+
+
+def origin_url(path: Path) -> str | None:
+    """Return exactly one raw local origin URL without includes or rewrites."""
+    result = git(
+        path,
+        "config",
+        "--local",
+        "--no-includes",
+        "--null",
+        "--get-all",
+        "remote.origin.url",
+        check=False,
+    )
+    if result.returncode or not result.stdout.endswith("\0"):
+        return None
+    values = result.stdout.split("\0")
+    if len(values) != 2 or values[1] != "":
+        return None
+    return values[0]
 
 
 def inspect_source(root: Path, source: dict[str, Any]) -> dict[str, Any]:
@@ -346,9 +366,7 @@ def inspect_source(root: Path, source: dict[str, Any]) -> dict[str, Any]:
         return result
 
     result["state"] = "drifted"
-    origin = git(path, "remote", "get-url", "origin", check=False)
-    if origin.returncode == 0:
-        result["origin"] = origin.stdout.strip()
+    result["origin"] = origin_url(path)
     if result["origin"] != source["url"]:
         errors.append(f"origin must be {source['url']}")
 
@@ -388,7 +406,7 @@ def preflight_existing(root: Path, source: dict[str, Any]) -> tuple[Path, bool]:
         return path, False
     if not path.is_dir() or git(path, "rev-parse", "--is-inside-work-tree", check=False).returncode:
         raise LockError(f"{source['id']}: existing path is not a Git worktree")
-    if git_output(path, "remote", "get-url", "origin") != source["url"]:
+    if origin_url(path) != source["url"]:
         raise LockError(f"{source['id']}: refusing checkout with a different origin")
     if git_output(path, "rev-parse", "--show-object-format") != source["object_format"]:
         raise LockError(f"{source['id']}: refusing checkout with a different object format")

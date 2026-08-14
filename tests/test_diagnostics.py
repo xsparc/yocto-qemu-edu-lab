@@ -7,6 +7,7 @@ import copy
 import importlib.util
 import json
 import os
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -54,6 +55,14 @@ class DiagnosticsTests(unittest.TestCase):
             diagnostics.validate_document(changed)
         changed = copy.deepcopy(document)
         changed["result"] = "fail"
+        with self.assertRaises(ValueError):
+            diagnostics.validate_document(changed)
+        changed = copy.deepcopy(document)
+        changed["schema_version"] = True
+        with self.assertRaises(ValueError):
+            diagnostics.validate_document(changed)
+        changed = copy.deepcopy(document)
+        changed["checks"][0]["required"] = 1
         with self.assertRaises(ValueError):
             diagnostics.validate_document(changed)
 
@@ -134,6 +143,91 @@ class DiagnosticsTests(unittest.TestCase):
         with patch.object(diagnostics_git, "TIMEOUT_SECONDS", 0.05):
             with self.assertRaises(diagnostics_git.ToolContractError):
                 diagnostics_git.invoke(executable, ROOT, ["-B", "-c", "import time; time.sleep(2)"])
+
+    def test_git_contract_hardens_environment_and_rejects_old_versions(self) -> None:
+        executable = Path(sys.executable)
+        with patch.object(diagnostics_git, "invoke", return_value=(0, b"git version 2.35.8\n")):
+            with self.assertRaisesRegex(diagnostics_git.ToolContractError, "2.36.0"):
+                diagnostics_git.git_version(executable, ROOT)
+        with patch.object(diagnostics_git, "invoke", return_value=(0, b"git version 2.36.0\n")):
+            self.assertEqual((2, 36, 0), diagnostics_git.git_version(executable, ROOT))
+        environment = diagnostics_git._environment(executable)
+        self.assertEqual("1", environment["GIT_NO_LAZY_FETCH"])
+        self.assertEqual("1", environment["GIT_NO_REPLACE_OBJECTS"])
+
+    def _git_fixture(self) -> tuple[tempfile.TemporaryDirectory[str], Path, Path]:
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        root = Path(temporary.name).resolve()
+        executable = diagnostics_git.resolve_native("git")
+        try:
+            diagnostics_git.git_version(executable, root)
+        except diagnostics_git.ToolContractError as exc:
+            self.skipTest(str(exc))
+        subprocess.run([str(executable), "init", "--quiet", "--object-format=sha1", str(root)], check=True)
+        subprocess.run([str(executable), "-C", str(root), "config", "user.email", "tests@example.invalid"], check=True)
+        subprocess.run([str(executable), "-C", str(root), "config", "user.name", "Diagnostics Tests"], check=True)
+        return temporary, root, executable
+
+    def test_url_rewrite_cannot_disguise_a_wrong_checkout_origin(self) -> None:
+        _, root, executable = self._git_fixture()
+        (root / "fixture").write_text("locked\n", encoding="utf-8")
+        subprocess.run([str(executable), "-C", str(root), "add", "fixture"], check=True)
+        subprocess.run([str(executable), "-C", str(root), "commit", "--quiet", "-m", "locked"], check=True)
+        commit = subprocess.check_output([str(executable), "-C", str(root), "rev-parse", "HEAD"], text=True).strip()
+        expected = "https://expected.example/repo"
+        wrong = "https://wrong.example/repo"
+        subprocess.run([str(executable), "-C", str(root), "remote", "add", "origin", wrong], check=True)
+        subprocess.run([str(executable), "-C", str(root), "config", "url.https://expected.example/.insteadOf", "https://wrong.example/"], check=True)
+        for suffix in ("branch", "release"):
+            subprocess.run([str(executable), "-C", str(root), "update-ref", f"refs/yocto-qemu-edu-lab/bitbake/{suffix}", commit], check=True)
+        subprocess.run([str(executable), "-C", str(root), "checkout", "--quiet", "--detach", commit], check=True)
+        expanded = subprocess.check_output([str(executable), "-C", str(root), "remote", "get-url", "origin"], text=True).strip()
+        self.assertEqual(expected, expanded)
+        source = {"id": "bitbake", "url": expected, "commit": commit}
+        self.assertFalse(diagnostics_git.checkout_matches(executable, root, source))
+
+    def test_replacement_ref_cannot_disguise_a_different_clean_tree(self) -> None:
+        _, root, executable = self._git_fixture()
+        fixture = root / "fixture"
+        fixture.write_text("locked\n", encoding="utf-8")
+        subprocess.run([str(executable), "-C", str(root), "add", "fixture"], check=True)
+        subprocess.run([str(executable), "-C", str(root), "commit", "--quiet", "-m", "locked"], check=True)
+        locked = subprocess.check_output([str(executable), "-C", str(root), "rev-parse", "HEAD"], text=True).strip()
+        fixture.write_text("replacement\n", encoding="utf-8")
+        subprocess.run([str(executable), "-C", str(root), "commit", "--quiet", "-am", "replacement"], check=True)
+        replacement = subprocess.check_output([str(executable), "-C", str(root), "rev-parse", "HEAD"], text=True).strip()
+        subprocess.run([str(executable), "-C", str(root), "replace", locked, replacement], check=True)
+        subprocess.run([str(executable), "-C", str(root), "checkout", "--quiet", "--detach", locked], check=True)
+        self.assertEqual("replacement\n", fixture.read_text(encoding="utf-8"))
+        self.assertEqual("", subprocess.check_output([str(executable), "-C", str(root), "status", "--porcelain=v1"], text=True))
+        revision, dirty = diagnostics_git.repository_state(executable, root)
+        self.assertEqual(locked, revision)
+        self.assertTrue(dirty)
+
+    def test_promisor_configuration_is_rejected_before_object_queries(self) -> None:
+        _, root, executable = self._git_fixture()
+        subprocess.run(
+            [str(executable), "-C", str(root), "config", "remote.origin.promisor", "true"],
+            check=True,
+        )
+        with self.assertRaisesRegex(
+            diagnostics_git.ToolContractError, "partial, or promisor"
+        ):
+            diagnostics_git.repository_state(executable, root)
+
+    def test_included_and_worktree_configuration_are_rejected(self) -> None:
+        for setting in ("include.path", "extensions.worktreeConfig"):
+            with self.subTest(setting=setting):
+                _, root, executable = self._git_fixture()
+                subprocess.run(
+                    [str(executable), "-C", str(root), "config", setting, "true"],
+                    check=True,
+                )
+                with self.assertRaisesRegex(
+                    diagnostics_git.ToolContractError, "included, worktree-scoped"
+                ):
+                    diagnostics_git.repository_state(executable, root)
 
     def test_document_contains_no_host_or_private_identity(self) -> None:
         document, _ = diagnostics.command_document(ROOT, "inspect", "pci-x86-64")
