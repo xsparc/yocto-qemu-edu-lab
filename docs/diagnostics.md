@@ -27,8 +27,10 @@ or a path to the repository checkout. The executable derives its repository
 root from that path rather than from the current working directory.
 
 An omitted lab selects the catalog default, `pci-x86-64`. The only formats are
-`text` and `json`; text is the default. Empty or unknown arguments exit 2,
-write a bounded usage message to stderr, and emit no diagnostic document.
+`text` and `json`; text is the default. Parser syntax errors exit 2 with bounded
+usage plus the fixed `invalid arguments` line. A selector that violates the
+catalog contract exits 2 with only that fixed line. Neither path echoes the
+rejected value or emits diagnostic output.
 An unexpected internal exception exits 1 with one fixed stderr line and no
 document; tracebacks and exception text are never exposed by the entry point.
 A closed or failed output sink also exits 1 with the fixed `output unavailable`
@@ -54,10 +56,12 @@ future-build guarantee. Missing checkouts, configuration files, or evidence are
 
 ## Results and exits
 
-Every non-usage invocation whose output sink remains available emits one closed
-version-1 document. Checks have the exact fields `id`, `status`, `required`, and
-`summary` in command-defined order. Output-sink failure is a transport error,
-not a diagnostic aggregate result.
+Every non-usage invocation builds the same version-1 semantic model. JSON emits
+the complete closed schema document; default text emits a deliberately smaller
+human rendering of its aggregate, ordered check IDs, statuses, summaries, and
+data projection. In the semantic model and JSON, checks have the exact fields
+`id`, `status`, `required`, and `summary` in command-defined order. Output-sink
+failure is a transport error, not a diagnostic aggregate result.
 
 | Exit | Aggregate result | Meaning |
 |---:|---|---|

@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import copy
 import importlib.util
 import json
 import shutil
@@ -153,6 +154,51 @@ class WorkflowValidationTests(unittest.TestCase):
         state = MODULE.load_toml(ROOT / "docs/maintainers/tasks.toml")
         ids = [task["id"] for task in state["tasks"]]
         self.assertEqual(len(ids), len(set(ids)))
+
+    def test_task_prefix_and_ids_are_closed_ascii_project_identifiers(self) -> None:
+        config = MODULE.load_toml(ROOT / "docs/maintainers/config.toml")
+        state = MODULE.load_toml(ROOT / "docs/maintainers/tasks.toml")
+        for prefix in (
+            "/home/alice/token=supersecret-",
+            "A\nprivate",
+            "B",
+            "",
+        ):
+            with self.subTest(prefix=prefix):
+                changed_config = copy.deepcopy(config)
+                changed_state = copy.deepcopy(state)
+                changed_config["task_id_prefix"] = prefix
+                changed_state["task_id_prefix"] = prefix
+                errors, active = MODULE.validate_models(
+                    changed_config, changed_state, None
+                )
+                self.assertIn("task_id_prefix must be exactly A", errors)
+                self.assertIn(
+                    "tasks.toml task_id_prefix must be exactly A", errors
+                )
+                self.assertIsNone(active)
+
+        for task_id in (
+            "A\u0660\u0660\u0666",
+            "A006\nprivate",
+            "/home/alice/token=supersecret-006",
+            "A" + "0" * MODULE.MAX_TASK_ID_LENGTH,
+        ):
+            with self.subTest(task_id=task_id):
+                changed_state = copy.deepcopy(state)
+                active_task = next(
+                    task
+                    for task in changed_state["tasks"]
+                    if task["status"] == "In Progress"
+                )
+                active_task["id"] = task_id
+                errors, active = MODULE.validate_models(
+                    config, changed_state, None
+                )
+                self.assertTrue(
+                    any(error.startswith("invalid task id:") for error in errors)
+                )
+                self.assertIsNone(active)
 
     def test_only_one_task_is_in_progress(self) -> None:
         state = MODULE.load_toml(ROOT / "docs/maintainers/tasks.toml")

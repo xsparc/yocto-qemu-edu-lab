@@ -69,6 +69,8 @@ REQUIRED_PATH_LISTS = {
 }
 MAX_TOML_BYTES = 256 * 1024
 MAX_LEDGER_BYTES = 256 * 1024
+MAX_TASK_ID_LENGTH = 64
+TASK_ID = re.compile(r"A[0-9]{3,}\Z")
 EXPECTED_STATUSES = ["Proposed", "Ready", "In Progress", "Blocked", "Done"]
 WORKFLOW_KEYS = {
     "statuses",
@@ -150,12 +152,11 @@ def validate_models(
         if command not in validation_commands:
             errors.append(f"validation_commands is missing: {command}")
 
-    prefix = config.get("task_id_prefix", "A")
-    if not isinstance(prefix, str) or not prefix:
-        errors.append("task_id_prefix must be a non-empty string")
-        prefix = "A"
-    if task_state.get("task_id_prefix") != prefix:
-        errors.append("task_id_prefix differs between config.toml and tasks.toml")
+    prefix = config.get("task_id_prefix")
+    if prefix != "A":
+        errors.append("task_id_prefix must be exactly A")
+    if task_state.get("task_id_prefix") != "A":
+        errors.append("tasks.toml task_id_prefix must be exactly A")
 
     tasks = task_state.get("tasks", [])
     if not isinstance(tasks, list):
@@ -175,7 +176,7 @@ def validate_models(
         task_id = task_id_value if isinstance(task_id_value, str) else ""
         status = status_value if isinstance(status_value, str) else ""
         task_by_id[task_id] = task
-        if not re.fullmatch(re.escape(str(prefix)) + r"\d{3,}", task_id):
+        if len(task_id) > MAX_TASK_ID_LENGTH or not TASK_ID.fullmatch(task_id):
             errors.append(f"invalid task id: {task_id or '<empty>'}")
         if task_id in ids:
             errors.append(f"duplicate task id: {task_id}")

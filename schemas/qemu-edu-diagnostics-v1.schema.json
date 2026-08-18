@@ -25,7 +25,8 @@
     {"if": {"properties": {"result": {"const": "pass"}}, "required": ["result"]}, "then": {"properties": {"project": {"$ref": "#/$defs/passing_project"}, "lab": {"$ref": "#/$defs/passing_lab"}, "checks": {"items": {"properties": {"status": {"const": "pass"}}, "required": ["status"]}}}}},
     {"if": {"properties": {"result": {"const": "fail"}}, "required": ["result"]}, "then": {"properties": {"checks": {"contains": {"properties": {"status": {"const": "fail"}}, "required": ["status"]}, "minContains": 1}}}},
     {"if": {"properties": {"result": {"const": "unavailable"}}, "required": ["result"]}, "then": {"properties": {"checks": {"not": {"contains": {"properties": {"status": {"const": "fail"}}, "required": ["status"]}}, "contains": {"properties": {"status": {"const": "unavailable"}, "required": {"const": true}}, "required": ["status", "required"]}, "minContains": 1}}}},
-    {"if": {"properties": {"result": {"const": "warning"}}, "required": ["result"]}, "then": {"properties": {"checks": {"not": {"contains": {"anyOf": [{"properties": {"status": {"const": "fail"}}, "required": ["status"]}, {"properties": {"status": {"const": "unavailable"}, "required": {"const": true}}, "required": ["status", "required"]}]}}, "contains": {"anyOf": [{"properties": {"status": {"const": "warning"}}, "required": ["status"]}, {"properties": {"status": {"const": "unavailable"}, "required": {"const": false}}, "required": ["status", "required"]}]}, "minContains": 1}}}}
+    {"if": {"properties": {"result": {"const": "warning"}}, "required": ["result"]}, "then": {"properties": {"checks": {"not": {"contains": {"anyOf": [{"properties": {"status": {"const": "fail"}}, "required": ["status"]}, {"properties": {"status": {"const": "unavailable"}, "required": {"const": true}}, "required": ["status", "required"]}]}}, "contains": {"anyOf": [{"properties": {"status": {"const": "warning"}}, "required": ["status"]}, {"properties": {"status": {"const": "unavailable"}, "required": {"const": false}}, "required": ["status", "required"]}]}, "minContains": 1}}}},
+    {"if": {"properties": {"checks": {"contains": {"type": "object", "properties": {"id": {"const": "workflow.task"}, "status": {"not": {"const": "pass"}}}, "required": ["id", "status"]}}}, "required": ["checks"]}, "then": {"properties": {"data": {"properties": {"active_task": {"type": "null"}}}}}}
   ],
   "$defs": {
     "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}(?![\\s\\S])"},
@@ -91,7 +92,7 @@
     "active_task": {
       "oneOf": [
         {"type": "null"},
-        {"type": "object", "additionalProperties": false, "required": ["id", "status"], "properties": {"id": {"type": "string", "pattern": "^A[0-9]{3,}(?![\\s\\S])"}, "status": {"const": "In Progress"}}}
+        {"type": "object", "additionalProperties": false, "required": ["id", "status"], "properties": {"id": {"type": "string", "pattern": "^A[0-9]{3,}(?![\\s\\S])", "maxLength": 64}, "status": {"const": "In Progress"}}}
       ]
     },
     "evidence_summary": {

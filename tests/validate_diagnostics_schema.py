@@ -157,6 +157,26 @@ def main() -> int:
         "status": "In Progress",
     }
     rejected(validator, changed)
+    for task_id in (
+        "A\u0660\u0660\u0666",
+        "/home/alice/token=supersecret-006",
+        "A" + "0" * 64,
+    ):
+        changed = copy.deepcopy(baseline)
+        changed["data"]["active_task"] = {
+            "id": task_id,
+            "status": "In Progress",
+        }
+        rejected(validator, changed)
+    for status in ("fail", "unavailable"):
+        changed = copy.deepcopy(baseline)
+        changed["checks"][2] = diagnostics.check(
+            "workflow.task", status
+        ).object()
+        changed["result"] = status
+        rejected(validator, changed)
+        changed["data"]["active_task"] = None
+        validator.validate(changed)
     passing_status = copy.deepcopy(baseline)
     passing_status["checks"][-1] = diagnostics.check(
         "repository.clean", "pass"

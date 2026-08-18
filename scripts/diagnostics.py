@@ -33,6 +33,8 @@ SOURCE_ORDER = ("bitbake", "openembedded-core", "meta-yocto")
 MAX_VERSION_BYTES = 128
 MAX_WORKFLOW_BYTES = 256 * 1024
 MAX_EVIDENCE_BYTES = 1024 * 1024
+MAX_TASK_ID_LENGTH = 64
+TASK_ID = re.compile(r"A[0-9]{3,}\Z")
 PROJECT_VERSION = re.compile(
     r"(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)"
     r"(?:-(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)"
@@ -99,6 +101,19 @@ def valid_lab_id(value: Any) -> bool:
         isinstance(value, str)
         and 0 < len(value) <= lab_config.MAX_STRING_LENGTH
         and lab_config.LAB_ID.fullmatch(value) is not None
+    )
+
+
+def valid_active_task(value: Any) -> bool:
+    if value is None:
+        return True
+    return (
+        isinstance(value, dict)
+        and set(value) == {"id", "status"}
+        and isinstance(value.get("id"), str)
+        and len(value["id"]) <= MAX_TASK_ID_LENGTH
+        and TASK_ID.fullmatch(value["id"]) is not None
+        and value.get("status") == "In Progress"
     )
 
 
@@ -197,6 +212,7 @@ class Context:
         return self.record(check("repository.git", "pass"))
 
     def workflow(self) -> Check:
+        self.active_task = None
         try:
             config_raw = read_regular(self.root, "docs/maintainers/config.toml", MAX_WORKFLOW_BYTES)
             tasks_raw = read_regular(self.root, "docs/maintainers/tasks.toml", MAX_WORKFLOW_BYTES)
@@ -512,6 +528,14 @@ def validate_document(document: dict[str, Any]) -> None:
         raise ValueError("diagnostics lab manifest differs from its check")
     if statuses["lab.selection"] == "pass" and not lab_id_present:
         raise ValueError("diagnostics selected lab identity is unavailable")
+    if command in {"status", "doctor"}:
+        data = document["data"]
+        if not isinstance(data, dict) or not valid_active_task(
+            data.get("active_task")
+        ):
+            raise ValueError("diagnostics active task is invalid")
+        if statuses["workflow.task"] != "pass" and data.get("active_task") is not None:
+            raise ValueError("diagnostics active task differs from its check")
     if result == "pass":
         validate_pass_data(command, document["data"])
 
@@ -521,12 +545,16 @@ def validate_pass_data(command: str, data: Any) -> None:
         raise ValueError("passing diagnostics data is invalid")
     if command == "status":
         expected = {"active_task", "source_lock", "selected_lab"}
-        valid = isinstance(data.get("source_lock"), dict) and isinstance(
-            data.get("selected_lab"), dict
+        valid = (
+            valid_active_task(data.get("active_task"))
+            and isinstance(data.get("source_lock"), dict)
+            and isinstance(data.get("selected_lab"), dict)
         )
     elif command == "doctor":
         expected = {"active_task", "evidence"}
-        valid = isinstance(data.get("evidence"), dict)
+        valid = valid_active_task(data.get("active_task")) and isinstance(
+            data.get("evidence"), dict
+        )
     elif command == "inspect":
         expected = {
             "release",

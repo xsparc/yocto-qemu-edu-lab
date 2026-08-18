@@ -262,6 +262,29 @@ class DiagnosticsTests(unittest.TestCase):
             self.assertEqual((None, "unavailable"), ctx._git())
         resolve.assert_called_once_with("git")
 
+    def test_reused_context_clears_active_task_after_workflow_errors(self) -> None:
+        ctx = diagnostics.Context(ROOT, "pci-x86-64")
+        self.assertEqual("pass", ctx.workflow().status)
+        self.assertIsNotNone(ctx.active_task)
+
+        with patch.object(
+            diagnostics.validate_workflow,
+            "validate_models",
+            return_value=(["invalid workflow"], None),
+        ):
+            self.assertEqual("fail", ctx.workflow().status)
+        self.assertIsNone(ctx.active_task)
+
+        self.assertEqual("pass", ctx.workflow().status)
+        self.assertIsNotNone(ctx.active_task)
+        with patch.object(
+            diagnostics,
+            "read_regular",
+            side_effect=diagnostics.InputUnavailable("missing workflow"),
+        ):
+            self.assertEqual("unavailable", ctx.workflow().status)
+        self.assertIsNone(ctx.active_task)
+
     def test_git_invocation_bounds_output_and_time(self) -> None:
         executable = Path(sys.executable)
         with patch.object(diagnostics_git, "OUTPUT_LIMIT", 32):
@@ -369,6 +392,61 @@ class DiagnosticsTests(unittest.TestCase):
         for value in forbidden:
             if value and value != "__missing__":
                 self.assertNotIn(value, payload)
+
+    def test_unsafe_workflow_prefix_is_not_projected(self) -> None:
+        original = diagnostics.read_regular
+        secret = "/home/alice/token=supersecret-"
+
+        def supplied(root: Path, relative: str, maximum: int) -> bytes:
+            raw = original(root, relative, maximum)
+            if relative in {
+                "docs/maintainers/config.toml",
+                "docs/maintainers/tasks.toml",
+            }:
+                return raw.replace(b'task_id_prefix = "A"', f'task_id_prefix = "{secret}"'.encode())
+            return raw
+
+        with patch.object(diagnostics, "read_regular", side_effect=supplied):
+            document, exit_code = diagnostics.command_document(
+                ROOT, "status", "pci-x86-64"
+            )
+        payload = diagnostics.json_bytes(document)
+        self.assertEqual(1, exit_code)
+        self.assertEqual("fail", document["result"])
+        self.assertIsNone(document["data"]["active_task"])
+        self.assertNotIn(secret.encode(), payload)
+
+    def test_semantic_validator_rejects_unsafe_active_task(self) -> None:
+        document, _ = diagnostics.command_document(ROOT, "status", None)
+        for task_id in (
+            "/home/alice/token=supersecret-006",
+            "A\u0660\u0660\u0666",
+            "A006\n",
+            "A" + "0" * diagnostics.MAX_TASK_ID_LENGTH,
+        ):
+            with self.subTest(task_id=task_id):
+                changed = copy.deepcopy(document)
+                changed["data"]["active_task"] = {
+                    "id": task_id,
+                    "status": "In Progress",
+                }
+                with self.assertRaises(ValueError):
+                    diagnostics.validate_document(changed)
+
+    def test_semantic_validator_suppresses_active_task_when_workflow_fails(self) -> None:
+        document, _ = diagnostics.command_document(ROOT, "status", None)
+        self.assertIsNotNone(document["data"]["active_task"])
+        for status in ("fail", "unavailable"):
+            with self.subTest(status=status):
+                changed = copy.deepcopy(document)
+                changed["checks"][2] = diagnostics.check(
+                    "workflow.task", status
+                ).object()
+                changed["result"] = status
+                with self.assertRaises(ValueError):
+                    diagnostics.validate_document(changed)
+                changed["data"]["active_task"] = None
+                diagnostics.validate_document(changed)
 
     def test_status_reads_each_repository_input_once(self) -> None:
         original = diagnostics.read_regular
