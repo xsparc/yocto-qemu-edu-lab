@@ -117,6 +117,289 @@ def valid_active_task(value: Any) -> bool:
     )
 
 
+def exact_object(value: Any, fields: set[str]) -> bool:
+    return isinstance(value, dict) and set(value) == fields
+
+
+def valid_sha(value: Any, length: int) -> bool:
+    return (
+        isinstance(value, str)
+        and len(value) == length
+        and re.fullmatch(rf"[0-9a-f]{{{length}}}", value) is not None
+    )
+
+
+def valid_token(value: Any) -> bool:
+    return (
+        isinstance(value, str)
+        and 0 < len(value) <= lab_config.MAX_STRING_LENGTH
+        and lab_config.TOKEN.fullmatch(value) is not None
+    )
+
+
+def valid_relative_path(value: Any) -> bool:
+    try:
+        lab_config.relative_path(value, "diagnostics projection")
+    except lab_config.LabError:
+        return False
+    return True
+
+
+def valid_build_directory(value: Any) -> bool:
+    return (
+        isinstance(value, str)
+        and 0 < len(value) <= lab_config.MAX_STRING_LENGTH
+        and lab_config.BUILD_DIRECTORY.fullmatch(value) is not None
+    )
+
+
+def valid_git_ref(value: Any, prefix: str) -> bool:
+    try:
+        source_lock.git_ref(value, "diagnostics projection", prefix)
+    except source_lock.LockError:
+        return False
+    return True
+
+
+def valid_https_url(value: Any) -> bool:
+    return (
+        isinstance(value, str)
+        and 0 < len(value) <= source_lock.MAX_STRING_LENGTH
+        and value.startswith("https://")
+        and not any(character.isspace() for character in value)
+        and "\\" not in value
+    )
+
+
+def valid_selected_lab(value: Any) -> bool:
+    fields = {"build_dir", "machine", "image", "driver", "evidence_profile"}
+    return (
+        exact_object(value, fields)
+        and isinstance(value, dict)
+        and valid_build_directory(value["build_dir"])
+        and all(valid_token(value[field]) for field in fields - {"build_dir"})
+    )
+
+
+def valid_source_lock_projection(value: Any) -> bool:
+    return (
+        exact_object(value, {"sha256", "yocto_version", "yocto_series"})
+        and isinstance(value, dict)
+        and valid_sha(value["sha256"], 64)
+        and valid_token(value["yocto_version"])
+        and valid_token(value["yocto_series"])
+    )
+
+
+def valid_evidence_summary(value: Any) -> bool:
+    fields = {
+        "kind", "schema_version", "project", "build", "result", "summary",
+        "native_input_sha256", "source_lock_sha256", "file_sha256",
+    }
+    if not exact_object(value, fields) or not isinstance(value, dict):
+        return False
+    kind = value["kind"]
+    version = value["schema_version"]
+    if not (
+        (kind == runtime_evidence.KIND and type(version) is int and version in {1, 2, 3})
+        or (
+            kind == platform_runtime_evidence.KIND
+            and type(version) is int
+            and version == 1
+        )
+    ):
+        return False
+    expected_total = (
+        len(runtime_evidence.SUPPORTED_TESTS[version])
+        if kind == runtime_evidence.KIND
+        else len(platform_runtime_evidence.EXPECTED_TESTS)
+    )
+    project = value["project"]
+    build = value["build"]
+    summary = value["summary"]
+    summary_fields = {
+        "total",
+        "passed",
+        "failed",
+        "skipped",
+        "errors",
+        "expected_failures",
+        "unknown",
+    }
+    shape_valid = (
+        exact_object(project, {"version", "revision", "dirty"})
+        and isinstance(project, dict)
+        and valid_project_version(project["version"])
+        and valid_sha(project["revision"], 40)
+        and type(project["dirty"]) is bool
+        and exact_object(build, {"machine", "image", "testimage_exit_code"})
+        and isinstance(build, dict)
+        and valid_token(build["machine"])
+        and valid_token(build["image"])
+        and type(build["testimage_exit_code"]) is int
+        and 0 <= build["testimage_exit_code"] <= 255
+        and value["result"] in {"passed", "failed"}
+        and exact_object(summary, summary_fields)
+        and isinstance(summary, dict)
+        and all(type(summary[field]) is int and summary[field] >= 0 for field in summary)
+        and valid_sha(value["native_input_sha256"], 64)
+        and valid_sha(value["source_lock_sha256"], 64)
+        and valid_sha(value["file_sha256"], 64)
+    )
+    if not shape_valid:
+        return False
+    categories = (
+        "passed", "failed", "skipped", "errors", "expected_failures", "unknown"
+    )
+    if summary["total"] != expected_total or summary["total"] != sum(
+        summary[field] for field in categories
+    ):
+        return False
+    expected_result = (
+        "passed"
+        if summary["passed"] == expected_total
+        and build["testimage_exit_code"] == 0
+        else "failed"
+    )
+    return value["result"] == expected_result
+
+
+def valid_evidence_inputs(value: Any) -> bool:
+    if not exact_object(
+        value, {"lab_binding", "lab_index_sha256", "lab_manifest_sha256"}
+    ) or not isinstance(value, dict):
+        return False
+    if value["lab_binding"] == "bound":
+        return valid_sha(value["lab_index_sha256"], 64) and valid_sha(
+            value["lab_manifest_sha256"], 64
+        )
+    return (
+        value["lab_binding"] == "not-recorded"
+        and value["lab_index_sha256"] is None
+        and value["lab_manifest_sha256"] is None
+    )
+
+
+def valid_source_projection(value: Any, expected_id: str) -> bool:
+    return (
+        exact_object(value, {"id", "url", "branch_ref", "release_ref", "commit"})
+        and isinstance(value, dict)
+        and value["id"] == expected_id
+        and valid_https_url(value["url"])
+        and value["url"] == source_lock.SOURCE_URLS[expected_id]
+        and valid_git_ref(value["branch_ref"], "refs/heads/")
+        and valid_git_ref(value["release_ref"], "refs/tags/")
+        and valid_sha(value["commit"], 40)
+    )
+
+
+def valid_status_data(value: Any) -> bool:
+    return (
+        exact_object(value, {"active_task", "source_lock", "selected_lab"})
+        and isinstance(value, dict)
+        and valid_active_task(value["active_task"])
+        and (
+            value["source_lock"] is None
+            or valid_source_lock_projection(value["source_lock"])
+        )
+        and (
+            value["selected_lab"] is None
+            or valid_selected_lab(value["selected_lab"])
+        )
+    )
+
+
+def valid_doctor_data(value: Any) -> bool:
+    return (
+        exact_object(value, {"active_task", "evidence"})
+        and isinstance(value, dict)
+        and valid_active_task(value["active_task"])
+        and (
+            value["evidence"] is None
+            or valid_evidence_summary(value["evidence"])
+        )
+    )
+
+
+def valid_inspect_data(value: Any) -> bool:
+    fields = {"release", "sources", "build", "emulator", "runtime", "source_lock_sha256"}
+    if not exact_object(value, fields) or not isinstance(value, dict):
+        return False
+    release = value["release"]
+    sources = value["sources"]
+    build = value["build"]
+    emulator = value["emulator"]
+    runtime = value["runtime"]
+    release_valid = release is None or (
+        exact_object(release, {"project_version", "yocto_version", "yocto_series"})
+        and isinstance(release, dict)
+        and valid_project_version(release["project_version"])
+        and valid_token(release["yocto_version"])
+        and valid_token(release["yocto_series"])
+    )
+    sources_valid = sources is None or (
+        isinstance(sources, list)
+        and len(sources) == len(SOURCE_ORDER)
+        and all(
+            valid_source_projection(item, source_id)
+            for item, source_id in zip(sources, SOURCE_ORDER, strict=True)
+        )
+    )
+    build_valid = build is None or (
+        exact_object(build, {"build_dir", "machine", "image", "driver", "layers"})
+        and isinstance(build, dict)
+        and valid_build_directory(build["build_dir"])
+        and all(valid_token(build[field]) for field in ("machine", "image", "driver"))
+        and isinstance(build["layers"], list)
+        and 1 <= len(build["layers"]) <= 16
+        and len(build["layers"]) == len(set(build["layers"]))
+        and all(valid_relative_path(layer) for layer in build["layers"])
+    )
+    emulator_valid = emulator is None or (
+        exact_object(emulator, {"profile", "system_binary"})
+        and isinstance(emulator, dict)
+        and valid_token(emulator["profile"])
+        and valid_token(emulator["system_binary"])
+    )
+    runtime_valid = runtime is None or (
+        exact_object(
+            runtime,
+            {"suite", "evidence_profile", "guest_contract_version", "evidence_schema_version"},
+        )
+        and isinstance(runtime, dict)
+        and valid_token(runtime["suite"])
+        and valid_token(runtime["evidence_profile"])
+        and type(runtime["guest_contract_version"]) is int
+        and 1 <= runtime["guest_contract_version"] <= 3
+        and type(runtime["evidence_schema_version"]) is int
+        and 1 <= runtime["evidence_schema_version"] <= 3
+    )
+    return (
+        release_valid
+        and sources_valid
+        and build_valid
+        and emulator_valid
+        and runtime_valid
+        and (
+            value["source_lock_sha256"] is None
+            or valid_sha(value["source_lock_sha256"], 64)
+        )
+    )
+
+
+def valid_evidence_data(value: Any) -> bool:
+    return (
+        exact_object(value, {"evidence", "inputs", "subject_matches_head"})
+        and isinstance(value, dict)
+        and (value["evidence"] is None or valid_evidence_summary(value["evidence"]))
+        and (value["inputs"] is None or valid_evidence_inputs(value["inputs"]))
+        and (
+            value["subject_matches_head"] is None
+            or type(value["subject_matches_head"]) is bool
+        )
+    )
+
+
 def check(check_id: str, status: str) -> Check:
     required, passed, failed, unavailable = CHECKS[check_id]
     if status == "pass":
@@ -437,7 +720,15 @@ class Context:
 
 
 def evidence_projection(evidence: dict[str, Any], digest: str | None) -> dict[str, Any]:
-    summary_keys = ("total", "passed", "failed", "skipped", "errors")
+    summary_keys = (
+        "total",
+        "passed",
+        "failed",
+        "skipped",
+        "errors",
+        "expected_failures",
+        "unknown",
+    )
     return {
         "kind": evidence["kind"],
         "schema_version": evidence["schema_version"],
@@ -467,6 +758,76 @@ def aggregate(checks: list[Check]) -> tuple[str, int]:
     if any(item.status in {"warning", "unavailable"} for item in checks):
         return "warning", 0
     return "pass", 0
+
+
+def validate_state_transitions(statuses: dict[str, str]) -> None:
+    dependencies = {
+        "inputs.lab-catalog": ("inputs.source-lock",),
+        "lab.selection": ("inputs.lab-catalog",),
+        "repository.clean": ("repository.git",),
+        "source.bitbake": ("tool.git", "inputs.source-lock"),
+        "source.openembedded-core": ("tool.git", "inputs.source-lock"),
+        "source.meta-yocto": ("tool.git", "inputs.source-lock"),
+        "build.local-conf": ("lab.selection",),
+        "build.bblayers-conf": ("lab.selection",),
+        "evidence.file": ("lab.selection",),
+        "evidence.document": ("evidence.file", "lab.selection"),
+        "evidence.result": ("evidence.document",),
+        "evidence.inputs": (
+            "project.version",
+            "evidence.document",
+            "inputs.source-lock",
+            "lab.selection",
+        ),
+        "evidence.subject": (
+            "evidence.document",
+            "evidence.result",
+            "repository.git",
+        ),
+    }
+    for downstream, upstreams in dependencies.items():
+        if downstream not in statuses:
+            continue
+        present = tuple(item for item in upstreams if item in statuses)
+        if any(statuses[item] not in {"pass", "warning"} for item in present):
+            if statuses[downstream] != "unavailable":
+                raise ValueError("diagnostics check dependency state is invalid")
+
+    derived_states = {
+        "lab.selection": (("inputs.lab-catalog",), {"pass", "fail"}),
+        "repository.clean": (("repository.git",), {"pass", "warning"}),
+        "evidence.document": (("evidence.file",), {"pass", "fail"}),
+        "evidence.result": (("evidence.document",), {"pass", "fail"}),
+        "evidence.inputs": (
+            (
+                "project.version",
+                "evidence.document",
+                "inputs.source-lock",
+                "lab.selection",
+            ),
+            {"pass", "warning", "fail"},
+        ),
+        "evidence.subject": (
+            ("evidence.document", "evidence.result", "repository.git"),
+            {"pass", "warning"},
+        ),
+    }
+    for downstream, (upstreams, allowed) in derived_states.items():
+        if downstream not in statuses or any(
+            item not in statuses for item in upstreams
+        ):
+            continue
+        if all(statuses[item] == "pass" for item in upstreams):
+            if statuses[downstream] not in allowed:
+                raise ValueError("diagnostics derived check state is invalid")
+    if "repository.git" in statuses and "tool.git" in statuses:
+        tool_states = {
+            "pass": {"pass"},
+            "fail": {"pass", "fail"},
+            "unavailable": {"unavailable"},
+        }
+        if statuses["tool.git"] not in tool_states[statuses["repository.git"]]:
+            raise ValueError("diagnostics cached git state is invalid")
 
 
 def validate_document(document: dict[str, Any]) -> None:
@@ -502,6 +863,7 @@ def validate_document(document: dict[str, Any]) -> None:
     if document["result"] != result:
         raise ValueError("diagnostics aggregate result differs from its checks")
     statuses = {item.id: item.status for item in checked}
+    validate_state_transitions(statuses)
     project = document["project"]
     if not isinstance(project, dict) or set(project) != {"name", "version", "revision", "dirty"}:
         raise ValueError("diagnostics project fields differ from the contract")
@@ -528,58 +890,148 @@ def validate_document(document: dict[str, Any]) -> None:
         raise ValueError("diagnostics lab manifest differs from its check")
     if statuses["lab.selection"] == "pass" and not lab_id_present:
         raise ValueError("diagnostics selected lab identity is unavailable")
+    data = document["data"]
+    data_validators = {
+        "status": valid_status_data,
+        "doctor": valid_doctor_data,
+        "inspect": valid_inspect_data,
+        "evidence": valid_evidence_data,
+    }
+    if not data_validators[command](data):
+        raise ValueError("diagnostics command data differs from the contract")
     if command in {"status", "doctor"}:
-        data = document["data"]
-        if not isinstance(data, dict) or not valid_active_task(
-            data.get("active_task")
-        ):
-            raise ValueError("diagnostics active task is invalid")
         if statuses["workflow.task"] != "pass" and data.get("active_task") is not None:
             raise ValueError("diagnostics active task differs from its check")
+    if command == "status":
+        clean_status = statuses["repository.clean"]
+        if clean_status not in {"pass", "warning", "unavailable"}:
+            raise ValueError("diagnostics cleanliness status is invalid")
+        expected_dirty = {"pass": False, "warning": True, "unavailable": None}[
+            clean_status
+        ]
+        if project["dirty"] is not expected_dirty:
+            raise ValueError("diagnostics cleanliness differs from its check")
+        if (data["source_lock"] is not None) != (
+            statuses["inputs.source-lock"] == "pass"
+        ):
+            raise ValueError("diagnostics source-lock data differs from its check")
+        if (data["selected_lab"] is not None) != (
+            statuses["lab.selection"] == "pass"
+        ):
+            raise ValueError("diagnostics selected-lab data differs from its check")
+    if command == "inspect":
+        projection_available = all(
+            statuses[check_id] == "pass"
+            for check_id in (
+                "project.version",
+                "inputs.source-lock",
+                "inputs.lab-catalog",
+                "lab.selection",
+            )
+        )
+        projection_fields = (
+            "release", "sources", "build", "emulator", "runtime", "source_lock_sha256"
+        )
+        if any(data[field] is not None for field in projection_fields) != projection_available:
+            raise ValueError("diagnostics inspect data differs from its checks")
+        if projection_available and any(
+            data[field] is None for field in projection_fields
+        ):
+            raise ValueError("diagnostics inspect data is incomplete")
+        if data["release"] is not None and (
+            data["release"]["project_version"] != project["version"]
+        ):
+            raise ValueError("diagnostics inspect project identity differs")
+    if command in {"doctor", "evidence"}:
+        if statuses["evidence.document"] != "pass" and data["evidence"] is not None:
+            raise ValueError("diagnostics evidence data differs from its check")
+        if statuses["evidence.inputs"] in {"pass", "warning"} and data["evidence"] is None:
+            raise ValueError("diagnostics evidence projection is incomplete")
+        evidence = data["evidence"]
+        if evidence is not None:
+            if evidence["project"]["version"] != project["version"]:
+                raise ValueError("diagnostics evidence project identity differs")
+            clean_evidence = (
+                evidence["result"] == "passed"
+                and evidence["project"]["dirty"] is False
+            )
+            result_status = statuses["evidence.result"]
+            if result_status not in {"pass", "fail"} or (
+                result_status == "pass"
+            ) != clean_evidence:
+                raise ValueError("diagnostics evidence result differs from its facts")
+            subject_status = statuses["evidence.subject"]
+            if subject_status not in {"pass", "warning", "unavailable"}:
+                raise ValueError("diagnostics evidence subject status is invalid")
+            if subject_status in {"pass", "warning"}:
+                identity_matches = (
+                    evidence["project"]["revision"] == project["revision"]
+                )
+                if identity_matches != (subject_status == "pass"):
+                    raise ValueError("diagnostics evidence revision differs from its subject")
+            input_status = statuses["evidence.inputs"]
+            expected_kind = {
+                "pass": platform_runtime_evidence.KIND,
+                "warning": runtime_evidence.KIND,
+            }.get(input_status)
+            if expected_kind is not None and evidence["kind"] != expected_kind:
+                raise ValueError("diagnostics evidence binding kind differs")
+    if command == "evidence":
+        if (data["inputs"] is not None) != (
+            statuses["evidence.document"] == "pass"
+        ):
+            raise ValueError("diagnostics evidence inputs differ from their check")
+        subject_status = statuses["evidence.subject"]
+        if subject_status not in {"pass", "warning", "unavailable"}:
+            raise ValueError("diagnostics evidence subject status is invalid")
+        expected_subject = {
+            "pass": True,
+            "warning": False,
+            "unavailable": None,
+        }[subject_status]
+        if data["subject_matches_head"] is not expected_subject:
+            raise ValueError("diagnostics evidence subject differs from its check")
+        input_status = statuses["evidence.inputs"]
+        if input_status == "pass":
+            if not (
+                data["inputs"]["lab_binding"] == "bound"
+                and data["inputs"]["lab_index_sha256"] == lab["index_sha256"]
+                and data["inputs"]["lab_manifest_sha256"] == lab["manifest_sha256"]
+            ):
+                raise ValueError("diagnostics bound evidence inputs differ")
+        elif input_status == "warning" and data["inputs"]["lab_binding"] != "not-recorded":
+            raise ValueError("diagnostics historical evidence binding differs")
     if result == "pass":
-        validate_pass_data(command, document["data"])
+        validate_pass_data(command, data)
 
 
 def validate_pass_data(command: str, data: Any) -> None:
-    if not isinstance(data, dict):
+    validators = {
+        "status": valid_status_data,
+        "doctor": valid_doctor_data,
+        "inspect": valid_inspect_data,
+        "evidence": valid_evidence_data,
+    }
+    if command not in validators or not validators[command](data):
         raise ValueError("passing diagnostics data is invalid")
     if command == "status":
-        expected = {"active_task", "source_lock", "selected_lab"}
-        valid = (
-            valid_active_task(data.get("active_task"))
-            and isinstance(data.get("source_lock"), dict)
-            and isinstance(data.get("selected_lab"), dict)
-        )
+        valid = data["source_lock"] is not None and data["selected_lab"] is not None
     elif command == "doctor":
-        expected = {"active_task", "evidence"}
-        valid = valid_active_task(data.get("active_task")) and isinstance(
-            data.get("evidence"), dict
-        )
+        valid = data["evidence"] is not None
     elif command == "inspect":
-        expected = {
-            "release",
-            "sources",
-            "build",
-            "emulator",
-            "runtime",
-            "source_lock_sha256",
-        }
-        valid = (
-            isinstance(data.get("release"), dict)
-            and isinstance(data.get("sources"), list)
-            and isinstance(data.get("build"), dict)
-            and isinstance(data.get("emulator"), dict)
-            and isinstance(data.get("runtime"), dict)
-            and isinstance(data.get("source_lock_sha256"), str)
+        valid = all(
+            data[field] is not None
+            for field in (
+                "release", "sources", "build", "emulator", "runtime", "source_lock_sha256"
+            )
         )
     else:
-        expected = {"evidence", "inputs", "subject_matches_head"}
         valid = (
-            isinstance(data.get("evidence"), dict)
-            and isinstance(data.get("inputs"), dict)
-            and data.get("subject_matches_head") is True
+            data["evidence"] is not None
+            and data["inputs"] is not None
+            and data["subject_matches_head"] is True
         )
-    if set(data) != expected or not valid:
+    if not valid:
         raise ValueError("passing diagnostics data is incomplete")
 
 

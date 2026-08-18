@@ -29,6 +29,53 @@ import source_lock  # noqa: E402
 
 
 class DiagnosticsTests(unittest.TestCase):
+    def passing_platform_diagnostic(self) -> dict[str, object]:
+        document, _ = diagnostics.command_document(
+            ROOT, "evidence", "platform-arm64"
+        )
+        document["checks"] = [
+            diagnostics.check(check_id, "pass").object()
+            for check_id in diagnostics.SEQUENCES["evidence"]
+        ]
+        document["result"] = "pass"
+        document["data"] = {
+            "evidence": {
+                "kind": platform_runtime_evidence.KIND,
+                "schema_version": 1,
+                "project": {
+                    "version": document["project"]["version"],
+                    "revision": document["project"]["revision"],
+                    "dirty": False,
+                },
+                "build": {
+                    "machine": "qemu-edu-platform-arm64",
+                    "image": "qemu-edu-image",
+                    "testimage_exit_code": 0,
+                },
+                "result": "passed",
+                "summary": {
+                    "total": 9,
+                    "passed": 9,
+                    "failed": 0,
+                    "skipped": 0,
+                    "errors": 0,
+                    "expected_failures": 0,
+                    "unknown": 0,
+                },
+                "native_input_sha256": "1" * 64,
+                "source_lock_sha256": "2" * 64,
+                "file_sha256": "3" * 64,
+            },
+            "inputs": {
+                "lab_binding": "bound",
+                "lab_index_sha256": document["lab"]["index_sha256"],
+                "lab_manifest_sha256": document["lab"]["manifest_sha256"],
+            },
+            "subject_matches_head": True,
+        }
+        diagnostics.validate_document(document)
+        return document
+
     def test_aggregate_precedence_is_total(self) -> None:
         passed = diagnostics.check("project.version", "pass")
         warning = diagnostics.check("repository.clean", "warning")
@@ -74,25 +121,28 @@ class DiagnosticsTests(unittest.TestCase):
             diagnostics.validate_document(changed)
 
     def test_passing_data_validator_is_closed_and_typed(self) -> None:
-        evidence = {
-            "evidence": {},
-            "inputs": {},
-            "subject_matches_head": True,
-        }
-        diagnostics.validate_pass_data("evidence", evidence)
+        document, _ = diagnostics.command_document(ROOT, "inspect", None)
+        self.assertEqual("pass", document["result"])
+        data = document["data"]
+        diagnostics.validate_pass_data("inspect", data)
         for mutation in (
-            {**evidence, "subject_matches_head": False},
-            {**evidence, "inputs": "wrong"},
-            {**evidence, "extra": True},
+            {**data, "source_lock_sha256": "wrong"},
+            {**data, "sources": []},
+            {**data, "extra": True},
         ):
             with self.subTest(mutation=mutation), self.assertRaises(ValueError):
-                diagnostics.validate_pass_data("evidence", mutation)
+                diagnostics.validate_pass_data("inspect", mutation)
 
     def test_semantic_validator_rejects_passing_null_identity_and_data(self) -> None:
         document, _ = diagnostics.command_document(ROOT, "status", None)
         document["checks"][-1] = diagnostics.check("repository.clean", "pass").object()
         document["result"] = "pass"
+        document["project"]["dirty"] = False
         diagnostics.validate_document(document)
+        changed = copy.deepcopy(document)
+        changed["project"]["dirty"] = True
+        with self.assertRaises(ValueError):
+            diagnostics.validate_document(changed)
         changed = copy.deepcopy(document)
         changed["project"] = {
             "name": diagnostics.PROJECT_NAME,
@@ -109,6 +159,266 @@ class DiagnosticsTests(unittest.TestCase):
         }
         with self.assertRaises(ValueError):
             diagnostics.validate_document(changed)
+
+    def test_semantic_validator_rejects_malformed_nested_command_data(self) -> None:
+        inspect, _ = diagnostics.command_document(ROOT, "inspect", None)
+        mutations = []
+        changed = copy.deepcopy(inspect)
+        changed["data"]["release"] = {"secret": "/home/alice/token=supersecret"}
+        mutations.append(changed)
+        changed = copy.deepcopy(inspect)
+        changed["data"]["build"]["build_dir"] = "/home/alice/token=supersecret"
+        mutations.append(changed)
+        changed = copy.deepcopy(inspect)
+        changed["data"]["sources"] = []
+        mutations.append(changed)
+        changed = copy.deepcopy(inspect)
+        changed["data"]["source_lock_sha256"] = "wrong"
+        mutations.append(changed)
+
+        status, _ = diagnostics.command_document(ROOT, "status", None)
+        changed = copy.deepcopy(status)
+        changed["data"]["source_lock"] = "arbitrary"
+        mutations.append(changed)
+        changed = copy.deepcopy(status)
+        changed["data"]["extra"] = True
+        mutations.append(changed)
+
+        for mutation in mutations:
+            with self.subTest(command=mutation["command"]), self.assertRaises(ValueError):
+                diagnostics.validate_document(mutation)
+
+    def test_projection_string_bounds_and_path_grammar_match_inputs(self) -> None:
+        self.assertTrue(
+            diagnostics.valid_build_directory("build-" + "a" * 4090)
+        )
+        self.assertFalse(
+            diagnostics.valid_build_directory("build-" + "a" * 4091)
+        )
+        inspect, _ = diagnostics.command_document(ROOT, "inspect", None)
+        for layer in (
+            "layers/\x1bprivate-token",
+            "layers/\x00private-token",
+            "layers/priváte",
+            "layers/private\ud800",
+            "a" * 4097,
+        ):
+            with self.subTest(layer=ascii(layer)):
+                changed = copy.deepcopy(inspect)
+                changed["data"]["build"]["layers"][0] = layer
+                with self.assertRaises(ValueError):
+                    diagnostics.validate_document(changed)
+
+    def test_semantic_validator_rejects_identity_and_evidence_drift(self) -> None:
+        inspect, _ = diagnostics.command_document(ROOT, "inspect", None)
+        changed = copy.deepcopy(inspect)
+        changed["data"]["release"]["project_version"] = "9.9.9"
+        with self.assertRaises(ValueError):
+            diagnostics.validate_document(changed)
+
+        baseline = self.passing_platform_diagnostic()
+        mutations = []
+        changed = copy.deepcopy(baseline)
+        changed["data"]["evidence"]["result"] = "failed"
+        mutations.append(changed)
+        changed = copy.deepcopy(baseline)
+        changed["data"]["evidence"]["summary"]["failed"] = 1
+        mutations.append(changed)
+        changed = copy.deepcopy(baseline)
+        changed["data"]["evidence"]["summary"]["total"] = 1
+        changed["data"]["evidence"]["summary"]["passed"] = 1
+        mutations.append(changed)
+        changed = copy.deepcopy(baseline)
+        changed["data"]["evidence"]["result"] = "failed"
+        changed["data"]["evidence"]["summary"]["passed"] = 8
+        mutations.append(changed)
+        changed = copy.deepcopy(baseline)
+        changed["data"]["evidence"]["project"]["revision"] = "f" * 40
+        mutations.append(changed)
+        changed = copy.deepcopy(baseline)
+        changed["data"]["inputs"]["lab_index_sha256"] = "f" * 64
+        mutations.append(changed)
+        changed = copy.deepcopy(baseline)
+        changed["data"]["inputs"] = {
+            "lab_binding": "not-recorded",
+            "lab_index_sha256": None,
+            "lab_manifest_sha256": None,
+        }
+        mutations.append(changed)
+        for mutation in mutations:
+            with self.assertRaises(ValueError):
+                diagnostics.validate_document(mutation)
+
+        changed = copy.deepcopy(baseline)
+        changed["checks"][7] = diagnostics.check(
+            "evidence.result", "fail"
+        ).object()
+        changed["checks"][9] = diagnostics.check(
+            "evidence.subject", "unavailable"
+        ).object()
+        changed["result"] = "fail"
+        changed["data"]["subject_matches_head"] = None
+        with self.assertRaises(ValueError):
+            diagnostics.validate_document(changed)
+
+        changed["data"]["evidence"]["result"] = "failed"
+        changed["data"]["evidence"]["summary"]["passed"] = 8
+        changed["data"]["evidence"]["summary"]["failed"] = 1
+        diagnostics.validate_document(changed)
+
+    def test_doctor_binds_evidence_revision_to_subject_check(self) -> None:
+        source = self.passing_platform_diagnostic()
+        doctor, _ = diagnostics.command_document(ROOT, "doctor", "platform-arm64")
+        doctor["checks"] = [
+            diagnostics.check(check_id, "pass").object()
+            for check_id in diagnostics.SEQUENCES["doctor"]
+        ]
+        doctor["result"] = "pass"
+        doctor["data"] = {
+            "active_task": doctor["data"]["active_task"],
+            "evidence": copy.deepcopy(source["data"]["evidence"]),
+        }
+        diagnostics.validate_document(doctor)
+
+        changed = copy.deepcopy(doctor)
+        changed["data"]["evidence"]["project"]["revision"] = "f" * 40
+        with self.assertRaises(ValueError):
+            diagnostics.validate_document(changed)
+
+        changed["checks"][17] = diagnostics.check(
+            "evidence.subject", "warning"
+        ).object()
+        changed["result"] = "warning"
+        diagnostics.validate_document(changed)
+        changed["data"]["evidence"]["project"]["revision"] = doctor["project"]["revision"]
+        with self.assertRaises(ValueError):
+            diagnostics.validate_document(changed)
+
+    def test_semantic_validator_rejects_impossible_dependency_states(self) -> None:
+        inspect, _ = diagnostics.command_document(ROOT, "inspect", None)
+        changed = copy.deepcopy(inspect)
+        changed["checks"][2] = diagnostics.check(
+            "inputs.source-lock", "fail"
+        ).object()
+        changed["result"] = "fail"
+        with self.assertRaises(ValueError):
+            diagnostics.validate_document(changed)
+
+        changed = copy.deepcopy(inspect)
+        changed["checks"][4] = diagnostics.check(
+            "lab.selection", "unavailable"
+        ).object()
+        changed["result"] = "unavailable"
+        changed["lab"]["manifest_sha256"] = None
+        changed["data"] = {
+            "release": None,
+            "sources": None,
+            "build": None,
+            "emulator": None,
+            "runtime": None,
+            "source_lock_sha256": None,
+        }
+        with self.assertRaises(ValueError):
+            diagnostics.validate_document(changed)
+
+        baseline = self.passing_platform_diagnostic()
+        changed = copy.deepcopy(baseline)
+        for index, check_id in enumerate(
+            ("evidence.file", "evidence.document", "evidence.result", "evidence.inputs"),
+            start=5,
+        ):
+            changed["checks"][index] = diagnostics.check(
+                check_id, "unavailable"
+            ).object()
+        changed["result"] = "unavailable"
+        changed["data"] = {
+            "evidence": None,
+            "inputs": None,
+            "subject_matches_head": True,
+        }
+        with self.assertRaises(ValueError):
+            diagnostics.validate_document(changed)
+
+        changed = copy.deepcopy(baseline)
+        for index, check_id in enumerate(
+            ("evidence.document", "evidence.result", "evidence.inputs"),
+            start=6,
+        ):
+            changed["checks"][index] = diagnostics.check(
+                check_id, "unavailable"
+            ).object()
+        changed["checks"][9] = diagnostics.check(
+            "evidence.subject", "unavailable"
+        ).object()
+        changed["result"] = "unavailable"
+        changed["data"] = {
+            "evidence": None,
+            "inputs": None,
+            "subject_matches_head": None,
+        }
+        with self.assertRaises(ValueError):
+            diagnostics.validate_document(changed)
+
+        changed = copy.deepcopy(baseline)
+        changed["checks"][7] = diagnostics.check(
+            "evidence.result", "unavailable"
+        ).object()
+        changed["checks"][9] = diagnostics.check(
+            "evidence.subject", "unavailable"
+        ).object()
+        changed["result"] = "unavailable"
+        changed["data"]["subject_matches_head"] = None
+        with self.assertRaises(ValueError):
+            diagnostics.validate_document(changed)
+
+        changed = copy.deepcopy(baseline)
+        changed["checks"][8] = diagnostics.check(
+            "evidence.inputs", "unavailable"
+        ).object()
+        changed["result"] = "unavailable"
+        with self.assertRaises(ValueError):
+            diagnostics.validate_document(changed)
+
+        changed = copy.deepcopy(baseline)
+        changed["checks"][9] = diagnostics.check(
+            "evidence.subject", "unavailable"
+        ).object()
+        changed["result"] = "warning"
+        changed["data"]["subject_matches_head"] = None
+        with self.assertRaises(ValueError):
+            diagnostics.validate_document(changed)
+
+    def test_semantic_validator_binds_cached_git_states(self) -> None:
+        statuses = {
+            "repository.git": "pass",
+            "tool.git": "unavailable",
+        }
+        with self.assertRaises(ValueError):
+            diagnostics.validate_state_transitions(statuses)
+        statuses = {
+            "repository.git": "unavailable",
+            "tool.git": "pass",
+        }
+        with self.assertRaises(ValueError):
+            diagnostics.validate_state_transitions(statuses)
+        statuses = {
+            "repository.git": "fail",
+            "tool.git": "unavailable",
+        }
+        with self.assertRaises(ValueError):
+            diagnostics.validate_state_transitions(statuses)
+        for repository_state, tool_state in (
+            ("pass", "pass"),
+            ("unavailable", "unavailable"),
+            ("fail", "pass"),
+            ("fail", "fail"),
+        ):
+            diagnostics.validate_state_transitions(
+                {
+                    "repository.git": repository_state,
+                    "tool.git": tool_state,
+                }
+            )
 
     def test_catalog_default_and_safe_future_ids_are_core_authority(self) -> None:
         document, _ = diagnostics.command_document(ROOT, "inspect", None)

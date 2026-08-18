@@ -82,6 +82,16 @@ Schema 1 accepts ASCII Semantic Versioning project versions independently of
 the project minor line. An incompatible diagnostic contract requires a new
 schema and SemVer decision.
 
+The standard-library semantic validator runs before serialization. It enforces
+the closed nested shapes, bounded field grammars, check dependency states, and
+duplicated project, evidence-subject, and bound-lab identities. The external
+Draft 2020-12 schema mirrors every structural and constant relationship it can
+express. Draft 2020-12 cannot compare values at two arbitrary instance paths,
+so equality between a projected identity and its top-level authority, and
+arithmetic across projected summary fields, remain documented semantic checks
+rather than schema-only guarantees. The schema still fixes the complete suite
+cardinality for every supported evidence kind and version.
+
 For strict evidence consumption, require all of the following:
 
 ```text
@@ -89,7 +99,13 @@ command == "evidence"
 result == "pass"
 project.dirty == false
 data.subject_matches_head == true
+data.evidence.project.version == project.version
+data.evidence.project.revision == project.revision
 ```
+
+For `lab_binding=bound`, also require both projected lab digests to equal the
+top-level lab digests. The project command enforces these dynamic equalities
+before emitting either JSON or text.
 
 The evidence command deliberately does not add a second cleanliness check to
 its fixed sequence; it always exposes the repository fact in `project.dirty`.

@@ -113,7 +113,14 @@ def main() -> int:
             return raw
         return original_read(root, relative, maximum)
 
-    with patch.object(diagnostics, "read_regular", side_effect=supplied):
+    with (
+        patch.object(diagnostics, "read_regular", side_effect=supplied),
+        patch.object(
+            diagnostics.diagnostics_git,
+            "repository_state",
+            return_value=(revision, False),
+        ),
+    ):
         for lab in ("pci-x86-64", "platform-arm64"):
             for command in ("doctor", "evidence"):
                 document, _ = diagnostics.command_document(ROOT, command, lab)
@@ -121,6 +128,79 @@ def main() -> int:
                 if document["data"]["evidence"] is None:
                     raise AssertionError("populated evidence projection is missing")
                 documents.append(document)
+        pci_relative = "build/qemu-edu-runtime-v3.json"
+        pci_original = evidence_files[pci_relative]
+        pci_document = json.loads(pci_original)
+        try:
+            for section, field, value in (
+                ("project", "version", "9.9.9"),
+                ("build", "machine", "qemu-edu-other"),
+                ("build", "image", "qemu-edu-other-image"),
+            ):
+                changed_evidence = copy.deepcopy(pci_document)
+                changed_evidence[section][field] = value
+                evidence_files[pci_relative] = (
+                    json.dumps(
+                        changed_evidence,
+                        sort_keys=True,
+                        separators=(",", ":"),
+                    )
+                    + "\n"
+                ).encode()
+                for command in ("doctor", "evidence"):
+                    document, _ = diagnostics.command_document(
+                        ROOT, command, "pci-x86-64"
+                    )
+                    validator.validate(document)
+                    statuses = {
+                        item["id"]: item["status"]
+                        for item in document["checks"]
+                    }
+                    if (
+                        statuses["evidence.document"] != "pass"
+                        or statuses["evidence.result"] != "pass"
+                        or statuses["evidence.inputs"] != "fail"
+                        or document["data"]["evidence"] is not None
+                    ):
+                        raise AssertionError(
+                            "safe mismatched evidence was not suppressed"
+                        )
+                    if value.encode() in diagnostics.json_bytes(document):
+                        raise AssertionError(
+                            "mismatched evidence identity reached diagnostics output"
+                        )
+            changed_evidence = copy.deepcopy(pci_document)
+            changed_evidence["inputs"]["source_lock_sha256"] = "f" * 64
+            evidence_files[pci_relative] = (
+                json.dumps(
+                    changed_evidence,
+                    sort_keys=True,
+                    separators=(",", ":"),
+                )
+                + "\n"
+            ).encode()
+            for command in ("doctor", "evidence"):
+                document, _ = diagnostics.command_document(
+                    ROOT, command, "pci-x86-64"
+                )
+                validator.validate(document)
+                statuses = {
+                    item["id"]: item["status"]
+                    for item in document["checks"]
+                }
+                if (
+                    statuses["evidence.result"] != "pass"
+                    or statuses["evidence.inputs"] != "fail"
+                    or document["data"]["evidence"] is None
+                ):
+                    raise AssertionError(
+                        "safe input mismatch did not retain its clean projection"
+                    )
+                contradictory = copy.deepcopy(document)
+                contradictory["data"]["evidence"]["project"]["dirty"] = True
+                rejected(validator, contradictory)
+        finally:
+            evidence_files[pci_relative] = pci_original
 
     baseline = next(item for item in documents if item["command"] == "status")
     changed = copy.deepcopy(baseline)
@@ -182,7 +262,11 @@ def main() -> int:
         "repository.clean", "pass"
     ).object()
     passing_status["result"] = "pass"
+    passing_status["project"]["dirty"] = False
     validator.validate(passing_status)
+    changed = copy.deepcopy(passing_status)
+    changed["project"]["dirty"] = True
+    rejected(validator, changed)
     changed = copy.deepcopy(passing_status)
     changed["checks"][0], changed["checks"][1] = changed["checks"][1], changed["checks"][0]
     rejected(validator, changed)
@@ -212,15 +296,212 @@ def main() -> int:
     rejected(validator, changed)
     inspect = next(item for item in documents if item["command"] == "inspect")
     changed = copy.deepcopy(inspect)
+    changed["data"]["build"]["build_dir"] = "build-" + "a" * 4090
+    validator.validate(changed)
+    changed = copy.deepcopy(inspect)
+    changed["data"]["build"]["build_dir"] = "build-" + "a" * 4091
+    rejected(validator, changed)
+    changed = copy.deepcopy(inspect)
+    changed["data"]["build"]["build_dir"] = "/home/alice/token=supersecret"
+    rejected(validator, changed)
+    changed = copy.deepcopy(inspect)
+    changed["data"]["release"] = {"secret": "/home/alice/token=supersecret"}
+    rejected(validator, changed)
+    changed = copy.deepcopy(inspect)
+    changed["data"]["sources"] = []
+    rejected(validator, changed)
+    changed = copy.deepcopy(inspect)
+    changed["data"]["source_lock_sha256"] = "wrong"
+    rejected(validator, changed)
+    for layer in (
+        "layers/\x1bprivate-token",
+        "layers/\x00private-token",
+        "layers/priváte",
+        "layers/private\ud800",
+        "a" * 4097,
+    ):
+        changed = copy.deepcopy(inspect)
+        changed["data"]["build"]["layers"][0] = layer
+        rejected(validator, changed)
+    changed = copy.deepcopy(inspect)
+    changed["checks"][2] = diagnostics.check(
+        "inputs.source-lock", "fail"
+    ).object()
+    changed["result"] = "fail"
+    changed["data"] = {
+        "release": None,
+        "sources": None,
+        "build": None,
+        "emulator": None,
+        "runtime": None,
+        "source_lock_sha256": None,
+    }
+    rejected(validator, changed)
+    changed = copy.deepcopy(inspect)
+    changed["checks"][4] = diagnostics.check(
+        "lab.selection", "unavailable"
+    ).object()
+    changed["result"] = "unavailable"
+    changed["lab"]["manifest_sha256"] = None
+    changed["data"] = {
+        "release": None,
+        "sources": None,
+        "build": None,
+        "emulator": None,
+        "runtime": None,
+        "source_lock_sha256": None,
+    }
+    rejected(validator, changed)
+    changed = copy.deepcopy(inspect)
     changed["data"]["sources"][0], changed["data"]["sources"][1] = changed["data"]["sources"][1], changed["data"]["sources"][0]
     rejected(validator, changed)
     evidence = next(
         item
         for item in documents
         if item["command"] == "evidence"
+        and item["result"] in {"pass", "warning"}
+        and item["data"]["evidence"] is not None
+        and item["data"]["evidence"]["kind"] == runtime_evidence.KIND
+    )
+    platform_evidence = next(
+        item
+        for item in documents
+        if item["command"] == "evidence"
         and item["result"] == "pass"
         and item["data"]["evidence"] is not None
+        and item["data"]["evidence"]["kind"]
+        == platform_runtime_evidence.KIND
     )
+    changed = copy.deepcopy(platform_evidence)
+    changed["checks"][8] = diagnostics.check(
+        "evidence.inputs", "fail"
+    ).object()
+    changed["result"] = "fail"
+    changed["data"]["evidence"]["result"] = "failed"
+    changed["data"]["evidence"]["summary"]["passed"] = 8
+    changed["data"]["evidence"]["summary"]["failed"] = 1
+    rejected(validator, changed)
+    changed = copy.deepcopy(evidence)
+    changed["data"]["evidence"]["result"] = "failed"
+    rejected(validator, changed)
+    changed = copy.deepcopy(evidence)
+    changed["data"]["evidence"]["summary"]["failed"] = 1
+    rejected(validator, changed)
+    changed = copy.deepcopy(evidence)
+    changed["data"]["evidence"]["summary"]["total"] = 1
+    changed["data"]["evidence"]["summary"]["passed"] = 1
+    rejected(validator, changed)
+    changed = copy.deepcopy(platform_evidence)
+    changed["data"]["inputs"] = {
+        "lab_binding": "not-recorded",
+        "lab_index_sha256": None,
+        "lab_manifest_sha256": None,
+    }
+    rejected(validator, changed)
+    changed = copy.deepcopy(evidence)
+    for index, check_id in enumerate(
+        ("evidence.file", "evidence.document", "evidence.result", "evidence.inputs"),
+        start=5,
+    ):
+        changed["checks"][index] = diagnostics.check(
+            check_id, "unavailable"
+        ).object()
+    changed["result"] = "unavailable"
+    changed["data"] = {
+        "evidence": None,
+        "inputs": None,
+        "subject_matches_head": True,
+    }
+    rejected(validator, changed)
+    changed = copy.deepcopy(evidence)
+    changed["checks"][7] = diagnostics.check(
+        "evidence.result", "fail"
+    ).object()
+    changed["checks"][9] = diagnostics.check(
+        "evidence.subject", "unavailable"
+    ).object()
+    changed["result"] = "fail"
+    changed["data"]["subject_matches_head"] = None
+    rejected(validator, changed)
+    changed["data"]["evidence"]["result"] = "failed"
+    changed["data"]["evidence"]["summary"]["passed"] -= 1
+    changed["data"]["evidence"]["summary"]["failed"] = 1
+    validator.validate(changed)
+    changed = copy.deepcopy(platform_evidence)
+    for index, check_id in enumerate(
+        ("evidence.document", "evidence.result", "evidence.inputs"),
+        start=6,
+    ):
+        changed["checks"][index] = diagnostics.check(
+            check_id, "unavailable"
+        ).object()
+    changed["checks"][9] = diagnostics.check(
+        "evidence.subject", "unavailable"
+    ).object()
+    changed["result"] = "unavailable"
+    changed["data"] = {
+        "evidence": None,
+        "inputs": None,
+        "subject_matches_head": None,
+    }
+    rejected(validator, changed)
+    changed = copy.deepcopy(platform_evidence)
+    changed["checks"][7] = diagnostics.check(
+        "evidence.result", "unavailable"
+    ).object()
+    changed["checks"][9] = diagnostics.check(
+        "evidence.subject", "unavailable"
+    ).object()
+    changed["result"] = "unavailable"
+    changed["data"]["subject_matches_head"] = None
+    rejected(validator, changed)
+    changed = copy.deepcopy(platform_evidence)
+    changed["checks"][8] = diagnostics.check(
+        "evidence.inputs", "unavailable"
+    ).object()
+    changed["result"] = "unavailable"
+    rejected(validator, changed)
+    changed = copy.deepcopy(platform_evidence)
+    changed["checks"][9] = diagnostics.check(
+        "evidence.subject", "unavailable"
+    ).object()
+    changed["result"] = "warning"
+    changed["data"]["subject_matches_head"] = None
+    rejected(validator, changed)
+    for template, schema_version, total in (
+        (evidence, 1, 11),
+        (evidence, 2, 14),
+        (evidence, 3, 19),
+        (platform_evidence, 1, 9),
+    ):
+        changed = copy.deepcopy(template)
+        projected = changed["data"]["evidence"]
+        projected["schema_version"] = schema_version
+        projected["result"] = "failed"
+        projected["build"]["testimage_exit_code"] = 0
+        projected["summary"] = {
+            "total": total,
+            "passed": total - 1,
+            "failed": 1,
+            "skipped": 0,
+            "errors": 0,
+            "expected_failures": 0,
+            "unknown": 0,
+        }
+        changed["checks"][7] = diagnostics.check(
+            "evidence.result", "fail"
+        ).object()
+        changed["checks"][9] = diagnostics.check(
+            "evidence.subject", "unavailable"
+        ).object()
+        changed["result"] = "fail"
+        changed["data"]["subject_matches_head"] = None
+        validator.validate(changed)
+
+        changed["data"]["evidence"]["build"]["testimage_exit_code"] = 1
+        changed["data"]["evidence"]["summary"]["passed"] = total
+        changed["data"]["evidence"]["summary"]["failed"] = 0
+        validator.validate(changed)
     changed = copy.deepcopy(evidence)
     changed["data"]["inputs"] = {"lab_binding": "bound", "lab_index_sha256": None, "lab_manifest_sha256": None}
     rejected(validator, changed)
