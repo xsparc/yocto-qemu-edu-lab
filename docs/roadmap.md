@@ -270,6 +270,13 @@ The dated primary-source rationale is recorded in
 Acceptance gate: the complete lab remains usable without AI; schema and security
 tests pass; state-changing tools are absent or separately approved.
 
+Clean implementation revision `25109d4f471492c0f2e101deca4f0a86c61c49a0`
+passes 203 Windows tests with 16 expected native-Linux skips and all 203 tests in
+a network-disabled, capability-free Linux CPython 3.12 environment with a
+read-only repository. The exact six-wheel Draft 2020-12 oracle and pinned REUSE
+108/108 gate pass. All seven required reviews approved with no remaining P0-P2
+finding. Hosted checks, publication, and merge remain open.
+
 Rollback: revert the complete focused A006 milestone change. A partial
 retirement must also revert the project version decision, maintainer
 configuration, workflow validator requirements, Makefile targets, CI job,

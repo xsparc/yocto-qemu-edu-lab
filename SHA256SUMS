@@ -30,11 +30,11 @@ dc717b71f63c25bef31ee7739e8d8573b7c1df3b4b1cebfea334f90fcd37d5f2  ./config/labs/
 bced302b810d4792a7f0bdb3ec626e23f4ae583db86a8ed84dc4a8fd77d6bb0b  ./docs/licensing.md
 ab3a763550768ff8de2574f4b528fdbf60ad8e8fe24245e80cf52f562c201496  ./docs/maintainers/README.md
 cb8090ab7615e94930df2790a613d6128873078998f6e9ec9f862676ffaf6772  ./docs/maintainers/config.toml
-1f2b1e06d6cceaf1dd50439c612c1b1e37fb8a36e7db6390274095cdaa3665cc  ./docs/maintainers/context.md
+72be44ac8889112ca9783f98f4bccde2938cbe6f9b305fa5f6df2dc7ac14f827  ./docs/maintainers/context.md
 e7ad09d0732be49bc8bad5d2e48c1e90e78e4e64511f54e1e6f630f2759df008  ./docs/maintainers/decisions.md
 65f879644273c7431ccb2f132ea19e67491a5a0b9b948e729b877e4692908d3b  ./docs/maintainers/intake.md
 ba4c11f06b6e10ba966d8d771150220059c7cfb94d86f7177523ca0b920eb45e  ./docs/maintainers/ledger.md
-712fe1445d6a2c5fc9b11d4f21898a75b7bdb6e137b6a6a01076050a3c1305a0  ./docs/maintainers/tasks.toml
+e6ba20bfd8e68446c10332c2d9d3468dc42adca5906bea2828d85ed260e9696d  ./docs/maintainers/tasks.toml
 6131138ad49a9c7809ad9bd68ff3241dcb42d8618b7745082c731ceb31a3afaa  ./docs/maintenance-workflow.md
 d87cc671bee02f9c36e284c119d691564021068961de46b5cbfa71a5d6bf20f5  ./docs/mapping-to-real-hardware.md
 c8f0440c7c8df8f6cae97f670575e073f90fe2672de99908606e45683722cffd  ./docs/research/2026-08-07-m1-reproducibility.md
@@ -45,10 +45,10 @@ b4771fd6e821c086a6d3f12ca22e5188d186516ba1356c9d73915684df8e3029  ./docs/researc
 36db8b2590ce5da2167f5a05c6d64d82caf1f294497f5821ea48401d3ce50df3  ./docs/research/2026-08-09-m4-bounded-dma.md
 28ded809046174e0607a221a953de75384c03a4df9343147428b05a1eeff7125  ./docs/research/2026-08-11-m5-platform-lab.md
 e2e25ac2757b242cfd6d842d1b4c70249e69ca547dab31be1a93766c9253093d  ./docs/research/2026-08-14-m6-diagnostics.md
-b71f74d86de7f40ce2e09ee69137534c33c6696179309e364a40ace11673b8d0  ./docs/roadmap.md
+0606b2bf2f68940445a0c29ead9e81df50d22a1184ec64ed9b76ae95dcf0fc9a  ./docs/roadmap.md
 ce9b78e793fca006d800590b6ec83048cfd66443001bd5154176a81cdb0c49dd  ./docs/runtime-testing.md
 1556e05ceb4d61fc7069660042ad89b07d17141faf1e9a278e6b3864b0a547e2  ./docs/source-lock.md
-18a9ee25cce25a0be1c85098f19c95d782a282f8246f9aa60da96568fc855b0c  ./docs/versioning.md
+59e799550b965fe288379eb5a97f834d2c6b02bbe1bb8169c9519803a605b202  ./docs/versioning.md
 0d79747066a5edc3f22efdf0ff60e72cec7252b6c5f458cd466e8df6e09a4b5c  ./docs/vision.md
 e8068500361df6f8a27075ca88ea48748d9f0433e1db8ac8ec5d189176552062  ./environment.sh
 a423d411c60d6a250e7f20faf40e41299ed779007459626f581992ce8d208363  ./inspect.sh

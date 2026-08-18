@@ -420,13 +420,21 @@ validation = [
 ]
 approval = "Repository owner explicitly approved A006/M6 using the documented deterministic, read-only diagnostics boundary and its exact hash-locked, test-only validator dependencies on 2026-08-14."
 reviews_required = ["architecture", "quality", "devops", "security", "licensing", "documentation", "independent-diff"]
-reviews_completed = []
+reviews_completed = ["architecture", "quality", "devops", "security", "licensing", "documentation", "independent-diff"]
 validation_evidence = [
-  "Post-correction Windows CPython 3.12 validation passed all 183 repository tests with 16 expected native-Linux skips; source-lock, lab-catalog, workflow, CI-policy, both QEMU patch, exact diagnostics-lock, independent Draft 2020-12 schema, actionlint 1.7.12, and ShellCheck 0.11.0 gates passed.",
-  "A content-addressed, network-disabled, capability-free Linux CPython 3.12 environment with a read-only repository passed all 183 tests without skips and ran every status, doctor, inspect, and evidence JSON command for both labs with valid documents and the declared result/exit combinations.",
+  "Clean implementation revision 25109d4f471492c0f2e101deca4f0a86c61c49a0 passed all 203 repository tests on Windows CPython 3.12 with 16 expected native-Linux skips; source-lock, lab-catalog, workflow, CI-policy, both QEMU patch, exact diagnostics-lock, checksum, and diff gates passed.",
+  "The exact clean revision passed all 203 tests without skips in a network-disabled, capability-free Linux CPython 3.12 environment with a read-only repository and ran every status, doctor, inspect, and evidence JSON command for both labs with valid documents and the declared result/exit combinations.",
   "The correction pass made approval and Done gates invariant rather than configurable, canonicalized source order in inspect output, sanitized project-module import failures before any traceback could escape, and expanded the external schema oracle to populated PCI and platform evidence; focused negative regressions cover each boundary.",
   "All six authorized Linux CPython 3.12 wheel files independently matched their exact sizes, lock digests, package metadata, dependency metadata, and embedded-license digests. An ephemeral network-disabled CPython 3.12 environment installed only those wheels and passed installed-package and populated independent schema-oracle validation; the isolated hosted rerun remains a pre-merge gate.",
   "Pinned network-disabled, capability-free, read-only REUSE 6.2.0 passed 108/108 files with no issue; the source tree redistributes none of the six test-only wheels.",
 ]
-review_evidence = []
+review_evidence = [
+  "Architecture review verified repository-model authority, versioned projection boundaries, schema and semantic parity, active-task state binding, compatibility, and complete rollback; final re-review approved with no P0-P2 findings.",
+  "Quality review reproduced and closed privacy, type, semantic, schema-anchor, derived-state, and reused-context defects; the final 203-test Windows and Linux surfaces and exact six-wheel oracle passed, and re-review approved with no P0-P2 findings.",
+  "DevOps review verified deterministic exits, closed-output handling, bounded selectors, workflow path coverage, isolated exact-dependency installation, and fail-closed command behavior; final re-review approved with no P0-P2 findings.",
+  "Security review closed unsafe workflow task identifiers and projection paths, then verified fixed commands, bounded inputs, no secret or path reflection, read-only behavior, and CI trust boundaries with no P0-P2 findings.",
+  "Licensing review verified all six wheel identities, hashes, sizes, embedded licenses, package metadata, and non-vendored test-only use; pinned network-disabled REUSE 6.2.0 covered 108/108 files with no issue.",
+  "Documentation review aligned selector and output behavior, compatibility, supply-chain, rollback, and optional-adapter boundaries with the implementation and approved with no P0-P2 findings.",
+  "Independent frozen-diff review reproduced all 203 Linux tests, the exact offline six-wheel Draft 2020-12 oracle, pinned REUSE 108/108, and staged-index truth; the full base-to-head implementation and closeout record were approved with no P0-P2 findings.",
+]
 result = ""
