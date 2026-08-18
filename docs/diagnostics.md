@@ -11,7 +11,7 @@ set up sources, build, boot, test, repair, fetch, or mutate anything.
 
 ## Commands
 
-Run from any directory:
+From the repository root:
 
 ```bash
 ./qemu-edu-lab status
@@ -22,11 +22,19 @@ Run from any directory:
 ./qemu-edu-lab --lab platform-arm64 --format json inspect
 ```
 
+From another directory, invoke the same executable through its absolute path
+or a path to the repository checkout. The executable derives its repository
+root from that path rather than from the current working directory.
+
 An omitted lab selects the catalog default, `pci-x86-64`. The only formats are
 `text` and `json`; text is the default. Empty or unknown arguments exit 2,
 write a bounded usage message to stderr, and emit no diagnostic document.
 An unexpected internal exception exits 1 with one fixed stderr line and no
 document; tracebacks and exception text are never exposed by the entry point.
+A closed or failed output sink also exits 1 with the fixed `output unavailable`
+line. The guarded write and flush disable a failed buffered stream before
+interpreter shutdown, so it cannot emit a later traceback or exit outside the
+declared codes.
 
 - `status` validates the project version, repository identity, maintenance
   task model, source lock, lab catalog, selection, and worktree cleanliness.
@@ -35,7 +43,10 @@ document; tracebacks and exception text are never exposed by the entry point.
 - `inspect` projects the locked release, three ordered sources, selected build,
   emulator, and runtime identities. It does not parse effective BitBake state.
 - `evidence` validates the one manifest-selected evidence file and projects
-  only its allowlisted identity, result, counts, and digests.
+  only its allowlisted identity, result, counts, and digests. Evidence identity
+  is projected only after its project version, machine, and image match the
+  trusted current project and selected manifest; mismatched raw values are not
+  copied to output.
 
 Doctor is a declared-precondition diagnostic, not a general host-capacity or
 future-build guarantee. Missing checkouts, configuration files, or evidence are
@@ -43,8 +54,10 @@ future-build guarantee. Missing checkouts, configuration files, or evidence are
 
 ## Results and exits
 
-Every non-usage invocation emits one closed version-1 document. Checks have the
-exact fields `id`, `status`, `required`, and `summary` in command-defined order.
+Every non-usage invocation whose output sink remains available emits one closed
+version-1 document. Checks have the exact fields `id`, `status`, `required`, and
+`summary` in command-defined order. Output-sink failure is a transport error,
+not a diagnostic aggregate result.
 
 | Exit | Aggregate result | Meaning |
 |---:|---|---|
@@ -61,8 +74,9 @@ JSON serialization is UTF-8 with LF, sorted object keys, compact separators,
 no non-finite values, and one final newline. It is a project byte contract, not
 RFC 8785 JCS and not a signing format. The schema is
 `schemas/qemu-edu-diagnostics-v1.schema.json`.
-Schema 1 accepts the compatible `0.6.x` development line; an incompatible
-diagnostic contract requires a new schema and SemVer decision.
+Schema 1 accepts ASCII Semantic Versioning project versions independently of
+the project minor line. An incompatible diagnostic contract requires a new
+schema and SemVer decision.
 
 For strict evidence consumption, require all of the following:
 

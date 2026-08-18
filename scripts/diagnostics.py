@@ -34,9 +34,9 @@ MAX_VERSION_BYTES = 128
 MAX_WORKFLOW_BYTES = 256 * 1024
 MAX_EVIDENCE_BYTES = 1024 * 1024
 PROJECT_VERSION = re.compile(
-    r"0\.6\.(0|[1-9]\d*)"
-    r"(?:-(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)"
-    r"(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*)?"
+    r"(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)"
+    r"(?:-(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)"
+    r"(?:\.(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*)?"
     r"(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?"
 )
 
@@ -81,6 +81,27 @@ class Check:
         return {"id": self.id, "status": self.status, "required": self.required, "summary": self.summary}
 
 
+class DiagnosticArgumentError(ValueError):
+    """A caller supplied a selector outside the closed catalog contract."""
+
+
+def valid_project_version(value: Any) -> bool:
+    return (
+        isinstance(value, str)
+        and value.isascii()
+        and 0 < len(value) <= MAX_VERSION_BYTES
+        and PROJECT_VERSION.fullmatch(value) is not None
+    )
+
+
+def valid_lab_id(value: Any) -> bool:
+    return (
+        isinstance(value, str)
+        and 0 < len(value) <= lab_config.MAX_STRING_LENGTH
+        and lab_config.LAB_ID.fullmatch(value) is not None
+    )
+
+
 def check(check_id: str, status: str) -> Check:
     required, passed, failed, unavailable = CHECKS[check_id]
     if status == "pass":
@@ -99,8 +120,10 @@ def check(check_id: str, status: str) -> Check:
 
 
 class Context:
-    def __init__(self, root: Path, lab_id: str):
+    def __init__(self, root: Path, lab_id: str | None):
         self.root = root.resolve(strict=True)
+        if lab_id is not None and not valid_lab_id(lab_id):
+            raise DiagnosticArgumentError("invalid lab selector")
         self.lab_id = lab_id
         self.version: str | None = None
         self.revision: str | None = None
@@ -142,7 +165,7 @@ class Context:
             value = raw.decode("utf-8").strip()
         except UnicodeDecodeError:
             return self.record(check("project.version", "fail"))
-        if raw != (value + "\n").encode("utf-8") or not PROJECT_VERSION.fullmatch(value):
+        if raw != (value + "\n").encode("utf-8") or not valid_project_version(value):
             return self.record(check("project.version", "fail"))
         self.version = value
         return self.record(check("project.version", "pass"))
@@ -219,6 +242,8 @@ class Context:
             index, _ = lab_config.parse_index_bytes(index_raw)
         except lab_config.LabError:
             return self.record(check("inputs.lab-catalog", "fail"))
+        if self.lab_id is None:
+            self.lab_id = index["default_lab"]
         manifest_bytes: dict[str, bytes] = {}
         try:
             for entry in index["labs"]:
@@ -243,7 +268,7 @@ class Context:
         self.manifest = self.manifests.get(self.lab_id)
         self.manifest_digest = self.manifest_digests.get(self.lab_id)
         if self.manifest is None or self.manifest_digest is None:
-            return self.record(check("lab.selection", "fail"))
+            raise DiagnosticArgumentError("unknown lab selector")
         return self.record(check("lab.selection", "pass"))
 
     def cleanliness(self) -> Check:
@@ -329,11 +354,24 @@ class Context:
                 binding = "bound"
             else:
                 raise runtime_evidence.EvidenceError("unsupported evidence kind")
+            if not valid_project_version(document["project"]["version"]):
+                raise runtime_evidence.EvidenceError("unsafe evidence project version")
+            if not lab_config.TOKEN.fullmatch(document["build"]["machine"]):
+                raise runtime_evidence.EvidenceError("unsafe evidence machine")
+            if not lab_config.TOKEN.fullmatch(document["build"]["image"]):
+                raise runtime_evidence.EvidenceError("unsafe evidence image")
         except (runtime_evidence.EvidenceError, KeyError, TypeError, ValueError):
             return self.record(check("evidence.document", "fail"))
         self.evidence_document = document
         self.lab_binding = binding
-        self.evidence_summary = evidence_projection(document, self.evidence_digest)
+        if (
+            self.version is not None
+            and self.manifest is not None
+            and document["project"]["version"] == self.version
+            and document["build"]["machine"] == self.manifest["build"]["machine"]
+            and document["build"]["image"] == self.manifest["build"]["targets"][0]
+        ):
+            self.evidence_summary = evidence_projection(document, self.evidence_digest)
         return self.record(check("evidence.document", "pass"))
 
     def evidence_result_check(self) -> Check:
@@ -447,6 +485,74 @@ def validate_document(document: dict[str, Any]) -> None:
     result, _ = aggregate(checked)
     if document["result"] != result:
         raise ValueError("diagnostics aggregate result differs from its checks")
+    statuses = {item.id: item.status for item in checked}
+    project = document["project"]
+    if not isinstance(project, dict) or set(project) != {"name", "version", "revision", "dirty"}:
+        raise ValueError("diagnostics project fields differ from the contract")
+    if project["name"] != PROJECT_NAME:
+        raise ValueError("diagnostics project name is invalid")
+    version_present = valid_project_version(project["version"])
+    revision_present = isinstance(project["revision"], str) and re.fullmatch(r"[0-9a-f]{40}", project["revision"]) is not None
+    dirty_present = type(project["dirty"]) is bool
+    if version_present != (statuses["project.version"] == "pass"):
+        raise ValueError("diagnostics project version differs from its check")
+    if revision_present != (statuses["repository.git"] == "pass") or dirty_present != revision_present:
+        raise ValueError("diagnostics repository identity differs from its check")
+    lab = document["lab"]
+    if not isinstance(lab, dict) or set(lab) != {"id", "index_sha256", "manifest_sha256"}:
+        raise ValueError("diagnostics lab fields differ from the contract")
+    lab_id_present = valid_lab_id(lab["id"])
+    index_present = isinstance(lab["index_sha256"], str) and re.fullmatch(r"[0-9a-f]{64}", lab["index_sha256"]) is not None
+    manifest_present = isinstance(lab["manifest_sha256"], str) and re.fullmatch(r"[0-9a-f]{64}", lab["manifest_sha256"]) is not None
+    if lab["id"] is not None and not lab_id_present:
+        raise ValueError("diagnostics lab id is invalid")
+    if index_present != (statuses["inputs.lab-catalog"] == "pass"):
+        raise ValueError("diagnostics catalog identity differs from its check")
+    if manifest_present != (statuses["lab.selection"] == "pass"):
+        raise ValueError("diagnostics lab manifest differs from its check")
+    if statuses["lab.selection"] == "pass" and not lab_id_present:
+        raise ValueError("diagnostics selected lab identity is unavailable")
+    if result == "pass":
+        validate_pass_data(command, document["data"])
+
+
+def validate_pass_data(command: str, data: Any) -> None:
+    if not isinstance(data, dict):
+        raise ValueError("passing diagnostics data is invalid")
+    if command == "status":
+        expected = {"active_task", "source_lock", "selected_lab"}
+        valid = isinstance(data.get("source_lock"), dict) and isinstance(
+            data.get("selected_lab"), dict
+        )
+    elif command == "doctor":
+        expected = {"active_task", "evidence"}
+        valid = isinstance(data.get("evidence"), dict)
+    elif command == "inspect":
+        expected = {
+            "release",
+            "sources",
+            "build",
+            "emulator",
+            "runtime",
+            "source_lock_sha256",
+        }
+        valid = (
+            isinstance(data.get("release"), dict)
+            and isinstance(data.get("sources"), list)
+            and isinstance(data.get("build"), dict)
+            and isinstance(data.get("emulator"), dict)
+            and isinstance(data.get("runtime"), dict)
+            and isinstance(data.get("source_lock_sha256"), str)
+        )
+    else:
+        expected = {"evidence", "inputs", "subject_matches_head"}
+        valid = (
+            isinstance(data.get("evidence"), dict)
+            and isinstance(data.get("inputs"), dict)
+            and data.get("subject_matches_head") is True
+        )
+    if set(data) != expected or not valid:
+        raise ValueError("passing diagnostics data is incomplete")
 
 
 def base(ctx: Context, command: str) -> list[Check]:
@@ -467,7 +573,7 @@ def evidence_checks(ctx: Context) -> list[Check]:
     ]
 
 
-def command_document(root: Path, command: str, lab_id: str) -> tuple[dict[str, Any], int]:
+def command_document(root: Path, command: str, lab_id: str | None = None) -> tuple[dict[str, Any], int]:
     if command not in SEQUENCES:
         raise ValueError("unknown diagnostics command")
     ctx = Context(root, lab_id)
@@ -511,7 +617,7 @@ def command_document(root: Path, command: str, lab_id: str) -> tuple[dict[str, A
         "command": command,
         "result": result,
         "project": {"name": PROJECT_NAME, "version": ctx.version, "revision": ctx.revision, "dirty": ctx.dirty},
-        "lab": {"id": lab_id, "index_sha256": ctx.index_digest, "manifest_sha256": ctx.manifest_digest},
+        "lab": {"id": ctx.lab_id, "index_sha256": ctx.index_digest, "manifest_sha256": ctx.manifest_digest},
         "checks": [item.object() for item in items],
         "data": data,
     }

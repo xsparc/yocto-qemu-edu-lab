@@ -10,6 +10,7 @@ import sys
 sys.dont_write_bytecode = True
 
 import argparse  # noqa: E402
+import os  # noqa: E402
 from pathlib import Path  # noqa: E402
 
 
@@ -34,9 +35,7 @@ def parser() -> argparse.ArgumentParser:
     )
     result.add_argument(
         "--lab",
-        choices=("pci-x86-64", "platform-arm64"),
-        default="pci-x86-64",
-        help="closed lab manifest selection (default: pci-x86-64)",
+        help="catalog lab id; defaults to the catalog selection",
     )
     result.add_argument(
         "--format",
@@ -50,22 +49,51 @@ def parser() -> argparse.ArgumentParser:
 
 def load_runtime():
     """Import project code only inside the fixed diagnostic error boundary."""
-    from diagnostics import command_document, json_bytes, text_bytes
+    import diagnostics
 
-    return command_document, json_bytes, text_bytes
+    return diagnostics
+
+
+def disable_stdout() -> None:
+    """Prevent a failed buffered pipe from being retried at interpreter exit."""
+    try:
+        descriptor = os.open(os.devnull, os.O_WRONLY)
+        try:
+            os.dup2(descriptor, sys.stdout.fileno())
+        finally:
+            os.close(descriptor)
+    except (AttributeError, OSError, TypeError, ValueError):
+        pass
 
 
 def main() -> int:
     arguments = parser().parse_args()
+    runtime = None
     try:
-        command_document, json_bytes, text_bytes = load_runtime()
-        document, exit_code = command_document(ROOT, arguments.command, arguments.lab)
-        payload = json_bytes(document) if arguments.format == "json" else text_bytes(document)
-        sys.stdout.buffer.write(payload)
-    except BrokenPipeError:
-        return 1
-    except Exception:
+        runtime = load_runtime()
+        document, exit_code = runtime.command_document(
+            ROOT, arguments.command, arguments.lab
+        )
+        payload = (
+            runtime.json_bytes(document)
+            if arguments.format == "json"
+            else runtime.text_bytes(document)
+        )
+    except Exception as exc:
+        if runtime is not None and isinstance(exc, runtime.DiagnosticArgumentError):
+            sys.stderr.buffer.write(b"qemu-edu-lab: invalid arguments\n")
+            sys.stderr.buffer.flush()
+            return 2
         sys.stderr.buffer.write(b"qemu-edu-lab: internal diagnostic failure\n")
+        sys.stderr.buffer.flush()
+        return 1
+    try:
+        sys.stdout.buffer.write(payload)
+        sys.stdout.buffer.flush()
+    except (BrokenPipeError, OSError, ValueError):
+        disable_stdout()
+        sys.stderr.buffer.write(b"qemu-edu-lab: output unavailable\n")
+        sys.stderr.buffer.flush()
         return 1
     return exit_code
 

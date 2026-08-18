@@ -224,6 +224,9 @@ SPDX-License-Identifier: MIT
   fixed aggregate exit precedence, bounded single-read repository inputs, and
   a hardened native Git adapter. Keep the command offline and free of mutation,
   setup, build, boot, test execution, arbitrary paths, MCP, A2A, and model SDKs.
+  Resolve default and explicit lab IDs through the manifest catalog. Accept
+  ASCII Semantic Versioning project identities independently of schema 1 so an
+  unrelated project minor advance does not force a content-identical schema.
   Validate its schema independently only in an isolated Linux CPython 3.12 job
   using the six exact hash-verified wheels in the test-only dependency lock.
 - Reason: One stable local contract serves maintainers, CI, dashboards, and

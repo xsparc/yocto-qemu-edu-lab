@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import importlib.util
 import json
 import os
@@ -40,10 +41,16 @@ class DiagnosticsTests(unittest.TestCase):
         self.assertEqual(("unavailable", 3), diagnostics.aggregate([warning, required_unavailable]))
         self.assertEqual(("fail", 1), diagnostics.aggregate([required_unavailable, failed]))
 
-    def test_project_version_contract_is_the_compatible_0_6_line(self) -> None:
-        for value in ("0.6.0-dev", "0.6.1", "0.6.12-rc.1+build.2"):
+    def test_project_version_contract_is_general_ascii_semver(self) -> None:
+        for value in ("0.5.0-dev", "0.6.1", "0.6.12-rc.1+build.2", "0.7.0"):
             self.assertIsNotNone(diagnostics.PROJECT_VERSION.fullmatch(value))
-        for value in ("0.5.0-dev", "0.7.0", "0.6.01", "0.6.1-01"):
+        for value in (
+            "0.6.01",
+            "0.6.1-01",
+            "0.6.1\u0661",
+            "0.6.1-\u0661",
+            "0.6.1\n",
+        ):
             self.assertIsNone(diagnostics.PROJECT_VERSION.fullmatch(value))
 
     def test_semantic_validator_rejects_summary_and_aggregate_drift(self) -> None:
@@ -65,6 +72,112 @@ class DiagnosticsTests(unittest.TestCase):
         changed["checks"][0]["required"] = 1
         with self.assertRaises(ValueError):
             diagnostics.validate_document(changed)
+
+    def test_passing_data_validator_is_closed_and_typed(self) -> None:
+        evidence = {
+            "evidence": {},
+            "inputs": {},
+            "subject_matches_head": True,
+        }
+        diagnostics.validate_pass_data("evidence", evidence)
+        for mutation in (
+            {**evidence, "subject_matches_head": False},
+            {**evidence, "inputs": "wrong"},
+            {**evidence, "extra": True},
+        ):
+            with self.subTest(mutation=mutation), self.assertRaises(ValueError):
+                diagnostics.validate_pass_data("evidence", mutation)
+
+    def test_semantic_validator_rejects_passing_null_identity_and_data(self) -> None:
+        document, _ = diagnostics.command_document(ROOT, "status", None)
+        document["checks"][-1] = diagnostics.check("repository.clean", "pass").object()
+        document["result"] = "pass"
+        diagnostics.validate_document(document)
+        changed = copy.deepcopy(document)
+        changed["project"] = {
+            "name": diagnostics.PROJECT_NAME,
+            "version": None,
+            "revision": None,
+            "dirty": None,
+        }
+        changed["lab"]["index_sha256"] = None
+        changed["lab"]["manifest_sha256"] = None
+        changed["data"] = {
+            "active_task": None,
+            "source_lock": None,
+            "selected_lab": None,
+        }
+        with self.assertRaises(ValueError):
+            diagnostics.validate_document(changed)
+
+    def test_catalog_default_and_safe_future_ids_are_core_authority(self) -> None:
+        document, _ = diagnostics.command_document(ROOT, "inspect", None)
+        self.assertEqual("pci-x86-64", document["lab"]["id"])
+        changed = copy.deepcopy(document)
+        changed["lab"]["id"] = "future-riscv"
+        diagnostics.validate_document(changed)
+        with self.assertRaises(diagnostics.DiagnosticArgumentError):
+            diagnostics.command_document(ROOT, "inspect", "future-riscv")
+        with self.assertRaises(diagnostics.DiagnosticArgumentError):
+            diagnostics.command_document(ROOT, "inspect", "../../private")
+        with self.assertRaises(diagnostics.DiagnosticArgumentError):
+            diagnostics.command_document(ROOT, "inspect", "future-riscv\n")
+        with self.assertRaises(diagnostics.DiagnosticArgumentError):
+            diagnostics.Context(ROOT, 7)  # type: ignore[arg-type]
+        oversized = "a" * (lab_config.MAX_STRING_LENGTH + 1)
+        with patch.object(diagnostics, "read_regular") as read:
+            with self.assertRaises(diagnostics.DiagnosticArgumentError):
+                diagnostics.command_document(ROOT, "inspect", oversized)
+        read.assert_not_called()
+
+    def test_core_selects_a_synthetic_third_catalog_lab(self) -> None:
+        source_raw = (ROOT / "config/sources.lock.json").read_bytes()
+        source_data, _ = source_lock.parse_lock_bytes(source_raw)
+        index = json.loads((ROOT / "config/labs/index.json").read_bytes())
+        manifest_paths = [entry["manifest"] for entry in index["labs"]]
+        manifest_bytes = {
+            relative: (ROOT / relative).read_bytes() for relative in manifest_paths
+        }
+        future = json.loads(manifest_bytes[index["labs"][0]["manifest"]])
+        future["id"] = "future-riscv"
+        future["description"] = "Synthetic future catalog fixture."
+        future["build"]["build_dir"] = "build-future"
+        future["build"]["machine"] = "qemu-edu-future"
+        future_relative = "config/labs/future-riscv.json"
+        future_raw = (
+            json.dumps(future, sort_keys=True, separators=(",", ":")) + "\n"
+        ).encode()
+        index["labs"].append(
+            {
+                "id": "future-riscv",
+                "manifest": future_relative,
+                "sha256": hashlib.sha256(future_raw).hexdigest(),
+            }
+        )
+        index_raw = (
+            json.dumps(index, sort_keys=True, separators=(",", ":")) + "\n"
+        ).encode()
+        manifest_bytes[future_relative] = future_raw
+        catalog, _, manifests, _ = lab_config.read_catalog_bytes(
+            index_raw, manifest_bytes, source_data
+        )
+        self.assertEqual("pci-x86-64", catalog["default_lab"])
+        self.assertIn("future-riscv", manifests)
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "config/labs").mkdir(parents=True)
+            (root / "config/sources.lock.json").write_bytes(source_raw)
+            (root / "config/labs/index.json").write_bytes(index_raw)
+            for relative, raw in manifest_bytes.items():
+                path = root / relative
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(raw)
+            ctx = diagnostics.Context(root, "future-riscv")
+            self.assertEqual("pass", ctx.source_lock().status)
+            self.assertEqual("pass", ctx.lab_catalog().status)
+            self.assertEqual("pass", ctx.selection().status)
+            self.assertEqual("future-riscv", ctx.manifest["id"])
 
     def test_json_bytes_are_stable_utf8_lf(self) -> None:
         document, _ = diagnostics.command_document(ROOT, "inspect", "platform-arm64")
@@ -301,6 +414,122 @@ class DiagnosticsTests(unittest.TestCase):
         self.assertEqual("pass", statuses["evidence.file"])
         self.assertEqual("fail", statuses["evidence.document"])
         self.assertEqual("unavailable", statuses["evidence.result"])
+
+    def test_untrusted_evidence_identity_is_not_projected(self) -> None:
+        pci_results = {
+            test_id: {"status": "PASSED", "duration": 0.1}
+            for test_id in runtime_evidence.EXPECTED_TESTS
+        }
+        pci_oeqa = {
+            "result": {
+                "configuration": {
+                    "MACHINE": "qemu-edu-x86-64",
+                    "IMAGE_BASENAME": "qemu-edu-image",
+                    "DISTRO": "poky",
+                    "HOST_DISTRO": "ubuntu-24.04",
+                    "STARTTIME": "20260814010101",
+                    "TEST_TYPE": "runtime",
+                },
+                "result": pci_results,
+            }
+        }
+        with patch.object(runtime_evidence, "git_state", return_value=("1" * 40, False)):
+            pci = runtime_evidence.build_evidence(
+                oeqa=pci_oeqa,
+                repo=ROOT,
+                machine="qemu-edu-x86-64",
+                image="qemu-edu-image",
+                oeqa_sha256="2" * 64,
+                testimage_exit_code=0,
+            )
+        platform_results = {
+            test_id: {"status": "PASSED", "duration": 0.1}
+            for test_id in platform_runtime_evidence.EXPECTED_TESTS
+        }
+        platform_oeqa = {
+            "result": {
+                "configuration": {
+                    "MACHINE": "qemu-edu-platform-arm64",
+                    "IMAGE_BASENAME": "qemu-edu-image",
+                    "DISTRO": "poky",
+                    "HOST_DISTRO": "ubuntu-24.04",
+                    "STARTTIME": "20260814010101",
+                    "TEST_TYPE": "runtime",
+                },
+                "result": platform_results,
+            }
+        }
+        with patch.object(platform_runtime_evidence, "git_state", return_value=("1" * 40, False)):
+            platform = platform_runtime_evidence.build_evidence(
+                oeqa=platform_oeqa,
+                repo=ROOT,
+                lab_id="platform-arm64",
+                machine="qemu-edu-platform-arm64",
+                image="qemu-edu-image",
+                oeqa_sha256="3" * 64,
+                testimage_exit_code=0,
+            )
+        secrets = (
+            "/home/alice/token=supersecret",
+            "user:password@host.invalid",
+            "builder.example.invalid",
+            "0.6.0-dev\nprivate",
+            "0.6.0+builder.example.invalid",
+        )
+        original = diagnostics.read_regular
+        fixtures = (
+            ("pci-x86-64", "build/qemu-edu-runtime-v3.json", pci),
+            (
+                "platform-arm64",
+                "build-platform-arm64/qemu-edu-platform-runtime-v1.json",
+                platform,
+            ),
+        )
+        for lab_id, selected, evidence in fixtures:
+            for secret in secrets:
+                with self.subTest(lab=lab_id, value=secret):
+                    changed = copy.deepcopy(evidence)
+                    changed["project"]["version"] = secret
+                    supplied_bytes = (json.dumps(changed) + "\n").encode()
+
+                    def supplied(root: Path, relative: str, maximum: int) -> bytes:
+                        if relative == selected:
+                            return supplied_bytes
+                        return original(root, relative, maximum)
+
+                    with patch.object(diagnostics, "read_regular", side_effect=supplied):
+                        document, exit_code = diagnostics.command_document(
+                            ROOT, "evidence", lab_id
+                        )
+                    payload = diagnostics.json_bytes(document)
+                    self.assertEqual(1, exit_code)
+                    self.assertEqual("fail", document["result"])
+                    self.assertIsNone(document["data"]["evidence"])
+                    self.assertNotIn(secret.encode(), payload)
+
+        for field, secret in (
+            ("machine", "builder.example.invalid"),
+            ("image", "qemu-edu-other"),
+        ):
+            changed = copy.deepcopy(pci)
+            changed["build"][field] = secret
+            supplied_bytes = (json.dumps(changed) + "\n").encode()
+
+            def supplied_identity(root: Path, relative: str, maximum: int) -> bytes:
+                if relative == "build/qemu-edu-runtime-v3.json":
+                    return supplied_bytes
+                return original(root, relative, maximum)
+
+            with patch.object(
+                diagnostics, "read_regular", side_effect=supplied_identity
+            ):
+                document, exit_code = diagnostics.command_document(
+                    ROOT, "evidence", "pci-x86-64"
+                )
+            payload = diagnostics.json_bytes(document)
+            self.assertEqual(1, exit_code)
+            self.assertIsNone(document["data"]["evidence"])
+            self.assertNotIn(secret.encode(), payload)
 
     def test_evidence_file_bytes_are_parsed_without_reopening(self) -> None:
         results = {

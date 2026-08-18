@@ -55,6 +55,39 @@ class DiagnosticsCliTests(unittest.TestCase):
         self.assertNotIn(supplied.encode(), result.stderr)
         self.assertIn(b"qemu-edu-lab: invalid arguments", result.stderr)
 
+    def test_safe_unknown_lab_is_rejected_without_a_document(self) -> None:
+        result = self.run_cli("--lab", "future-riscv", "status")
+        self.assertEqual(2, result.returncode)
+        self.assertEqual(b"", result.stdout)
+        self.assertEqual(b"qemu-edu-lab: invalid arguments\n", result.stderr)
+
+    def test_oversized_lab_is_rejected_without_echo_or_document(self) -> None:
+        supplied = "a" * 4097
+        result = self.run_cli("--lab", supplied, "status")
+        self.assertEqual(2, result.returncode)
+        self.assertEqual(b"", result.stdout)
+        self.assertEqual(b"qemu-edu-lab: invalid arguments\n", result.stderr)
+        self.assertNotIn(supplied.encode(), result.stderr)
+
+    def test_closed_output_pipe_has_a_bounded_exit(self) -> None:
+        process = subprocess.Popen(
+            [sys.executable, "-B", str(CLI), "--format", "json", "inspect"],
+            cwd=ROOT,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        assert process.stdout is not None
+        assert process.stderr is not None
+        process.stdout.close()
+        stderr = process.stderr.read()
+        process.stderr.close()
+        return_code = process.wait(timeout=30)
+        self.assertEqual(1, return_code)
+        self.assertEqual(b"qemu-edu-lab: output unavailable\n", stderr)
+        self.assertNotIn(b"Traceback", stderr)
+        self.assertNotIn(b"Exception", stderr)
+        self.assertNotIn(str(ROOT).encode(), stderr)
+
     def test_text_and_json_reach_the_same_aggregate_result(self) -> None:
         json_result = self.run_cli("--format", "json", "status")
         text_result = self.run_cli("--format", "text", "status")
@@ -83,6 +116,36 @@ class DiagnosticsCliTests(unittest.TestCase):
                         stdout.buffer.write.assert_not_called()
                         stderr.buffer.write.assert_called_once_with(
                             b"qemu-edu-lab: internal diagnostic failure\n"
+                        )
+        finally:
+            sys.path.remove(str(ROOT))
+
+    def test_python_closed_buffer_is_a_bounded_output_failure(self) -> None:
+        sys.path.insert(0, str(ROOT))
+        try:
+            import importlib.machinery
+            import importlib.util
+
+            loader = importlib.machinery.SourceFileLoader(
+                "qemu_edu_lab_closed_output", str(CLI)
+            )
+            spec = importlib.util.spec_from_loader(loader.name, loader)
+            assert spec is not None
+            module = importlib.util.module_from_spec(spec)
+            loader.exec_module(module)
+            for stage in ("write", "flush"):
+                with self.subTest(stage=stage), patch.object(
+                    sys, "argv", ["qemu-edu-lab", "inspect"]
+                ):
+                    with patch.object(sys, "stdout") as stdout, patch.object(
+                        sys, "stderr"
+                    ) as stderr, patch.object(module, "disable_stdout"):
+                        getattr(stdout.buffer, stage).side_effect = ValueError(
+                            "closed"
+                        )
+                        self.assertEqual(1, module.main())
+                        stderr.buffer.write.assert_called_once_with(
+                            b"qemu-edu-lab: output unavailable\n"
                         )
         finally:
             sys.path.remove(str(ROOT))

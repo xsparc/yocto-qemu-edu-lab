@@ -270,8 +270,11 @@ The dated primary-source rationale is recorded in
 Acceptance gate: the complete lab remains usable without AI; schema and security
 tests pass; state-changing tools are absent or separately approved.
 
-Rollback: remove the CLI, diagnostics schema, test-only dependency lock, and
-schema CI job. Existing build wrappers, lab manifests, guest interfaces, and
+Rollback: revert the complete focused A006 milestone change. A partial
+retirement must also revert the project version decision, maintainer
+configuration, workflow validator requirements, Makefile targets, CI job,
+checksums, tests, and documentation rather than deleting only the CLI and
+schema. Existing build wrappers, lab manifests, guest interfaces, and
 PCI/platform runtime-evidence formats remain unchanged.
 
 ## Horizon — Physical target bridge and course ecosystem

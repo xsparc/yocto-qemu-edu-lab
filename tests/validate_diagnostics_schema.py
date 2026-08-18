@@ -131,8 +131,39 @@ def main() -> int:
     rejected(validator, changed)
     changed = copy.deepcopy(baseline)
     changed["project"]["version"] = "0.7.0-dev"
+    validator.validate(changed)
+    for invalid_version in ("0.6.0\n", "0.6.0\u0661", "0.6.0-\u0661"):
+        changed = copy.deepcopy(baseline)
+        changed["project"]["version"] = invalid_version
+        rejected(validator, changed)
+    changed = copy.deepcopy(baseline)
+    changed["lab"]["id"] = "future-riscv"
+    validator.validate(changed)
+    changed = copy.deepcopy(baseline)
+    changed["lab"]["id"] = "a" * 4097
     rejected(validator, changed)
     changed = copy.deepcopy(baseline)
+    changed["lab"]["id"] = "future-riscv\n"
+    rejected(validator, changed)
+    changed = copy.deepcopy(baseline)
+    changed["project"]["revision"] = "a" * 40 + "\n"
+    rejected(validator, changed)
+    changed = copy.deepcopy(baseline)
+    changed["lab"]["index_sha256"] = "a" * 64 + "\n"
+    rejected(validator, changed)
+    changed = copy.deepcopy(baseline)
+    changed["data"]["active_task"] = {
+        "id": "A006\n",
+        "status": "In Progress",
+    }
+    rejected(validator, changed)
+    passing_status = copy.deepcopy(baseline)
+    passing_status["checks"][-1] = diagnostics.check(
+        "repository.clean", "pass"
+    ).object()
+    passing_status["result"] = "pass"
+    validator.validate(passing_status)
+    changed = copy.deepcopy(passing_status)
     changed["checks"][0], changed["checks"][1] = changed["checks"][1], changed["checks"][0]
     rejected(validator, changed)
     changed = copy.deepcopy(baseline)
@@ -144,6 +175,21 @@ def main() -> int:
     changed = copy.deepcopy(baseline)
     changed["data"]["extra"] = True
     rejected(validator, changed)
+    changed = copy.deepcopy(passing_status)
+    changed["project"] = {
+        "name": "yocto-qemu-edu-lab",
+        "version": None,
+        "revision": None,
+        "dirty": None,
+    }
+    changed["lab"]["index_sha256"] = None
+    changed["lab"]["manifest_sha256"] = None
+    changed["data"] = {
+        "active_task": None,
+        "source_lock": None,
+        "selected_lab": None,
+    }
+    rejected(validator, changed)
     inspect = next(item for item in documents if item["command"] == "inspect")
     changed = copy.deepcopy(inspect)
     changed["data"]["sources"][0], changed["data"]["sources"][1] = changed["data"]["sources"][1], changed["data"]["sources"][0]
@@ -151,13 +197,29 @@ def main() -> int:
     evidence = next(
         item
         for item in documents
-        if item["command"] == "evidence" and item["data"]["evidence"] is not None
+        if item["command"] == "evidence"
+        and item["result"] == "pass"
+        and item["data"]["evidence"] is not None
     )
     changed = copy.deepcopy(evidence)
     changed["data"]["inputs"] = {"lab_binding": "bound", "lab_index_sha256": None, "lab_manifest_sha256": None}
     rejected(validator, changed)
     changed = copy.deepcopy(evidence)
     changed["data"]["evidence"]["summary"]["passed"] = True
+    rejected(validator, changed)
+    changed = copy.deepcopy(evidence)
+    changed["data"]["evidence"] = None
+    changed["data"]["inputs"] = None
+    changed["data"]["subject_matches_head"] = None
+    rejected(validator, changed)
+    changed = copy.deepcopy(evidence)
+    changed["data"]["subject_matches_head"] = False
+    rejected(validator, changed)
+    changed = copy.deepcopy(evidence)
+    changed["data"]["inputs"] = "wrong"
+    rejected(validator, changed)
+    changed = copy.deepcopy(evidence)
+    changed["data"]["extra"] = True
     rejected(validator, changed)
     if retrievals:
         raise AssertionError("schema validation attempted external retrieval")

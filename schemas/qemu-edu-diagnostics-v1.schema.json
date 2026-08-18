@@ -22,34 +22,37 @@
     {"$ref": "#/$defs/evidence_command"}
   ],
   "allOf": [
-    {"if": {"properties": {"result": {"const": "pass"}}, "required": ["result"]}, "then": {"properties": {"checks": {"items": {"properties": {"status": {"const": "pass"}}, "required": ["status"]}}}}},
+    {"if": {"properties": {"result": {"const": "pass"}}, "required": ["result"]}, "then": {"properties": {"project": {"$ref": "#/$defs/passing_project"}, "lab": {"$ref": "#/$defs/passing_lab"}, "checks": {"items": {"properties": {"status": {"const": "pass"}}, "required": ["status"]}}}}},
     {"if": {"properties": {"result": {"const": "fail"}}, "required": ["result"]}, "then": {"properties": {"checks": {"contains": {"properties": {"status": {"const": "fail"}}, "required": ["status"]}, "minContains": 1}}}},
     {"if": {"properties": {"result": {"const": "unavailable"}}, "required": ["result"]}, "then": {"properties": {"checks": {"not": {"contains": {"properties": {"status": {"const": "fail"}}, "required": ["status"]}}, "contains": {"properties": {"status": {"const": "unavailable"}, "required": {"const": true}}, "required": ["status", "required"]}, "minContains": 1}}}},
     {"if": {"properties": {"result": {"const": "warning"}}, "required": ["result"]}, "then": {"properties": {"checks": {"not": {"contains": {"anyOf": [{"properties": {"status": {"const": "fail"}}, "required": ["status"]}, {"properties": {"status": {"const": "unavailable"}, "required": {"const": true}}, "required": ["status", "required"]}]}}, "contains": {"anyOf": [{"properties": {"status": {"const": "warning"}}, "required": ["status"]}, {"properties": {"status": {"const": "unavailable"}, "required": {"const": false}}, "required": ["status", "required"]}]}, "minContains": 1}}}}
   ],
   "$defs": {
-    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
-    "sha1": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}(?![\\s\\S])"},
+    "sha1": {"type": "string", "pattern": "^[0-9a-f]{40}(?![\\s\\S])"},
+    "project_version": {"type": "string", "pattern": "^(?:0|[1-9][0-9]*)\\.(?:0|[1-9][0-9]*)\\.(?:0|[1-9][0-9]*)(?:-(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(?:\\.(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?(?![\\s\\S])", "maxLength": 128},
     "short_string": {"type": "string", "minLength": 1, "maxLength": 4096},
     "project": {
       "type": "object", "additionalProperties": false,
       "required": ["name", "version", "revision", "dirty"],
       "properties": {
         "name": {"const": "yocto-qemu-edu-lab"},
-        "version": {"oneOf": [{"type": "string", "pattern": "^0\\.6\\.(0|[1-9][0-9]*)(?:-(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(?:\\.(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$", "maxLength": 4096}, {"type": "null"}]},
+        "version": {"oneOf": [{"$ref": "#/$defs/project_version"}, {"type": "null"}]},
         "revision": {"oneOf": [{"$ref": "#/$defs/sha1"}, {"type": "null"}]},
         "dirty": {"type": ["boolean", "null"]}
       }
     },
+    "passing_project": {"type": "object", "properties": {"version": {"$ref": "#/$defs/project_version"}, "revision": {"$ref": "#/$defs/sha1"}, "dirty": {"type": "boolean"}}},
     "lab": {
       "type": "object", "additionalProperties": false,
       "required": ["id", "index_sha256", "manifest_sha256"],
       "properties": {
-        "id": {"enum": ["pci-x86-64", "platform-arm64"]},
+        "id": {"oneOf": [{"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*(?![\\s\\S])", "maxLength": 4096}, {"type": "null"}]},
         "index_sha256": {"oneOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]},
         "manifest_sha256": {"oneOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]}
       }
     },
+    "passing_lab": {"type": "object", "properties": {"id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*(?![\\s\\S])", "maxLength": 4096}, "index_sha256": {"$ref": "#/$defs/sha256"}, "manifest_sha256": {"$ref": "#/$defs/sha256"}}},
     "check": {
       "type": "object", "additionalProperties": false,
       "required": ["id", "status", "required", "summary"],
@@ -88,7 +91,7 @@
     "active_task": {
       "oneOf": [
         {"type": "null"},
-        {"type": "object", "additionalProperties": false, "required": ["id", "status"], "properties": {"id": {"type": "string", "pattern": "^A[0-9]{3,}$"}, "status": {"const": "In Progress"}}}
+        {"type": "object", "additionalProperties": false, "required": ["id", "status"], "properties": {"id": {"type": "string", "pattern": "^A[0-9]{3,}(?![\\s\\S])"}, "status": {"const": "In Progress"}}}
       ]
     },
     "evidence_summary": {
@@ -97,7 +100,7 @@
       "properties": {
         "kind": {"enum": ["qemu-edu-runtime", "qemu-edu-platform-runtime"]},
         "schema_version": {"type": "integer", "minimum": 1, "maximum": 3},
-        "project": {"type": "object", "additionalProperties": false, "required": ["version", "revision", "dirty"], "properties": {"version": {"$ref": "#/$defs/short_string"}, "revision": {"$ref": "#/$defs/sha1"}, "dirty": {"type": "boolean"}}},
+        "project": {"type": "object", "additionalProperties": false, "required": ["version", "revision", "dirty"], "properties": {"version": {"$ref": "#/$defs/project_version"}, "revision": {"$ref": "#/$defs/sha1"}, "dirty": {"type": "boolean"}}},
         "build": {"type": "object", "additionalProperties": false, "required": ["machine", "image", "testimage_exit_code"], "properties": {"machine": {"$ref": "#/$defs/short_string"}, "image": {"$ref": "#/$defs/short_string"}, "testimage_exit_code": {"type": "integer", "minimum": 0, "maximum": 255}}},
         "result": {"enum": ["passed", "failed"]},
         "summary": {"type": "object", "additionalProperties": false, "required": ["total", "passed", "failed", "skipped", "errors"], "properties": {"total": {"type": "integer", "minimum": 0}, "passed": {"type": "integer", "minimum": 0}, "failed": {"type": "integer", "minimum": 0}, "skipped": {"type": "integer", "minimum": 0}, "errors": {"type": "integer", "minimum": 0}}},
@@ -122,7 +125,7 @@
     "inspect_data": {
       "type": "object", "additionalProperties": false, "required": ["release", "sources", "build", "emulator", "runtime", "source_lock_sha256"],
       "properties": {
-        "release": {"oneOf": [{"type": "null"}, {"type": "object", "additionalProperties": false, "required": ["project_version", "yocto_version", "yocto_series"], "properties": {"project_version": {"type": "string", "pattern": "^0\\.6\\.(0|[1-9][0-9]*)(?:-(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(?:\\.(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$", "maxLength": 4096}, "yocto_version": {"$ref": "#/$defs/short_string"}, "yocto_series": {"$ref": "#/$defs/short_string"}}}]},
+        "release": {"oneOf": [{"type": "null"}, {"type": "object", "additionalProperties": false, "required": ["project_version", "yocto_version", "yocto_series"], "properties": {"project_version": {"$ref": "#/$defs/project_version"}, "yocto_version": {"$ref": "#/$defs/short_string"}, "yocto_series": {"$ref": "#/$defs/short_string"}}}]},
         "sources": {"oneOf": [{"type": "null"}, {"type": "array", "minItems": 3, "maxItems": 3, "prefixItems": [{"$ref": "#/$defs/source_bitbake"}, {"$ref": "#/$defs/source_oe"}, {"$ref": "#/$defs/source_yocto"}], "items": false}]},
         "build": {"oneOf": [{"type": "null"}, {"type": "object", "additionalProperties": false, "required": ["build_dir", "machine", "image", "driver", "layers"], "properties": {"build_dir": {"$ref": "#/$defs/short_string"}, "machine": {"$ref": "#/$defs/short_string"}, "image": {"$ref": "#/$defs/short_string"}, "driver": {"$ref": "#/$defs/short_string"}, "layers": {"type": "array", "minItems": 1, "maxItems": 16, "items": {"$ref": "#/$defs/short_string"}}}}]},
         "emulator": {"oneOf": [{"type": "null"}, {"type": "object", "additionalProperties": false, "required": ["profile", "system_binary"], "properties": {"profile": {"$ref": "#/$defs/short_string"}, "system_binary": {"$ref": "#/$defs/short_string"}}}]},
@@ -159,9 +162,9 @@
         "subject_matches_head": {"type": ["boolean", "null"]}
       }
     },
-    "status_command": {"properties": {"command": {"const": "status"}, "checks": {"type": "array", "minItems": 7, "maxItems": 7, "prefixItems": [{"$ref": "#/$defs/project_version_check"}, {"$ref": "#/$defs/repository_git_check"}, {"$ref": "#/$defs/workflow_task_check"}, {"$ref": "#/$defs/source_lock_check"}, {"$ref": "#/$defs/lab_catalog_check"}, {"$ref": "#/$defs/lab_selection_check"}, {"$ref": "#/$defs/repository_clean_check"}], "items": false}, "data": {"$ref": "#/$defs/status_data"}}},
-    "doctor_command": {"properties": {"command": {"const": "doctor"}, "checks": {"type": "array", "minItems": 18, "maxItems": 18, "prefixItems": [{"$ref": "#/$defs/project_version_check"}, {"$ref": "#/$defs/repository_git_check"}, {"$ref": "#/$defs/workflow_task_check"}, {"$ref": "#/$defs/source_lock_check"}, {"$ref": "#/$defs/lab_catalog_check"}, {"$ref": "#/$defs/lab_selection_check"}, {"$ref": "#/$defs/tool_git_check"}, {"$ref": "#/$defs/tool_ssh_check"}, {"$ref": "#/$defs/source_bitbake_check"}, {"$ref": "#/$defs/source_oe_check"}, {"$ref": "#/$defs/source_yocto_check"}, {"$ref": "#/$defs/local_conf_check"}, {"$ref": "#/$defs/bblayers_conf_check"}, {"$ref": "#/$defs/evidence_file_check"}, {"$ref": "#/$defs/evidence_document_check"}, {"$ref": "#/$defs/evidence_result_check"}, {"$ref": "#/$defs/evidence_inputs_check"}, {"$ref": "#/$defs/evidence_subject_check"}], "items": false}, "data": {"$ref": "#/$defs/doctor_data"}}},
-    "inspect_command": {"properties": {"command": {"const": "inspect"}, "checks": {"type": "array", "minItems": 5, "maxItems": 5, "prefixItems": [{"$ref": "#/$defs/project_version_check"}, {"$ref": "#/$defs/repository_git_check"}, {"$ref": "#/$defs/source_lock_check"}, {"$ref": "#/$defs/lab_catalog_check"}, {"$ref": "#/$defs/lab_selection_check"}], "items": false}, "data": {"$ref": "#/$defs/inspect_data"}}},
-    "evidence_command": {"properties": {"command": {"const": "evidence"}, "checks": {"type": "array", "minItems": 10, "maxItems": 10, "prefixItems": [{"$ref": "#/$defs/project_version_check"}, {"$ref": "#/$defs/repository_git_check"}, {"$ref": "#/$defs/source_lock_check"}, {"$ref": "#/$defs/lab_catalog_check"}, {"$ref": "#/$defs/lab_selection_check"}, {"$ref": "#/$defs/evidence_file_check"}, {"$ref": "#/$defs/evidence_document_check"}, {"$ref": "#/$defs/evidence_result_check"}, {"$ref": "#/$defs/evidence_inputs_check"}, {"$ref": "#/$defs/evidence_subject_check"}], "items": false}, "data": {"$ref": "#/$defs/evidence_data"}}}
+    "status_command": {"properties": {"command": {"const": "status"}, "checks": {"type": "array", "minItems": 7, "maxItems": 7, "prefixItems": [{"$ref": "#/$defs/project_version_check"}, {"$ref": "#/$defs/repository_git_check"}, {"$ref": "#/$defs/workflow_task_check"}, {"$ref": "#/$defs/source_lock_check"}, {"$ref": "#/$defs/lab_catalog_check"}, {"$ref": "#/$defs/lab_selection_check"}, {"$ref": "#/$defs/repository_clean_check"}], "items": false}, "data": {"$ref": "#/$defs/status_data"}}, "allOf": [{"if": {"properties": {"result": {"const": "pass"}}}, "then": {"properties": {"data": {"properties": {"source_lock": {"type": "object"}, "selected_lab": {"type": "object"}}}}}}]},
+    "doctor_command": {"properties": {"command": {"const": "doctor"}, "checks": {"type": "array", "minItems": 18, "maxItems": 18, "prefixItems": [{"$ref": "#/$defs/project_version_check"}, {"$ref": "#/$defs/repository_git_check"}, {"$ref": "#/$defs/workflow_task_check"}, {"$ref": "#/$defs/source_lock_check"}, {"$ref": "#/$defs/lab_catalog_check"}, {"$ref": "#/$defs/lab_selection_check"}, {"$ref": "#/$defs/tool_git_check"}, {"$ref": "#/$defs/tool_ssh_check"}, {"$ref": "#/$defs/source_bitbake_check"}, {"$ref": "#/$defs/source_oe_check"}, {"$ref": "#/$defs/source_yocto_check"}, {"$ref": "#/$defs/local_conf_check"}, {"$ref": "#/$defs/bblayers_conf_check"}, {"$ref": "#/$defs/evidence_file_check"}, {"$ref": "#/$defs/evidence_document_check"}, {"$ref": "#/$defs/evidence_result_check"}, {"$ref": "#/$defs/evidence_inputs_check"}, {"$ref": "#/$defs/evidence_subject_check"}], "items": false}, "data": {"$ref": "#/$defs/doctor_data"}}, "allOf": [{"if": {"properties": {"result": {"const": "pass"}}}, "then": {"properties": {"data": {"properties": {"evidence": {"type": "object"}}}}}}]},
+    "inspect_command": {"properties": {"command": {"const": "inspect"}, "checks": {"type": "array", "minItems": 5, "maxItems": 5, "prefixItems": [{"$ref": "#/$defs/project_version_check"}, {"$ref": "#/$defs/repository_git_check"}, {"$ref": "#/$defs/source_lock_check"}, {"$ref": "#/$defs/lab_catalog_check"}, {"$ref": "#/$defs/lab_selection_check"}], "items": false}, "data": {"$ref": "#/$defs/inspect_data"}}, "allOf": [{"if": {"properties": {"result": {"const": "pass"}}}, "then": {"properties": {"data": {"properties": {"release": {"type": "object"}, "sources": {"type": "array"}, "build": {"type": "object"}, "emulator": {"type": "object"}, "runtime": {"type": "object"}, "source_lock_sha256": {"$ref": "#/$defs/sha256"}}}}}}]},
+    "evidence_command": {"properties": {"command": {"const": "evidence"}, "checks": {"type": "array", "minItems": 10, "maxItems": 10, "prefixItems": [{"$ref": "#/$defs/project_version_check"}, {"$ref": "#/$defs/repository_git_check"}, {"$ref": "#/$defs/source_lock_check"}, {"$ref": "#/$defs/lab_catalog_check"}, {"$ref": "#/$defs/lab_selection_check"}, {"$ref": "#/$defs/evidence_file_check"}, {"$ref": "#/$defs/evidence_document_check"}, {"$ref": "#/$defs/evidence_result_check"}, {"$ref": "#/$defs/evidence_inputs_check"}, {"$ref": "#/$defs/evidence_subject_check"}], "items": false}, "data": {"$ref": "#/$defs/evidence_data"}}, "allOf": [{"if": {"properties": {"result": {"const": "pass"}}}, "then": {"properties": {"data": {"properties": {"evidence": {"type": "object"}, "inputs": {"type": "object"}, "subject_matches_head": {"const": true}}}}}}]}
   }
 }
