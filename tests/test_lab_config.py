@@ -98,6 +98,30 @@ class LabConfigTests(unittest.TestCase):
         self.assertEqual("qemu-edu-x86-64", manifest["build"]["machine"])
         self.assertEqual("qemu-edu-driver", manifest["build"]["driver_target"])
         self.assertEqual(["qemu-edu-image"], manifest["build"]["targets"])
+        self.assertEqual(2, manifest["schema_version"])
+        self.assertEqual(
+            "spdx3-image-v1", manifest["supply_chain"]["evidence_profile"]
+        )
+
+    def test_supply_chain_package_rules_are_closed_sorted_and_disjoint(self) -> None:
+        _, manifests, _ = self.repository_data()
+        manifest = copy.deepcopy(manifests["platform-arm64"])
+        manifest["supply_chain"]["required_packages"].reverse()
+        with self.assertRaisesRegex(MODULE.LabError, "unique and sorted"):
+            MODULE.validate_manifest(manifest, "platform-arm64")
+
+        manifest = copy.deepcopy(manifests["platform-arm64"])
+        manifest["supply_chain"]["forbidden_packages"][0] = (
+            "qemu-edu-platform-tools"
+        )
+        manifest["supply_chain"]["forbidden_packages"].sort()
+        with self.assertRaisesRegex(MODULE.LabError, "overlap"):
+            MODULE.validate_manifest(manifest, "platform-arm64")
+
+        manifest = copy.deepcopy(manifests["platform-arm64"])
+        manifest["supply_chain"]["required_packages"][0]["future"] = True
+        with self.assertRaisesRegex(MODULE.LabError, "unknown fields"):
+            MODULE.validate_manifest(manifest, "platform-arm64")
 
     def test_unknown_lab_fails_closed(self) -> None:
         with self.assertRaisesRegex(MODULE.LabError, "unknown lab"):

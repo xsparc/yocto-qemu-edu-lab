@@ -384,7 +384,7 @@ result = "Implemented and qualified through pull request #9 as commit e2d703ecd0
 
 [[tasks]]
 id = "A006"
-status = "In Progress"
+status = "Done"
 milestone = "M6"
 title = "Expose provider-neutral lab diagnostics"
 outcome = "Make build and runtime evidence safely consumable by humans, CI, and optional AI tools."
@@ -428,6 +428,7 @@ validation_evidence = [
   "All six authorized Linux CPython 3.12 wheel files independently matched their exact sizes, lock digests, package metadata, dependency metadata, and embedded-license digests. An ephemeral network-disabled CPython 3.12 environment installed only those wheels and passed installed-package and populated independent schema-oracle validation.",
   "Pinned network-disabled, capability-free, read-only REUSE 6.2.0 passed 108/108 files with no issue; the source tree redistributes none of the six test-only wheels.",
   "Draft pull request #11 published focused workflow-correction head b68033923d6bc42eca06e1538aef0d745c1acd25, which passed repository, diagnostics-schema, static, and licensing jobs in Fast checks run 32210876009 and the complete dual-profile parse plus layer audit in Yocto metadata run 32210876013.",
+  "Final pull-request head 900c82f3936d9ffdf5a5499391abc368689332f6 passed repository, static, diagnostics-schema, and licensing jobs in Fast checks run 32212167852 and the complete dual-profile metadata and layer audit in run 32212167855 before merge.",
 ]
 review_evidence = [
   "Architecture review verified repository-model authority, versioned projection boundaries, schema and semantic parity, active-task state binding, compatibility, and complete rollback; final re-review approved with no P0-P2 findings.",
@@ -438,4 +439,47 @@ review_evidence = [
   "Documentation review aligned selector and output behavior, compatibility, supply-chain, rollback, and optional-adapter boundaries with the implementation and approved with no P0-P2 findings.",
   "Independent frozen-diff review reproduced all 203 Linux tests, the exact offline six-wheel Draft 2020-12 oracle, pinned REUSE 108/108, and staged-index truth; the full base-to-head implementation and closeout record were approved with no P0-P2 findings.",
 ]
+result = "Implemented, independently reviewed, and squash-merged through pull request #11 as commit b569199513418fc6fc8a62453dca4751d3cf8969; no tag or release was published."
+
+[[tasks]]
+id = "A008"
+status = "In Progress"
+milestone = "M7"
+title = "Bind SPDX 3 image-composition evidence"
+outcome = "Prove the project packages, declared licenses, and deployed image artifacts in each supported lab from the exact locked OpenEmbedded SPDX graph."
+scope = [
+  "Advance the development identity to 0.7.0-dev and lab manifests to schema 2 with exact per-lab package, declared-license, and cross-lab exclusion rules.",
+  "Use the exact locked OE-Core SPDX 3.0.1 SHACL model to validate the generated image graph without vendoring another model or adding a project runtime dependency.",
+  "Emit one closed, bounded, standard-library-validated evidence document per lab with source, revision, lab, raw-SBOM, installed-package, license, and independently recomputed image-artifact digests.",
+  "Add a fail-closed wrapper, exact generator-setting preflight, external JSON Schema oracle coverage, metadata assertions, documentation, licensing review, and proportional dual-lab qualification.",
+]
+non_scope = [
+  "Claiming complete SPDX specification conformance, vulnerability freshness, reproducible image bytes, provenance attestation, signing, SLSA, or physical-hardware results.",
+  "Committing or uploading raw SBOMs, image artifacts, build trees, logs, or retained evidence through public pull-request CI.",
+  "Updating the Yocto 6.0.2, QEMU 10.2.0, kernel, guest-interface, or immutable runtime-evidence inputs.",
+  "Adding an MCP, A2A, model SDK, hosted service, network access, tag, release, or publication workflow.",
+]
+acceptance_criteria = [
+  "Both schema-2 lab manifests validate and bind exact required project package licenses while excluding the other lab's project packages.",
+  "The wrapper removes stale evidence before the exact create_image_sbom_spdx task, verifies privacy-oriented generator settings, rejects host or symlink escape, and preserves the task failure exit.",
+  "The locked OE-Core model finds exactly one SpdxDocument and one build software_Sbom, no unresolved internal IDs, the direct rootfs installed-package relationship, and every declared image artifact.",
+  "Every required project package is directly installed with its exact declared license, every forbidden project package is absent, and every root image artifact matches its independently recomputed SHA-256.",
+  "Closed schema and semantic validators reject type aliases, unknown fields, unsafe strings, inconsistent counts, wrong identities, stale inputs, package/license drift, artifact tampering, and dirty --require-pass evidence.",
+  "Fast, metadata, licensing, qualified dual-lab build/runtime, documentation, and every required independent review gate pass on exact revisions.",
+]
+dependencies = ["A006"]
+risks = ["supply-chain", "licensing", "spdx", "evidence", "privacy", "compatibility", "build-resources"]
+validation = [
+  "project fast-check and licensing suite",
+  "closed manifest, semantic evidence, object-graph, wrapper, and exact Draft 2020-12 schema tests",
+  "both Yocto metadata profiles with exact SPDX 3.0.1 generator-setting preflight",
+  "clean dual-lab create_image_sbom_spdx tasks with locked-model, package, license, and artifact verification",
+  "proportional clean PCI and ARM64 runtime requalification after manifest digest changes",
+  "architecture, quality, DevOps, security, licensing, documentation, and independent-diff reviews",
+]
+approval = "Repository owner explicitly approved A008/M7 using the documented SPDX 3 image-composition evidence boundary on 2026-08-19."
+reviews_required = ["architecture", "quality", "devops", "security", "licensing", "documentation", "independent-diff"]
+reviews_completed = []
+validation_evidence = []
+review_evidence = []
 result = ""

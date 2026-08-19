@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "id": "pci-x86-64",
   "description": "QEMU EDU PCI lab on the x86-64 classic PC machine",
   "build": {
@@ -26,5 +26,28 @@
     "evidence_filename": "qemu-edu-runtime-v3.json",
     "guest_contract_version": 3,
     "evidence_schema_version": 3
+  },
+  "supply_chain": {
+    "evidence_profile": "spdx3-image-v1",
+    "evidence_filename": "qemu-edu-spdx-image-v1.json",
+    "required_packages": [
+      {
+        "name": "kernel-module-qemu-edu",
+        "declared_license": "GPL-2.0-only"
+      },
+      {
+        "name": "qemu-edu-driver",
+        "declared_license": "GPL-2.0-only"
+      },
+      {
+        "name": "qemu-edu-tools",
+        "declared_license": "MIT"
+      }
+    ],
+    "forbidden_packages": [
+      "kernel-module-qemu-edu-platform",
+      "qemu-edu-platform-driver",
+      "qemu-edu-platform-tools"
+    ]
   }
 }

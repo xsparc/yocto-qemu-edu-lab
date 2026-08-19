@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "id": "platform-arm64",
   "description": "Device Tree and platform-driver lab on the ARM64 QEMU virt machine",
   "build": {
@@ -26,5 +26,28 @@
     "evidence_filename": "qemu-edu-platform-runtime-v1.json",
     "guest_contract_version": 1,
     "evidence_schema_version": 1
+  },
+  "supply_chain": {
+    "evidence_profile": "spdx3-image-v1",
+    "evidence_filename": "qemu-edu-spdx-image-v1.json",
+    "required_packages": [
+      {
+        "name": "kernel-module-qemu-edu-platform",
+        "declared_license": "GPL-2.0-only"
+      },
+      {
+        "name": "qemu-edu-platform-driver",
+        "declared_license": "GPL-2.0-only"
+      },
+      {
+        "name": "qemu-edu-platform-tools",
+        "declared_license": "MIT"
+      }
+    ],
+    "forbidden_packages": [
+      "kernel-module-qemu-edu",
+      "qemu-edu-driver",
+      "qemu-edu-tools"
+    ]
   }
 }

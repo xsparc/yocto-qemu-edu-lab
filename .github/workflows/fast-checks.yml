@@ -80,11 +80,12 @@ jobs:
       - name: Static analysis
         run: |
           bash -n setup.sh environment.sh build.sh inspect.sh run.sh \
-            runtime-test.sh scripts/qemu_security_preflight.sh
+            runtime-test.sh sbom-evidence.sh scripts/qemu_security_preflight.sh
           sh -n meta-qemu-edu/recipes-support/qemu-edu-tools/files/qemu-edu-test \
             meta-qemu-edu/recipes-support/qemu-edu-platform-tools/files/qemu-edu-platform-test
           "$RUNNER_TEMP/m1-tools/shellcheck/shellcheck" --severity=warning \
             setup.sh environment.sh build.sh inspect.sh run.sh runtime-test.sh \
+            sbom-evidence.sh \
             scripts/qemu_security_preflight.sh \
             meta-qemu-edu/recipes-support/qemu-edu-tools/files/qemu-edu-test \
             meta-qemu-edu/recipes-support/qemu-edu-platform-tools/files/qemu-edu-platform-test
@@ -138,6 +139,7 @@ jobs:
             --disable-pip-version-check --no-input "$wheel_root"/*.whl
           "$environment_root/bin/python" scripts/verify_diagnostics_schema_lock.py --installed
           "$environment_root/bin/python" -B tests/validate_diagnostics_schema.py
+          "$environment_root/bin/python" -B tests/validate_sbom_schema.py
 
   licensing:
     timeout-minutes: 10

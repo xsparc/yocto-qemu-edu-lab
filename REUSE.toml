@@ -29,6 +29,7 @@ path = [
   "meta-qemu-edu/recipes-support/**",
   "run.sh",
   "runtime-test.sh",
+  "sbom-evidence.sh",
   "schemas/**",
   "scripts/**",
   "setup.sh",

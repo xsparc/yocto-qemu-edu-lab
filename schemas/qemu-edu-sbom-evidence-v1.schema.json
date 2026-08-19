@@ -1,0 +1,309 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xsparc.github.io/yocto-qemu-edu-lab/schemas/qemu-edu-sbom-evidence-v1.schema.json",
+  "title": "QEMU EDU SPDX image evidence version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "kind",
+    "project",
+    "inputs",
+    "lab",
+    "generator",
+    "source_sbom",
+    "packages",
+    "artifacts",
+    "checks",
+    "task_exit_code",
+    "result"
+  ],
+  "properties": {
+    "schema_version": {"const": 1},
+    "kind": {"const": "qemu-edu-spdx-image-evidence"},
+    "project": {"$ref": "#/$defs/project"},
+    "inputs": {"$ref": "#/$defs/inputs"},
+    "lab": {"$ref": "#/$defs/lab"},
+    "generator": {"$ref": "#/$defs/generator"},
+    "source_sbom": {"$ref": "#/$defs/source_sbom"},
+    "packages": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 128,
+      "items": {"$ref": "#/$defs/artifact"}
+    },
+    "checks": {"$ref": "#/$defs/checks"},
+    "task_exit_code": {"const": 0},
+    "result": {"const": "passed"}
+  },
+  "oneOf": [
+    {
+      "properties": {
+        "lab": {
+          "properties": {
+            "id": {"const": "pci-x86-64"},
+            "machine": {"const": "qemu-edu-x86-64"},
+            "image": {"const": "qemu-edu-image"}
+          }
+        },
+        "packages": {
+          "prefixItems": [
+            {"$ref": "#/$defs/pci_module_package"},
+            {"$ref": "#/$defs/pci_driver_package"},
+            {"$ref": "#/$defs/pci_tools_package"}
+          ],
+          "items": false
+        }
+      }
+    },
+    {
+      "properties": {
+        "lab": {
+          "properties": {
+            "id": {"const": "platform-arm64"},
+            "machine": {"const": "qemu-edu-platform-arm64"},
+            "image": {"const": "qemu-edu-image"}
+          }
+        },
+        "packages": {
+          "prefixItems": [
+            {"$ref": "#/$defs/platform_module_package"},
+            {"$ref": "#/$defs/platform_driver_package"},
+            {"$ref": "#/$defs/platform_tools_package"}
+          ],
+          "items": false
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "sha1": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}(?![\\s\\S])"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}(?![\\s\\S])"
+    },
+    "token": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._+-]*(?![\\s\\S])",
+      "maxLength": 4096
+    },
+    "project_version": {
+      "type": "string",
+      "pattern": "^(?:0|[1-9][0-9]*)\\.(?:0|[1-9][0-9]*)\\.(?:0|[1-9][0-9]*)(?:-(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(?:\\.(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?(?![\\s\\S])",
+      "maxLength": 128
+    },
+    "project": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version", "revision", "dirty"],
+      "properties": {
+        "name": {"const": "yocto-qemu-edu-lab"},
+        "version": {"$ref": "#/$defs/project_version"},
+        "revision": {"$ref": "#/$defs/sha1"},
+        "dirty": {"type": "boolean"}
+      }
+    },
+    "inputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_lock_sha256",
+        "openembedded_core_commit",
+        "lab_index_sha256",
+        "lab_manifest_sha256",
+        "yocto_version",
+        "yocto_series"
+      ],
+      "properties": {
+        "source_lock_sha256": {"$ref": "#/$defs/sha256"},
+        "openembedded_core_commit": {"$ref": "#/$defs/sha1"},
+        "lab_index_sha256": {"$ref": "#/$defs/sha256"},
+        "lab_manifest_sha256": {"$ref": "#/$defs/sha256"},
+        "yocto_version": {"$ref": "#/$defs/token"},
+        "yocto_series": {"$ref": "#/$defs/token"}
+      }
+    },
+    "lab": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "machine", "image", "evidence_profile"],
+      "properties": {
+        "id": {"enum": ["pci-x86-64", "platform-arm64"]},
+        "machine": {"enum": ["qemu-edu-x86-64", "qemu-edu-platform-arm64"]},
+        "image": {"const": "qemu-edu-image"},
+        "evidence_profile": {"const": "spdx3-image-v1"}
+      }
+    },
+    "generator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "spdx_version", "profiles", "settings"],
+      "properties": {
+        "name": {"const": "openembedded-create-spdx"},
+        "spdx_version": {"const": "3.0.1"},
+        "profiles": {
+          "type": "array",
+          "prefixItems": [
+            {"const": "build"},
+            {"const": "core"},
+            {"const": "security"},
+            {"const": "simpleLicensing"},
+            {"const": "software"}
+          ],
+          "items": false
+        },
+        "settings": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "SPDX_IMAGE_SUPPLIER_name",
+            "SPDX_INCLUDE_BITBAKE_PARENT_BUILD",
+            "SPDX_INCLUDE_BUILD_VARIABLES",
+            "SPDX_INCLUDE_COMPILED_SOURCES",
+            "SPDX_INCLUDE_KERNEL_CONFIG",
+            "SPDX_INCLUDE_PACKAGECONFIG",
+            "SPDX_INCLUDE_SOURCES",
+            "SPDX_INCLUDE_TIMESTAMPS",
+            "SPDX_INCLUDE_VEX",
+            "SPDX_PACKAGE_SUPPLIER_name",
+            "SPDX_PRETTY",
+            "SPDX_PROFILES",
+            "SPDX_VERSION"
+          ],
+          "properties": {
+            "SPDX_IMAGE_SUPPLIER_name": {"const": ""},
+            "SPDX_INCLUDE_BITBAKE_PARENT_BUILD": {"const": "0"},
+            "SPDX_INCLUDE_BUILD_VARIABLES": {"const": "0"},
+            "SPDX_INCLUDE_COMPILED_SOURCES": {"const": "0"},
+            "SPDX_INCLUDE_KERNEL_CONFIG": {"const": "0"},
+            "SPDX_INCLUDE_PACKAGECONFIG": {"const": "0"},
+            "SPDX_INCLUDE_SOURCES": {"const": "0"},
+            "SPDX_INCLUDE_TIMESTAMPS": {"const": "0"},
+            "SPDX_INCLUDE_VEX": {"const": "current"},
+            "SPDX_PACKAGE_SUPPLIER_name": {"const": ""},
+            "SPDX_PRETTY": {"const": "0"},
+            "SPDX_PROFILES": {"const": "core build software simpleLicensing security"},
+            "SPDX_VERSION": {"const": "3.0.1"}
+          }
+        }
+      }
+    },
+    "source_sbom": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "basename",
+        "sha256",
+        "size_bytes",
+        "document_count",
+        "sbom_count",
+        "root_element_count",
+        "unresolved_id_count",
+        "installed_package_count",
+        "artifact_count"
+      ],
+      "properties": {
+        "basename": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._+-]*\\.spdx\\.json(?![\\s\\S])",
+          "maxLength": 4096
+        },
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "size_bytes": {"type": "integer", "minimum": 1, "maximum": 134217728},
+        "document_count": {"const": 1},
+        "sbom_count": {"const": 1},
+        "root_element_count": {"type": "integer", "minimum": 2, "maximum": 129},
+        "unresolved_id_count": {"const": 0},
+        "installed_package_count": {"type": "integer", "minimum": 3, "maximum": 8192},
+        "artifact_count": {"type": "integer", "minimum": 1, "maximum": 128}
+      }
+    },
+    "package_base": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version", "declared_license"],
+      "properties": {
+        "name": {"$ref": "#/$defs/token"},
+        "version": {"$ref": "#/$defs/token"},
+        "declared_license": {"enum": ["GPL-2.0-only", "MIT"]}
+      }
+    },
+    "pci_module_package": {
+      "allOf": [
+        {"$ref": "#/$defs/package_base"},
+        {"properties": {"name": {"const": "kernel-module-qemu-edu"}, "declared_license": {"const": "GPL-2.0-only"}}}
+      ]
+    },
+    "pci_driver_package": {
+      "allOf": [
+        {"$ref": "#/$defs/package_base"},
+        {"properties": {"name": {"const": "qemu-edu-driver"}, "declared_license": {"const": "GPL-2.0-only"}}}
+      ]
+    },
+    "pci_tools_package": {
+      "allOf": [
+        {"$ref": "#/$defs/package_base"},
+        {"properties": {"name": {"const": "qemu-edu-tools"}, "declared_license": {"const": "MIT"}}}
+      ]
+    },
+    "platform_module_package": {
+      "allOf": [
+        {"$ref": "#/$defs/package_base"},
+        {"properties": {"name": {"const": "kernel-module-qemu-edu-platform"}, "declared_license": {"const": "GPL-2.0-only"}}}
+      ]
+    },
+    "platform_driver_package": {
+      "allOf": [
+        {"$ref": "#/$defs/package_base"},
+        {"properties": {"name": {"const": "qemu-edu-platform-driver"}, "declared_license": {"const": "GPL-2.0-only"}}}
+      ]
+    },
+    "platform_tools_package": {
+      "allOf": [
+        {"$ref": "#/$defs/package_base"},
+        {"properties": {"name": {"const": "qemu-edu-platform-tools"}, "declared_license": {"const": "MIT"}}}
+      ]
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["basename", "sha256", "size_bytes"],
+      "properties": {
+        "basename": {"$ref": "#/$defs/token"},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "size_bytes": {"type": "integer", "minimum": 1, "maximum": 8589934592}
+      }
+    },
+    "check": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "status"],
+      "properties": {
+        "id": {"$ref": "#/$defs/token"},
+        "status": {"const": "passed"}
+      }
+    },
+    "checks": {
+      "type": "array",
+      "prefixItems": [
+        {"allOf": [{"$ref": "#/$defs/check"}, {"properties": {"id": {"const": "source-lock"}}}]},
+        {"allOf": [{"$ref": "#/$defs/check"}, {"properties": {"id": {"const": "lab-contract"}}}]},
+        {"allOf": [{"$ref": "#/$defs/check"}, {"properties": {"id": {"const": "generator-settings"}}}]},
+        {"allOf": [{"$ref": "#/$defs/check"}, {"properties": {"id": {"const": "spdx-model"}}}]},
+        {"allOf": [{"$ref": "#/$defs/check"}, {"properties": {"id": {"const": "spdx-graph"}}}]},
+        {"allOf": [{"$ref": "#/$defs/check"}, {"properties": {"id": {"const": "package-set"}}}]},
+        {"allOf": [{"$ref": "#/$defs/check"}, {"properties": {"id": {"const": "declared-licenses"}}}]},
+        {"allOf": [{"$ref": "#/$defs/check"}, {"properties": {"id": {"const": "artifact-hashes"}}}]}
+      ],
+      "items": false
+    }
+  }
+}

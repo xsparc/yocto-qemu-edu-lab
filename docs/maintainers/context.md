@@ -5,12 +5,14 @@ SPDX-License-Identifier: MIT
 
 # Project context
 
-- Active task: A006, provider-neutral lab diagnostics. Its deterministic,
-  read-only CLI boundary and exact hash-locked test-only schema-validator
-  dependencies were approved on 2026-08-14; publication remains unapproved.
-- Current public baseline: A005 closeout merge
-  `5f1ba4d29e842723029764c290ec3a4e7dff68c9`; the qualified final
-  runtime-affecting revision remains `340621afe3108d074e03f638b238d724bc10de5c`.
+- Active task: A008, SPDX image-composition evidence. Its manifest-schema-2,
+  locked OE-Core parser, bounded local collector, and standard-library-only
+  evidence-validator boundary were approved on 2026-08-19. Publication,
+  merge, tag, and release remain unapproved.
+- Current public baseline: A006 pull request #11 squash-merge
+  `b569199513418fc6fc8a62453dca4751d3cf8969`. Historical dual-lab runtime
+  qualification remains bound to clean A005 revision
+  `340621afe3108d074e03f638b238d724bc10de5c`.
 - Baseline: two Yocto 6.0 (`wrynose`) labs: the default x86-64 QEMU EDU PCI
   device `1234:11e8`, and an independent ARM64 `virt` platform device selected
   with `--lab platform-arm64`.
@@ -152,5 +154,20 @@ SPDX-License-Identifier: MIT
   P0-P2 finding. Draft pull request #11 published the milestone; focused
   workflow-correction head `b68033923d6bc42eca06e1538aef0d745c1acd25`
   passed Fast checks run `32210876009` and Yocto metadata run `32210876013`.
-  Public review and merge remain pending.
+  Final head `900c82f3936d9ffdf5a5499391abc368689332f6` passed Fast checks
+  run `32212167852` and Yocto metadata run `32212167855`; pull request #11
+  squash-merged as `b569199513418fc6fc8a62453dca4751d3cf8969`. A006 is Done.
+  No tag or release was published.
+- A008 advances the development identity to `0.7.0-dev` and changes lab
+  manifests to schema 2. Each selected manifest names the exact required
+  project packages and declared licenses, forbids the other lab's packages,
+  and selects one generated evidence filename. The collector imports only the
+  exact locked OE-Core SPDX 3.0.1 SHACL model, reads the raw SBOM once under a
+  128 MiB bound, validates one document/build SBOM and its rootfs graph, and
+  independently hashes every selected image artifact. The closed evidence
+  document stays below 1 MiB and its validator remains standard-library-only.
+  Raw SBOMs, images, build trees, and environment dumps stay ignored and are
+  not public-CI artifacts. Full SPDX conformance, VEX freshness, reproducible
+  builds, signing, attestations, SLSA, releases, physical hardware, source-lock
+  updates, and network services are outside A008.
 - Public workflow state uses tool-neutral maintainer paths while preserving the same task, approval, validation, review, and handoff semantics.

@@ -7,11 +7,12 @@ Linux hardware discovery, kernel drivers, packages, and an image fit together.
 
 The long-term direction is a progressive, evidence-driven curriculum from this
 first virtual PCI driver through automated runtime testing, MSI, DMA, a
-Device-Tree/platform-driver lab, and optional provider-neutral diagnostics. The
+Device-Tree/platform-driver lab, provider-neutral diagnostics, and bounded
+SPDX image-composition evidence. The
 core build and learning path will remain usable without an AI service. See
 [`docs/vision.md`](docs/vision.md) and [`docs/roadmap.md`](docs/roadmap.md).
 
-The current development identity is `0.6.0-dev`; no release is implied. Yocto
+The current development identity is `0.7.0-dev`; no release is implied. Yocto
 metadata inputs are locked to the 6.0.2 Wrynose point release.
 
 Two closed lab manifests share the same locked sources and image target while
@@ -53,6 +54,10 @@ The additive ARM64 lab implements:
   level-high interrupt
 - A managed out-of-tree platform driver with bounded scratch and IRQ controls
 - A separate diagnostic command, OEQA suite, and closed evidence schema v1
+
+Both lab manifests also declare an SPDX image-evidence profile: three required
+project packages with exact declared licenses, the other lab's forbidden
+package set, and one generated evidence filename.
 
 Neither lab implements a CPU or board model. The PCI lab uses QEMU's existing
 x86-64 PC machine, and the platform lab uses its existing ARM64 `virt` machine;
@@ -255,6 +260,20 @@ See [`docs/guest-interface.md`](docs/guest-interface.md) for the sysfs contract
 and [`docs/runtime-testing.md`](docs/runtime-testing.md) for test and evidence
 semantics. The repository does not treat metadata-only CI or an unexecuted
 runtime command as passing runtime evidence.
+
+Generate the selected lab's bounded image-composition evidence after setup:
+
+```bash
+./sbom-evidence.sh
+./sbom-evidence.sh --lab platform-arm64
+```
+
+This runs the locked `create_image_sbom_spdx` task, validates the raw SPDX 3.0.1
+graph with the exact OE-Core model, independently hashes the selected image
+artifacts, and writes only the closed project projection under the selected
+build's `evidence/` directory. Raw SBOMs and images stay ignored build output.
+See [`docs/sbom-evidence.md`](docs/sbom-evidence.md) for the evidence boundary
+and the claims it deliberately does not make.
 
 ## 6. Follow one operation end to end
 

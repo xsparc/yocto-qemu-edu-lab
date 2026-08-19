@@ -5,12 +5,12 @@
     {
       "id": "pci-x86-64",
       "manifest": "config/labs/pci-x86-64.json",
-      "sha256": "ce220280596700928546902c68d9c5e0c63b2f9ea2af0857fb69bf0a13103296"
+      "sha256": "7e93451d6955088a4d88085478963bb310de924635f37bcad8fc8bbbca991eea"
     },
     {
       "id": "platform-arm64",
       "manifest": "config/labs/platform-arm64.json",
-      "sha256": "dc717b71f63c25bef31ee7739e8d8573b7c1df3b4b1cebfea334f90fcd37d5f2"
+      "sha256": "486adc57f99ee2c466be4e3ee3c725a0cdbf2ac34cf1c5497b4751413e8dd352"
     }
   ]
 }
