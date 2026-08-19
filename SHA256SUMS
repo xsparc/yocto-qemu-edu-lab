@@ -34,7 +34,7 @@ b980a803146d2aed4bb54d8ee8e6dadc451b01a9826ad562a7ca8f5c6779575c  ./docs/maintai
 6b1bcaec2ba763c57fc15b06f9794c17b998e6dbda7b38e30c9e2768d4257c81  ./docs/maintainers/decisions.md
 65f879644273c7431ccb2f132ea19e67491a5a0b9b948e729b877e4692908d3b  ./docs/maintainers/intake.md
 c7bfee49511da154f74a0e42cec735c10db6b1eb865bf67d79af35639e6ca18a  ./docs/maintainers/ledger.md
-186e736d48db5a695d3081957c0146a9fd6ebcdcede5968764b45c2ea0863d5e  ./docs/maintainers/tasks.toml
+8de2671b8c77225308204791bd02e0b429857ea3df36b66e3e0c3843c0a7d425  ./docs/maintainers/tasks.toml
 c86beaf2d7e50e25cf122c898a5d1ef2d481d816a996e8706a6bbe0b4a99707b  ./docs/maintenance-workflow.md
 d87cc671bee02f9c36e284c119d691564021068961de46b5cbfa71a5d6bf20f5  ./docs/mapping-to-real-hardware.md
 c8f0440c7c8df8f6cae97f670575e073f90fe2672de99908606e45683722cffd  ./docs/research/2026-08-07-m1-reproducibility.md
