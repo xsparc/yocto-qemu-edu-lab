@@ -324,6 +324,24 @@ runs repository, schema, licensing, and metadata preflight only. Final
 acceptance requires clean, adequately sized Linux builds for both lab profiles
 and validated evidence bound to that exact revision.
 
+Qualification status: clean revision `8588e29` passed all 228 isolated Linux
+tests, the exact external Draft 2020-12 oracle, and REUSE 116/116. After each
+image recipe was invalidated through `cleansstate`, the normal PCI graph
+completed 4,667 tasks and the normal ARM64 graph completed 4,631 tasks; both
+reran rootfs, image, and complete SPDX generation without warnings or failures.
+Closed PCI evidence SHA-256
+`d4b6f88023a45888b32a875a106d27efca4e720d24313d5395091e81f1f1c05d`
+binds raw SPDX SHA-256
+`2717b9c20b34bb1511ecfe091690e129003665fd0523fa3bdb69aa1562587b5a`,
+55 installed packages, and two image artifacts. Closed ARM64 evidence SHA-256
+`02f6fe4d06df2a63780e0a859c51ddbc53dff0721d9c4ad96575c8463742140e`
+binds raw SPDX SHA-256
+`9ac51c30d5a74b3538afaeea80d63831b9993f153c13e514f04b03005e1dee61`,
+49 installed packages, and two image artifacts. The normally rebuilt images
+then passed 21/21 PCI and 11/11 ARM64 software-QEMU tests with zero skips,
+failures, or errors. Independent reviews, publication, hosted gates, merge,
+tag, and release remain pending; A008 stays In Progress.
+
 The dated source analysis and compatibility boundary are recorded in
 [`research/2026-08-19-m7-spdx-image-evidence.md`](research/2026-08-19-m7-spdx-image-evidence.md).
 

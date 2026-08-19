@@ -480,6 +480,15 @@ validation = [
 approval = "Repository owner explicitly approved A008/M7 using the documented SPDX 3 image-composition evidence boundary on 2026-08-19."
 reviews_required = ["architecture", "quality", "devops", "security", "licensing", "documentation", "independent-diff"]
 reviews_completed = []
-validation_evidence = []
+validation_evidence = [
+  "Clean implementation revision 8588e29f86c30578df99a8ffacba598479130a0a passed source-lock, lab-catalog, workflow, CI-policy, QEMU-static, staged-checksum, and diff gates plus all 228 repository tests in isolated read-only Linux with no skips. The exact six-wheel offline Draft 2020-12 oracle passed both schemas, and pinned network-disabled REUSE 6.2.0 covered 116/116 files with zero issues.",
+  "Qualification used an unprivileged Debian 12 Docker worker bounded to four CPUs and 14 GiB RAM, with no network, no capabilities, no KVM device, and software QEMU. Source inputs remained detached, clean, and exact at BitBake acfe02fa, OE-Core 5d1aa5c, and meta-yocto 24c24cef.",
+  "Real metadata/build execution found and closed two pre-qualification assumptions: optional supplier-name variables now use bitbake-getvar --ignore-undefined, and schema-2 manifests pin Yocto's exact versioned installed module-package names instead of unsafe prefixes. The final clean revision includes both focused corrections.",
+  "After per-lab qemu-edu-image cleansstate, the normal PCI graph attempted 4,667 tasks with 20 image-recipe tasks rerun, and the normal ARM64 graph attempted 4,631 tasks with 20 image-recipe tasks rerun. Rootfs, compressed ext4/tar images, SPDX rootfs/image documents, and create_image_sbom_spdx all completed without BitBake warnings or failures.",
+  "PCI SPDX evidence SHA-256 d4b6f88023a45888b32a875a106d27efca4e720d24313d5395091e81f1f1c05d binds raw SPDX SHA-256 2717b9c20b34bb1511ecfe091690e129003665fd0523fa3bdb69aa1562587b5a, 55 installed packages, the exact three project package/license rules, and two independently hashed image artifacts.",
+  "ARM64 SPDX evidence SHA-256 02f6fe4d06df2a63780e0a859c51ddbc53dff0721d9c4ad96575c8463742140e binds raw SPDX SHA-256 9ac51c30d5a74b3538afaeea80d63831b9993f153c13e514f04b03005e1dee61, 49 installed packages, the exact three project package/license rules, and two independently hashed image artifacts.",
+  "The normally rebuilt PCI image passed ping, SSH, and all 19 project cases: 21/21 in 174.238 seconds with zero skips, failures, or errors. Runtime-v3 evidence SHA-256 e456a16f1369da9a60ed5aa661e954ee7d200f3780570a260c4923a3500f7b65 binds OEQA SHA-256 2ee7fb0e1daa3ca3f16080af45eb32c7bca9b6b6be2deefb7bca133b8cd30fb8.",
+  "The normally rebuilt ARM64 image passed ping, SSH, and all nine project cases: 11/11 in 42.057 seconds with zero skips, failures, or errors. Platform-v1 evidence SHA-256 5519538f609f70a937e8dab7c66764aa9dddf42a2b66e460f95d38b67526eaa0 binds OEQA SHA-256 4032c4865eb97bbc689b582969fb1de5770f18cf0828ec046b01c030d102127d.",
+]
 review_evidence = []
 result = ""

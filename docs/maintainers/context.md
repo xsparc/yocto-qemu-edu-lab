@@ -170,4 +170,28 @@ SPDX-License-Identifier: MIT
   not public-CI artifacts. Full SPDX conformance, VEX freshness, reproducible
   builds, signing, attestations, SLSA, releases, physical hardware, source-lock
   updates, and network services are outside A008.
+- Clean implementation revision
+  `8588e29f86c30578df99a8ffacba598479130a0a` passed all 228 isolated Linux
+  tests, the exact external schema oracle, REUSE 116/116, and every local
+  source/lab/workflow/CI/QEMU/checksum gate. Real build execution corrected
+  optional supplier-variable querying and pinned the exact versioned Yocto
+  module package names before qualification.
+- Both image recipes were rebuilt normally from `cleansstate` at that revision.
+  The PCI graph completed 4,667 tasks and ARM64 completed 4,631; each reran 20
+  image-recipe tasks including rootfs, image, and SPDX generation without
+  warnings or failures. PCI evidence SHA-256 is
+  `d4b6f88023a45888b32a875a106d27efca4e720d24313d5395091e81f1f1c05d`;
+  ARM64 evidence SHA-256 is
+  `02f6fe4d06df2a63780e0a859c51ddbc53dff0721d9c4ad96575c8463742140e`.
+  Their raw SPDX digests are
+  `2717b9c20b34bb1511ecfe091690e129003665fd0523fa3bdb69aa1562587b5a`
+  and `9ac51c30d5a74b3538afaeea80d63831b9993f153c13e514f04b03005e1dee61`;
+  both closed documents validate with clean-subject and current-input binding.
+- The normally rebuilt images also passed the proportional software-QEMU
+  requalification: PCI 21/21 in 174.238 seconds and ARM64 11/11 in 42.057
+  seconds, with zero skips, failures, or errors. Fresh runtime evidence hashes
+  are `e456a16f1369da9a60ed5aa661e954ee7d200f3780570a260c4923a3500f7b65`
+  and `5519538f609f70a937e8dab7c66764aa9dddf42a2b66e460f95d38b67526eaa0`.
+  Required independent reviews, publication, hosted gates, merge, tag, and
+  release remain pending.
 - Public workflow state uses tool-neutral maintainer paths while preserving the same task, approval, validation, review, and handoff semantics.
