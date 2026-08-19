@@ -32,7 +32,7 @@
     "evidence_filename": "qemu-edu-spdx-image-v1.json",
     "required_packages": [
       {
-        "name": "kernel-module-qemu-edu",
+        "name": "kernel-module-qemu-edu-6.18.24-yocto-standard",
         "declared_license": "GPL-2.0-only"
       },
       {
@@ -45,7 +45,7 @@
       }
     ],
     "forbidden_packages": [
-      "kernel-module-qemu-edu-platform",
+      "kernel-module-qemu-edu-platform-6.18.24-yocto-standard",
       "qemu-edu-platform-driver",
       "qemu-edu-platform-tools"
     ]

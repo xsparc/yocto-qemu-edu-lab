@@ -239,7 +239,7 @@
     "pci_module_package": {
       "allOf": [
         {"$ref": "#/$defs/package_base"},
-        {"properties": {"name": {"const": "kernel-module-qemu-edu"}, "declared_license": {"const": "GPL-2.0-only"}}}
+        {"properties": {"name": {"const": "kernel-module-qemu-edu-6.18.24-yocto-standard"}, "declared_license": {"const": "GPL-2.0-only"}}}
       ]
     },
     "pci_driver_package": {
@@ -257,7 +257,7 @@
     "platform_module_package": {
       "allOf": [
         {"$ref": "#/$defs/package_base"},
-        {"properties": {"name": {"const": "kernel-module-qemu-edu-platform"}, "declared_license": {"const": "GPL-2.0-only"}}}
+        {"properties": {"name": {"const": "kernel-module-qemu-edu-platform-6.18.24-yocto-standard"}, "declared_license": {"const": "GPL-2.0-only"}}}
       ]
     },
     "platform_driver_package": {

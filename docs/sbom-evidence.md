@@ -73,9 +73,14 @@ Lab manifest schema 2 adds one closed `supply_chain` object:
   their exact declared license expressions;
 - `forbidden_packages` is the other lab's three project packages.
 
-The PCI profile expects `kernel-module-qemu-edu` and `qemu-edu-driver` as
+The PCI profile expects the exact locked split-package name
+`kernel-module-qemu-edu-6.18.24-yocto-standard` and `qemu-edu-driver` as
 `GPL-2.0-only`, plus `qemu-edu-tools` as `MIT`. The ARM64 profile makes the
-equivalent assertions for the `qemu-edu-platform` packages. These are project
+equivalent assertions for
+`kernel-module-qemu-edu-platform-6.18.24-yocto-standard` and the other
+`qemu-edu-platform` packages. The kernel version is part of Yocto's installed
+module-package identity, so a future kernel change must update and requalify
+the manifest instead of silently matching a prefix. These are project
 composition rules, not a claim that the image contains only three packages.
 
 ## Collection and validation sequence

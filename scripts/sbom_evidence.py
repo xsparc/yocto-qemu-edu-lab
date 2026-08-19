@@ -85,7 +85,7 @@ LAB_IDENTITIES = {
         "machine": "qemu-edu-x86-64",
         "image": "qemu-edu-image",
         "packages": {
-            "kernel-module-qemu-edu": "GPL-2.0-only",
+            "kernel-module-qemu-edu-6.18.24-yocto-standard": "GPL-2.0-only",
             "qemu-edu-driver": "GPL-2.0-only",
             "qemu-edu-tools": "MIT",
         },
@@ -94,7 +94,9 @@ LAB_IDENTITIES = {
         "machine": "qemu-edu-platform-arm64",
         "image": "qemu-edu-image",
         "packages": {
-            "kernel-module-qemu-edu-platform": "GPL-2.0-only",
+            "kernel-module-qemu-edu-platform-6.18.24-yocto-standard": (
+                "GPL-2.0-only"
+            ),
             "qemu-edu-platform-driver": "GPL-2.0-only",
             "qemu-edu-platform-tools": "MIT",
         },
