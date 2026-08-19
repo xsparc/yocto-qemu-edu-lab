@@ -145,6 +145,33 @@ class SbomContractTests(unittest.TestCase):
         self.assertNotIn("Traceback", result.stderr)
         self.assertNotIn(str(ROOT), result.stderr)
 
+    def test_validator_does_not_reflect_unsafe_duplicate_key(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            evidence = Path(temporary) / "duplicate.json"
+            evidence.write_bytes(
+                b'{"\\u001b[31mINJECT\\n":1,"\\u001b[31mINJECT\\n":2}'
+            )
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(ROOT / "scripts/sbom_evidence.py"),
+                    "--repo",
+                    str(ROOT),
+                    "validate",
+                    str(evidence),
+                ],
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+        self.assertEqual(1, result.returncode)
+        self.assertEqual("", result.stdout)
+        self.assertEqual("sbom-evidence: FAIL: duplicate JSON key\n", result.stderr)
+        self.assertNotIn("\x1b", result.stderr)
+        self.assertNotIn("INJECT", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
+        self.assertNotIn(str(ROOT), result.stderr)
+
     @unittest.skipIf(sys.platform == "win32", "requires a native Linux Bash environment")
     def test_wrapper_rejects_explicit_empty_lab_before_dependencies(self) -> None:
         result = subprocess.run(

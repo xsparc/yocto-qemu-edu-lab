@@ -130,9 +130,32 @@ def reject_duplicate_pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     result: dict[str, Any] = {}
     for key, value in pairs:
         if key in result:
-            raise SbomEvidenceError(f"duplicate JSON key: {key}")
+            raise SbomEvidenceError("duplicate JSON key")
         result[key] = value
     return result
+
+
+def bounded_json_string(
+    value: Any,
+    where: str,
+    *,
+    max_length: int,
+    allow_json_whitespace_controls: bool,
+) -> str:
+    if not isinstance(value, str):
+        raise SbomEvidenceError(f"{where} must be a string")
+    if len(value) > max_length:
+        raise SbomEvidenceError(f"{where} exceeds {max_length} characters")
+    if any(0xD800 <= ord(character) <= 0xDFFF for character in value):
+        raise SbomEvidenceError(f"{where} contains an invalid Unicode surrogate")
+    permitted_controls = {0x09, 0x0A, 0x0D} if allow_json_whitespace_controls else set()
+    if any(
+        (ord(character) < 0x20 and ord(character) not in permitted_controls)
+        or ord(character) == 0x7F
+        for character in value
+    ):
+        raise SbomEvidenceError(f"{where} contains a control character")
+    return value
 
 
 def validate_json_shape(
@@ -142,6 +165,7 @@ def validate_json_shape(
     max_depth: int = MAX_JSON_DEPTH,
     max_items: int = MAX_JSON_ITEMS,
     max_string_length: int = MAX_STRING_LENGTH,
+    allow_json_whitespace_controls: bool = False,
     where: str = "evidence JSON",
 ) -> int:
     if depth > max_depth:
@@ -149,11 +173,11 @@ def validate_json_shape(
     if value is None or type(value) in (bool, int):
         return 1
     if isinstance(value, str):
-        string_value(
+        bounded_json_string(
             value,
             f"{where} string",
-            allow_empty=True,
             max_length=max_string_length,
+            allow_json_whitespace_controls=allow_json_whitespace_controls,
         )
         return 1
     if isinstance(value, list):
@@ -165,6 +189,7 @@ def validate_json_shape(
                 max_depth=max_depth,
                 max_items=max_items,
                 max_string_length=max_string_length,
+                allow_json_whitespace_controls=allow_json_whitespace_controls,
                 where=where,
             )
             if count > max_items:
@@ -180,6 +205,7 @@ def validate_json_shape(
                 max_depth=max_depth,
                 max_items=max_items,
                 max_string_length=max_string_length,
+                allow_json_whitespace_controls=allow_json_whitespace_controls,
                 where=where,
             )
             if count > max_items:
@@ -462,6 +488,7 @@ def deserialize_spdx(spdx: Any, raw: bytes) -> Any:
         max_depth=MAX_RAW_JSON_DEPTH,
         max_items=MAX_RAW_JSON_ITEMS,
         max_string_length=MAX_RAW_STRING_LENGTH,
+        allow_json_whitespace_controls=True,
         where="SPDX JSON",
     )
     objset = spdx.SHACLObjectSet()

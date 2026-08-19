@@ -364,12 +364,19 @@ class SbomEvidenceTests(unittest.TestCase):
             SHACLObjectSet=RawObjectSet,
             JSONLDDeserializer=RawDeserializer,
         )
-        parsed = MODULE.deserialize_spdx(spdx, b'{"@graph":[]}')
-        self.assertEqual({"@graph": []}, parsed.data)
+        parsed = MODULE.deserialize_spdx(
+            spdx,
+            b'{"@graph":[],"licenseText":"line one\\nline two\\r\\n\\tindent"}',
+        )
+        self.assertEqual(
+            {"@graph": [], "licenseText": "line one\nline two\r\n\tindent"},
+            parsed.data,
+        )
 
         for raw, expected in (
             (b'{"@graph":[],"@graph":[]}', "duplicate JSON key"),
             (b'{"value":NaN}', "unsupported constant"),
+            (b'{"value":"\\u001bunsafe"}', "control character"),
             (
                 b'{"value":' + b"1" * (MODULE.MAX_JSON_INTEGER_DIGITS + 1) + b'}',
                 "integer exceeds",
