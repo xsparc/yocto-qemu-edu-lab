@@ -192,6 +192,9 @@ SPDX-License-Identifier: MIT
   seconds, with zero skips, failures, or errors. Fresh runtime evidence hashes
   are `e456a16f1369da9a60ed5aa661e954ee7d200f3780570a260c4923a3500f7b65`
   and `5519538f609f70a937e8dab7c66764aa9dddf42a2b66e460f95d38b67526eaa0`.
-  Required independent reviews, publication, hosted gates, merge, tag, and
-  release remain pending.
+  Post-qualification hardening through final code candidate `b092b48` passed
+  all 234 isolated Linux tests and preserved both retained graph results. All
+  seven required review roles approved exact review head `31142b6` with no
+  remaining P0-P2 finding. Publication, hosted gates, merge, tag, and release
+  remain pending.
 - Public workflow state uses tool-neutral maintainer paths while preserving the same task, approval, validation, review, and handoff semantics.

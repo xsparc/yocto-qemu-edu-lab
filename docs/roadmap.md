@@ -339,8 +339,11 @@ binds raw SPDX SHA-256
 `9ac51c30d5a74b3538afaeea80d63831b9993f153c13e514f04b03005e1dee61`,
 49 installed packages, and two image artifacts. The normally rebuilt images
 then passed 21/21 PCI and 11/11 ARM64 software-QEMU tests with zero skips,
-failures, or errors. Independent reviews, publication, hosted gates, merge,
-tag, and release remain pending; A008 stays In Progress.
+failures, or errors. Post-qualification hardening through code candidate
+`b092b48` passed all 234 isolated Linux tests and retained both qualified graph
+results. All seven required review roles approved exact review head `31142b6`
+with no remaining P0-P2 finding. Publication, hosted gates, merge, tag, and
+release remain pending; A008 stays In Progress.
 
 The dated source analysis and compatibility boundary are recorded in
 [`research/2026-08-19-m7-spdx-image-evidence.md`](research/2026-08-19-m7-spdx-image-evidence.md).
