@@ -443,7 +443,7 @@ result = "Implemented, independently reviewed, and squash-merged through pull re
 
 [[tasks]]
 id = "A008"
-status = "In Progress"
+status = "Done"
 milestone = "M7"
 title = "Bind SPDX 3 image-composition evidence"
 outcome = "Prove the project packages, declared licenses, and deployed image artifacts in each supported lab from the exact locked OpenEmbedded SPDX graph."
@@ -491,6 +491,8 @@ validation_evidence = [
   "The normally rebuilt ARM64 image passed ping, SSH, and all nine project cases: 11/11 in 42.057 seconds with zero skips, failures, or errors. Platform-v1 evidence SHA-256 5519538f609f70a937e8dab7c66764aa9dddf42a2b66e460f95d38b67526eaa0 binds OEQA SHA-256 4032c4865eb97bbc689b582969fb1de5770f18cf0828ec046b01c030d102127d.",
   "Post-qualification hardening through clean revision bec7368c5ea621e55cc0a3b714da54a78a885511 made selected evidence clearing and replacement symlink-safe, removed unqualified output after strict validation failure, bounded raw JSON and locked-model expansion, capped aggregate artifact bytes, and preserved bounded multiline SPDX license text. Exact locked-model replay accepted both retained qualified raw graphs with their recorded SHA-256 values, 55 and 49 installed packages, 3,134 and 3,067 model objects, and two artifacts per lab.",
   "Final implementation candidate b092b483b0e86a5f44ee5530350e73fbd7379563 moved the remaining aggregate-byte check ahead of opening or hashing an over-budget artifact and added a regression proving the file is never opened. The exact revision passed all 234 local tests with 24 native-Linux cases explicitly skipped, all 234 tests without skips in an isolated read-only and network-disabled Linux worker, the 29-test focused SPDX suite, source-lock, lab-catalog, workflow, CI-policy, QEMU-static, diagnostics-schema-lock, checksum, and diff gates.",
+  "Published head 82d99702d3ec013c0ffeeef50ed6c19707314c1d passed Fast checks run 32231165395 and Yocto metadata run 32231165336. Pull request #12 then squash-merged the reviewed A008 milestone as 00ad9521f9c2441fbd72d4340cdd197d46fa5f8a; no tag or release was published.",
+  "Post-merge closeout made workflow and diagnostics tests independent of a live In Progress task, then passed all 234 local tests with 24 expected native-Linux skips, source-lock, lab-catalog, workflow, CI-policy, QEMU-static, diagnostics-schema-lock, checksum, diff, and pinned network-disabled REUSE 116/116 gates.",
 ]
 review_evidence = [
   "Architecture review found stale manifest-version and ledger guidance plus an aggregate artifact bound that was applied only after hashing the crossing file. The documentation was aligned, remaining aggregate capacity is now checked before opening the artifact, a counterfactual no-open regression proves the fix, and final architecture re-review approved exact head 31142b626220b677d8677cb192ca72b3bdb46e4d with no remaining P0-P2 findings.",
@@ -499,4 +501,4 @@ review_evidence = [
   "Documentation review verified manifest schema 2, the one network-enabled source-refresh phase, exact qualification and correction revisions, commands, rollback, unsigned-evidence limits, and public-neutral language; it approved exact head 31142b626220b677d8677cb192ca72b3bdb46e4d with no P0-P2 findings.",
   "Independent frozen-diff review reproduced 234/234 isolated Linux tests, offline REUSE 116/116, every repository gate, both retained evidence and raw-SPDX hashes, exact locked-model counts for both labs, and strict clean-revision/current-input validation at 8588e29; it approved exact head 31142b626220b677d8677cb192ca72b3bdb46e4d with no findings or open questions.",
 ]
-result = ""
+result = "Implemented, qualified, independently reviewed, and squash-merged through pull request #12 as commit 00ad9521f9c2441fbd72d4340cdd197d46fa5f8a; no tag or release was published."
