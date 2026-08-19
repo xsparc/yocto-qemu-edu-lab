@@ -88,6 +88,13 @@ transport adapter is possible only as separately approved later work. It must
 remain thin and replaceable; the lab CLI and evidence schema stay authoritative
 and the adapter cannot gain state-changing authority by implication.
 
+M7 follows the same provider-neutral boundary for supply-chain evidence. The
+lab manifest, locked OE-Core model, standard-library semantic validator, and
+closed project schema are authoritative. Raw SBOM publication, vulnerability
+services, signing, attestations, and release provenance are future mutations or
+external integrations that require explicit approval; they are not implied by
+a passing local image-composition document.
+
 ## Stop and escalate conditions
 
 Stop before continuing when work would require unclear redistribution rights,

@@ -61,8 +61,9 @@ reproducible setup
   -> MSI
   -> bounded DMA
   -> Device Tree and platform-driver lab
-  -> optional FPGA/physical target bridge
   -> provider-neutral diagnostics and optional tool adapters
+  -> bounded image-composition and licensing evidence
+  -> optional FPGA/physical target bridge
 ```
 
 Each stage should expose:
@@ -81,6 +82,8 @@ Each stage should expose:
 - Pull requests receive fast metadata, workflow, shell, and license checks;
   scheduled or release gates perform expensive image and runtime validation.
 - Supported labs pass automated QEMU runtime tests, including negative paths.
+- Supported image builds expose bounded, revision-linked package/license and
+  artifact-hash evidence without requiring a hosted supply-chain provider.
 - `yocto-check-layer` and declared `LAYERSERIES_COMPAT` evidence agree.
 - A learner can add or complete a lab without reverse-engineering maintainer
   intent from commit history.

@@ -10,9 +10,10 @@ resource-constrained, or metadata-only checks into build or runtime claims.
 
 | Tier | Trigger and environment | Evidence | Not proved |
 |---|---|---|---|
-| Fast checks | Every PR, main push, or manual run on `ubuntu-24.04` | Source-lock, lab-manifest, workflow, CI, diagnostics, and QEMU security contracts; unit tests; independent diagnostics Draft 2020-12 validation; checksums; changed-line whitespace; ShellCheck; actionlint; REUSE | Upstream availability, BitBake parse, image build, guest runtime |
-| Yocto metadata | Relevant PR/main changes or manual run on `ubuntu-24.04` | Exact source resolution, cached offline recheck, both manifest compositions, `bitbake -p`, expanded image metadata, per-machine QEMU append/recipe/dependency isolation, both machine checks through `yocto-check-layer` | Patched source, compiled image or emulator, QEMU boot, guest behavior, offline recipe fetches, bit-for-bit output |
+| Fast checks | Every PR, main push, or manual run on `ubuntu-24.04` | Source-lock, lab-manifest, workflow, CI, diagnostics, SPDX image-evidence, and QEMU security contracts; unit tests; independent Draft 2020-12 validation of both project schemas; checksums; changed-line whitespace; ShellCheck; actionlint; REUSE | Upstream availability, BitBake parse, image build, guest runtime, generated SBOM content |
+| Yocto metadata | Relevant PR/main changes or manual run on `ubuntu-24.04` | Exact source resolution, cached offline recheck, both manifest compositions, `bitbake -p`, expanded image metadata, exact SPDX generator settings, per-machine QEMU append/recipe/dependency isolation, both machine checks through `yocto-check-layer` | Patched source, compiled image or emulator, generated SPDX graph, QEMU boot, guest behavior, offline recipe fetches, bit-for-bit output |
 | Full build/runtime | Local/manual on an adequately sized Linux host; no hosted runner currently configured | A completed lab-specific `runtime-test.sh` run builds, boots, executes its required OEQA cases, and emits PCI version-3 or platform version-1 evidence | Nothing until the command actually completes; one lab's result does not qualify the other and metadata CI is not runtime proof |
+| SPDX image evidence | Local/manual on the same adequately sized Linux boundary | `sbom-evidence.sh` completes the selected image's SPDX task and emits schema-1 package/license and artifact-hash evidence | Nothing until the command completes for that lab; it is not runtime, signing, attestation, vulnerability-freshness, reproducibility, release, or physical-hardware proof |
 
 The stable fast job IDs are `repository`, `static`, `diagnostics-schema`, and
 `licensing`. The metadata
@@ -38,7 +39,9 @@ The metadata verifier requires both inputs exactly once for either profile.
 - The diagnostics schema job uses CPython 3.12 and downloads only the six exact
   wheels in `config/diagnostics-schema-validator.lock.json`. It verifies wheel,
   embedded-license, identity, and dependency metadata before installing with no
-  index, resolver, source distribution, cache, or artifact publication.
+  index, resolver, source distribution, cache, or artifact publication. The
+  same isolated Draft 2020-12 oracle validates the diagnostics and SPDX
+  image-evidence schemas; neither gains a runtime dependency.
 - REUSE runs from a digest-pinned container with no network, no capabilities,
   a read-only filesystem, and a read-only repository mount.
 - Workflows do not use `pull_request_target`, privileged follow-up events,
@@ -98,6 +101,14 @@ complete project-local platform source group, proves that the model exposes no
 DMA path, and requires `qemu-system-aarch64` from the exact helper-native
 consumer sysroot. A clean ARM64 result does not replace the required PCI
 regression, and neither result is a physical-hardware claim.
+
+M7 adds a second full-build consumer without adding a hosted full-build lane.
+For each selected lab, `sbom-evidence.sh` fail-closes on the exact source lock,
+manifest digest, effective SPDX 3.0.1 settings, locked OE-Core SHACL model,
+rootfs package graph, project package/license rules, and recomputed artifact
+hashes. The metadata lane proves only that both image recipes parse with the
+required settings. Public workflows do not retain raw SBOMs, image files, or
+the local projected evidence.
 
 The project provides the executable runtime path and closed evidence formats, but does
 not weaken this capacity gate. The repository currently has no self-hosted or

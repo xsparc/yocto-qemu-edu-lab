@@ -130,7 +130,7 @@ human learning       CI / optional tool adapter
 External repositories and revisions must be explicit and lockable. The build
 declaration owns source identity, layer order, machine, image, and configuration
 fragments; caches remain replaceable performance aids, not source of truth.
-The current source-lock version 1 and lab-manifest version 1 declarations are
+The current source-lock version 1 and lab-manifest version 2 declarations are
 project-owned and intentionally map to kas and upstream `bitbake-setup`
 concepts if the source graph later justifies a migration.
 
@@ -214,12 +214,44 @@ The core has no network or mutation capability and accepts no arbitrary path.
 Its Draft 2020-12 schema oracle is a test-only CI consumer, not a runtime
 dependency. MCP, A2A, and provider SDKs remain outside this boundary.
 
+### Boundary 7: image-composition evidence
+
+Lab manifest schema 2 adds a closed `supply_chain` contract beside build,
+runtime, and emulator selection. It names the evidence profile and filename,
+the required project package/license pairs, and packages forbidden from the
+other lab. The catalog and manifest digests remain the authority used by every
+wrapper.
+
+`sbom-evidence.sh` is the only build-facing adapter. It verifies exact BitBake
+SPDX settings, removes stale evidence, invokes the selected image's
+`create_image_sbom_spdx` task, and gives the resulting deployment identity to
+the collector. The collector imports `oe.spdx30` only from the exact locked
+OE-Core checkout, validates the SHACL object graph, and projects an allowlisted
+standard-library JSON contract:
+
+```text
+lab manifest v2 + source lock + effective SPDX settings
+                              -> locked create-spdx task
+                              -> bounded raw SPDX graph + image files
+                              -> semantic collector
+                              -> closed evidence schema v1
+```
+
+The raw graph is not the project API. It can be large and can evolve with the
+locked Yocto input. The evidence document records only source identity,
+selected-lab identity, generator settings, graph counts, required project
+packages/licenses, and independently recomputed image artifact hashes. Raw
+SBOMs, image files, package lists outside the project allowlist, host paths,
+timestamps, build variables, logs, and arbitrary SPDX fields are not copied
+into the projection.
+
 ## Scalability and interoperability rules
 
 - Scale through lab manifests and reusable tests, not conditional logic spread
   through shell scripts.
 - Version contracts at repository boundaries: source locks, lab definitions,
-  guest interfaces, and evidence schemas.
+  guest interfaces, runtime evidence, diagnostics, and supply-chain evidence
+  schemas.
 - Keep machine-specific metadata in machine or BSP layers and image policy in
   image recipes.
 - Add architectures only with a documented learning objective, maintenance
@@ -256,6 +288,9 @@ dependency. MCP, A2A, and provider SDKs remain outside this boundary.
 - Release artifacts should eventually carry SBOM and provenance evidence, but
   the project will not claim a SLSA level until it meets and verifies that
   level's requirements.
+- SPDX image evidence reads only exact catalog-selected paths, bounds its raw
+  and projected inputs, rejects duplicate JSON keys and unsafe strings, refuses
+  symlink or deploy-directory escapes, and never uploads raw build output.
 
 ## Replaceability
 

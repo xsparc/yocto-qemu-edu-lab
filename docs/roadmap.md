@@ -277,8 +277,11 @@ read-only repository. The exact six-wheel Draft 2020-12 oracle and pinned REUSE
 108/108 gate pass. All seven required reviews approved with no remaining P0-P2
 finding. Draft pull request #11 published focused workflow-correction head
 `b68033923d6bc42eca06e1538aef0d745c1acd25`, which passed Fast checks run
-`32210876009` and Yocto metadata run `32210876013`. Public review and merge
-remain open.
+`32210876009` and Yocto metadata run `32210876013`. Final head
+`900c82f3936d9ffdf5a5499391abc368689332f6` passed Fast checks run
+`32212167852` and Yocto metadata run `32212167855`; pull request #11 then
+squash-merged as `b569199513418fc6fc8a62453dca4751d3cf8969`. No tag or
+release was published.
 
 Rollback: revert the complete focused A006 milestone change. A partial
 retirement must also revert the project version decision, maintainer
@@ -287,15 +290,80 @@ checksums, tests, and documentation rather than deleting only the CLI and
 schema. Existing build wrappers, lab manifests, guest interfaces, and
 PCI/platform runtime-evidence formats remain unchanged.
 
+## M7 — SPDX image-composition evidence
+
+Outcome: each supported lab can turn the locked Yocto SPDX 3 image SBOM into a
+small, closed evidence document that proves the project packages and generated
+image files actually selected for that build.
+
+Approved on 2026-08-19: advance the development identity to `0.7.0-dev`, move
+the lab catalog to manifest schema 2, and add one supply-chain profile shared
+by both labs. The profile names required project packages and their exact
+declared license expressions, forbids packages from the other lab, and fixes
+the generated evidence filename. Collection uses the SPDX 3.0.1 SHACL model
+from the exact locked OE-Core checkout; validation of the projected result
+remains standard-library-only.
+
+The bounded collector must prove:
+
+- exact clean project revision, source lock, OE-Core commit, lab index,
+  selected manifest, machine, image, and privacy-oriented generator settings;
+- one SPDX document and one build SBOM, no unresolved internal identifiers,
+  the exact rootfs build type and build-scoped installed-package inputs;
+- required project packages with exact declared licenses, no forbidden
+  cross-lab packages, and package purposes consistent with image installation;
+- every image artifact basename, bounded size, declared SHA-256, and an
+  independently recomputed SHA-256 from a regular file inside the selected
+  deployment directory.
+
+The raw SBOM and image files remain ignored build output. The checked-in schema
+covers only the bounded project projection; it does not claim full SPDX
+specification conformance, CVE freshness, reproducible bytes, a signature,
+attestation, SLSA level, release, or physical-hardware result. Public PR CI
+runs repository, schema, licensing, and metadata preflight only. Final
+acceptance requires clean, adequately sized Linux builds for both lab profiles
+and validated evidence bound to that exact revision.
+
+Qualification status: clean revision `8588e29` passed all 228 isolated Linux
+tests, the exact external Draft 2020-12 oracle, and REUSE 116/116. After each
+image recipe was invalidated through `cleansstate`, the normal PCI graph
+completed 4,667 tasks and the normal ARM64 graph completed 4,631 tasks; both
+reran rootfs, image, and complete SPDX generation without warnings or failures.
+Closed PCI evidence SHA-256
+`d4b6f88023a45888b32a875a106d27efca4e720d24313d5395091e81f1f1c05d`
+binds raw SPDX SHA-256
+`2717b9c20b34bb1511ecfe091690e129003665fd0523fa3bdb69aa1562587b5a`,
+55 installed packages, and two image artifacts. Closed ARM64 evidence SHA-256
+`02f6fe4d06df2a63780e0a859c51ddbc53dff0721d9c4ad96575c8463742140e`
+binds raw SPDX SHA-256
+`9ac51c30d5a74b3538afaeea80d63831b9993f153c13e514f04b03005e1dee61`,
+49 installed packages, and two image artifacts. The normally rebuilt images
+then passed 21/21 PCI and 11/11 ARM64 software-QEMU tests with zero skips,
+failures, or errors. Post-qualification hardening through code candidate
+`b092b48` passed all 234 isolated Linux tests and retained both qualified graph
+results. All seven required review roles approved exact review head `31142b6`
+with no remaining P0-P2 finding. Publication, hosted gates, merge, tag, and
+release remain pending; A008 stays In Progress.
+
+The dated source analysis and compatibility boundary are recorded in
+[`research/2026-08-19-m7-spdx-image-evidence.md`](research/2026-08-19-m7-spdx-image-evidence.md).
+
+Rollback: revert the complete focused A008 change, including project version,
+manifest schema and digests, evidence collector/schema/wrapper, CI preflight,
+tests, maintainer configuration, checksums, and documentation. Existing guest
+interfaces and historical runtime-evidence schemas remain immutable and need
+no translation.
+
 ## Horizon — Physical target bridge and course ecosystem
 
-Potential work after evidence from M0–M6:
+Potential work after evidence from M0–M7:
 
 - FPGA or supported development-board mapping with explicit QEMU/physical
   evidence separation;
 - instructor exercise packs with expected failure signatures;
 - SDK/eSDK workflows for application and driver iteration;
-- reproducible release images with Yocto SPDX SBOMs and verifiable provenance;
+- signed or attestable release provenance, only after its own threat model and
+  approval boundary;
 - community-contributed labs that pass the same compatibility and license gates.
 
 These are horizons, not commitments or approved tasks.

@@ -23,7 +23,7 @@ from source_lock import LockError, locked_path, read_lock  # noqa: E402
 
 
 INDEX_SCHEMA_VERSION = 1
-MANIFEST_SCHEMA_VERSION = 1
+MANIFEST_SCHEMA_VERSION = 2
 DEFAULT_INDEX = "config/labs/index.json"
 DEFAULT_SOURCE_LOCK = "config/sources.lock.json"
 MAX_JSON_BYTES = 64 * 1024
@@ -39,6 +39,7 @@ MANIFEST_KEYS = {
     "build",
     "emulator",
     "runtime",
+    "supply_chain",
 }
 BUILD_KEYS = {"build_dir", "distro", "machine", "driver_target", "targets", "layers"}
 EMULATOR_KEYS = {"preflight_profile", "system_binary"}
@@ -49,10 +50,18 @@ RUNTIME_KEYS = {
     "guest_contract_version",
     "evidence_schema_version",
 }
+SUPPLY_CHAIN_KEYS = {
+    "evidence_profile",
+    "evidence_filename",
+    "required_packages",
+    "forbidden_packages",
+}
+PACKAGE_RULE_KEYS = {"name", "declared_license"}
 LAB_ID = re.compile(r"[a-z0-9][a-z0-9-]*\Z")
 TOKEN = re.compile(r"[A-Za-z0-9][A-Za-z0-9._+-]*\Z")
 BUILD_DIRECTORY = re.compile(r"build(?:-[a-z0-9][a-z0-9-]*)?\Z")
 SHA256 = re.compile(r"[0-9a-f]{64}\Z")
+LICENSE_EXPRESSION = re.compile(r"[A-Za-z0-9][A-Za-z0-9.+() -]*\Z")
 PROFILE_RULES = {
     "qemu-edu-pci-v1": {
         "system_binary": "qemu-system-x86_64",
@@ -280,6 +289,89 @@ def validate_manifest(data: dict[str, Any], expected_id: str) -> None:
                 f"lab {expected_id} {field} is {actual[field]!r}, expected {expected!r} "
                 f"for {profile}"
             )
+
+    supply_chain = object_value(
+        data["supply_chain"], f"lab {expected_id}.supply_chain"
+    )
+    exact_keys(supply_chain, SUPPLY_CHAIN_KEYS, f"lab {expected_id}.supply_chain")
+    evidence_profile = string_value(
+        supply_chain["evidence_profile"],
+        f"lab {expected_id}.supply_chain.evidence_profile",
+    )
+    if evidence_profile != "spdx3-image-v1":
+        raise LabError(
+            f"lab {expected_id} uses unsupported supply-chain profile "
+            f"{evidence_profile!r}"
+        )
+    evidence_filename = relative_path(
+        supply_chain["evidence_filename"],
+        f"lab {expected_id}.supply_chain.evidence_filename",
+    )
+    if PurePosixPath(evidence_filename).parent != PurePosixPath("."):
+        raise LabError(
+            f"lab {expected_id}.supply_chain.evidence_filename must be a basename"
+        )
+    if not evidence_filename.endswith(".json"):
+        raise LabError(
+            f"lab {expected_id}.supply_chain.evidence_filename must end in .json"
+        )
+
+    required = supply_chain["required_packages"]
+    if not isinstance(required, list) or not required:
+        raise LabError(
+            f"lab {expected_id}.supply_chain.required_packages must be a non-empty array"
+        )
+    if len(required) > 64:
+        raise LabError(
+            f"lab {expected_id}.supply_chain.required_packages exceeds 64 entries"
+        )
+    package_names: list[str] = []
+    for package_index, raw_package in enumerate(required):
+        where = (
+            f"lab {expected_id}.supply_chain.required_packages[{package_index}]"
+        )
+        package = object_value(raw_package, where)
+        exact_keys(package, PACKAGE_RULE_KEYS, where)
+        package_name = string_value(package["name"], f"{where}.name")
+        if not TOKEN.fullmatch(package_name):
+            raise LabError(f"{where}.name contains unsupported characters")
+        license_expression = string_value(
+            package["declared_license"], f"{where}.declared_license"
+        )
+        if not LICENSE_EXPRESSION.fullmatch(license_expression):
+            raise LabError(f"{where}.declared_license contains unsupported characters")
+        package_names.append(package_name)
+    if package_names != sorted(package_names) or len(package_names) != len(
+        set(package_names)
+    ):
+        raise LabError(
+            f"lab {expected_id}.supply_chain.required_packages must be unique and "
+            "sorted by name"
+        )
+
+    forbidden = string_list(
+        supply_chain["forbidden_packages"],
+        f"lab {expected_id}.supply_chain.forbidden_packages",
+    )
+    if len(forbidden) > 64:
+        raise LabError(
+            f"lab {expected_id}.supply_chain.forbidden_packages exceeds 64 entries"
+        )
+    if forbidden != sorted(forbidden):
+        raise LabError(
+            f"lab {expected_id}.supply_chain.forbidden_packages must be sorted"
+        )
+    if any(not TOKEN.fullmatch(name) for name in forbidden):
+        raise LabError(
+            f"lab {expected_id}.supply_chain.forbidden_packages contains "
+            "unsupported characters"
+        )
+    overlap = sorted(set(package_names) & set(forbidden))
+    if overlap:
+        raise LabError(
+            f"lab {expected_id}.supply_chain package rules overlap: "
+            f"{', '.join(overlap)}"
+        )
 
 
 def default_build_parity_data(

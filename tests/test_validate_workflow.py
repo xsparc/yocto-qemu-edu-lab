@@ -119,6 +119,27 @@ class WorkflowValidationTests(unittest.TestCase):
             "validation_commands is missing: python3 scripts/verify_diagnostics_schema_lock.py",
             MODULE.validate(root),
         )
+
+    def test_sbom_evidence_contract_files_are_required(self) -> None:
+        for relative, key in (
+            (
+                "schemas/qemu-edu-sbom-evidence-v1.schema.json",
+                "sbom_evidence_schema_path",
+            ),
+            ("docs/sbom-evidence.md", "sbom_evidence_documentation_path"),
+            ("scripts/sbom_evidence.py", None),
+            ("sbom-evidence.sh", None),
+        ):
+            with self.subTest(relative=relative):
+                root = self.copy_repository()
+                (root / relative).unlink()
+                errors = MODULE.validate(root)
+                self.assertIn(f"missing required file: {relative}", errors)
+                if key is not None:
+                    self.assertIn(
+                        f"configured path is missing: {key}='{relative}'", errors
+                    )
+
     def test_historical_evidence_schema_list_is_closed(self) -> None:
         root = self.copy_repository()
         path = root / "docs/maintainers/config.toml"

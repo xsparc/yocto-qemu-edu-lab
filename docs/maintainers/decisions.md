@@ -237,3 +237,29 @@ SPDX-License-Identifier: MIT
 - Revisit when: the version-1 CLI has merged evidence and a separately approved
   use case justifies a replaceable read-only transport adapter. Such an adapter
   must consume the same command model and cannot broaden its authority.
+
+## D-018: Derive image-composition evidence from locked SPDX 3 output
+
+- Status: Accepted on 2026-08-19 for A008; publication, merge, tag, release,
+  signing, and attestation are not authorized by this decision.
+- Decision: Advance the development identity to `0.7.0-dev` and the lab
+  manifest contract to schema 2. Generate SPDX 3.0.1 through the exact locked
+  OpenEmbedded classes, validate the graph with the locked MIT-licensed
+  `oe.spdx30` model, and retain only a closed project evidence document. Bind
+  each lab to its direct installed project packages, exact declared licenses,
+  cross-lab exclusions, and independently recomputed SHA-256 values for every
+  SBOM root image artifact. Keep raw SBOMs and images as ignored build output.
+- Reason: OpenEmbedded already constructs the authoritative rootfs package and
+  image-artifact relationships. A bounded project projection makes those facts
+  reviewable without introducing a parallel SBOM generator, vendored schema,
+  hosted provider, or runtime dependency. Separating structural model
+  validation from the project evidence contract preserves interoperability and
+  makes unsupported claims explicit.
+- Evidence boundary: this proves selected image composition and integrity at
+  one clean revision. It is not complete SPDX specification conformance,
+  vulnerability-freshness analysis, reproducible-build proof, an attestation,
+  a signature, SLSA provenance, a release, or a physical-hardware result.
+- Revisit when: a newer locked OE-Core changes its SPDX producer or model, the
+  supported lab package sets change, or a protected release workflow has a
+  separately approved signing and publication requirement. Any revision must
+  preserve historical schema-1 evidence validation and requalify both labs.

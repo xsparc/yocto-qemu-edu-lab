@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: MIT
 
-.PHONY: setup inspect build run runtime-test rebuild-driver clean-driver check check-source-lock check-labs check-workflow check-ci check-qemu-security check-diagnostics-lock test-workflow checksums
+.PHONY: setup inspect build run runtime-test sbom-evidence rebuild-driver clean-driver check check-source-lock check-labs check-workflow check-ci check-qemu-security check-diagnostics-lock test-workflow checksums
 
 setup:
 	./setup.sh
@@ -16,6 +16,9 @@ run:
 
 runtime-test:
 	./runtime-test.sh
+
+sbom-evidence:
+	./sbom-evidence.sh
 
 rebuild-driver:
 	bash -c 'source ./environment.sh && driver=$$(python3 "$$QEMU_EDU_ROOT/scripts/lab_config.py" --repo "$$QEMU_EDU_ROOT" --lab "$$QEMU_EDU_LAB" get build.driver_target) && target_text=$$(python3 "$$QEMU_EDU_ROOT/scripts/lab_config.py" --repo "$$QEMU_EDU_ROOT" --lab "$$QEMU_EDU_LAB" get build.targets --lines) && mapfile -t targets <<<"$$target_text" && bitbake "$$driver" -c compile -f && bitbake "$${targets[@]}"'

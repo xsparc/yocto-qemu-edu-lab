@@ -12,12 +12,14 @@ on:
       - "scripts/configure_build.py"
       - "scripts/qemu_security_preflight.sh"
       - "scripts/verify_qemu_security.py"
+      - "scripts/sbom_evidence.py"
       - "setup.sh"
       - "environment.sh"
       - "build.sh"
       - "inspect.sh"
       - "run.sh"
       - "runtime-test.sh"
+      - "sbom-evidence.sh"
       - "Makefile"
       - "meta-qemu-edu/**"
   push:
@@ -31,12 +33,14 @@ on:
       - "scripts/configure_build.py"
       - "scripts/qemu_security_preflight.sh"
       - "scripts/verify_qemu_security.py"
+      - "scripts/sbom_evidence.py"
       - "setup.sh"
       - "environment.sh"
       - "build.sh"
       - "inspect.sh"
       - "run.sh"
       - "runtime-test.sh"
+      - "sbom-evidence.sh"
       - "Makefile"
       - "meta-qemu-edu/**"
   workflow_dispatch:
@@ -113,6 +117,36 @@ jobs:
             --src-uri "$QEMU_SRC_URI" \
             --testimage-depends "$TESTIMAGE_DEPENDS" \
             --helper-depends "$HELPER_DEPENDS"
+          SPDX_ARGS=()
+          for name in \
+            SPDX_IMAGE_SUPPLIER_name \
+            SPDX_INCLUDE_BITBAKE_PARENT_BUILD \
+            SPDX_INCLUDE_BUILD_VARIABLES \
+            SPDX_INCLUDE_COMPILED_SOURCES \
+            SPDX_INCLUDE_KERNEL_CONFIG \
+            SPDX_INCLUDE_PACKAGECONFIG \
+            SPDX_INCLUDE_SOURCES \
+            SPDX_INCLUDE_TIMESTAMPS \
+            SPDX_INCLUDE_VEX \
+            SPDX_PACKAGE_SUPPLIER_name \
+            SPDX_PRETTY \
+            SPDX_PROFILES \
+            SPDX_VERSION; do
+            case "$name" in
+              SPDX_IMAGE_SUPPLIER_name|SPDX_PACKAGE_SUPPLIER_name)
+                value=$(bitbake-getvar --ignore-undefined --value \
+                  --recipe qemu-edu-image "$name")
+                ;;
+              *)
+                value=$(bitbake-getvar --value --recipe qemu-edu-image "$name")
+                ;;
+            esac
+            SPDX_ARGS+=(--setting "$name=$value")
+          done
+          python3 "$GITHUB_WORKSPACE/scripts/sbom_evidence.py" \
+            --repo "$GITHUB_WORKSPACE" \
+            --lab pci-x86-64 \
+            preflight "${SPDX_ARGS[@]}"
       - name: Parse and inspect ARM64 platform metadata
         env:
           BUILD_DIR: ${{ runner.temp }}/yocto-build-platform-arm64
@@ -141,6 +175,36 @@ jobs:
             --testimage-depends "$TESTIMAGE_DEPENDS" \
             --helper-depends "$HELPER_DEPENDS" \
             --profile qemu-edu-platform-v1
+          SPDX_ARGS=()
+          for name in \
+            SPDX_IMAGE_SUPPLIER_name \
+            SPDX_INCLUDE_BITBAKE_PARENT_BUILD \
+            SPDX_INCLUDE_BUILD_VARIABLES \
+            SPDX_INCLUDE_COMPILED_SOURCES \
+            SPDX_INCLUDE_KERNEL_CONFIG \
+            SPDX_INCLUDE_PACKAGECONFIG \
+            SPDX_INCLUDE_SOURCES \
+            SPDX_INCLUDE_TIMESTAMPS \
+            SPDX_INCLUDE_VEX \
+            SPDX_PACKAGE_SUPPLIER_name \
+            SPDX_PRETTY \
+            SPDX_PROFILES \
+            SPDX_VERSION; do
+            case "$name" in
+              SPDX_IMAGE_SUPPLIER_name|SPDX_PACKAGE_SUPPLIER_name)
+                value=$(bitbake-getvar --ignore-undefined --value \
+                  --recipe qemu-edu-image "$name")
+                ;;
+              *)
+                value=$(bitbake-getvar --value --recipe qemu-edu-image "$name")
+                ;;
+            esac
+            SPDX_ARGS+=(--setting "$name=$value")
+          done
+          python3 "$GITHUB_WORKSPACE/scripts/sbom_evidence.py" \
+            --repo "$GITHUB_WORKSPACE" \
+            --lab platform-arm64 \
+            preflight "${SPDX_ARGS[@]}"
       - name: Check the project layer
         run: |
           CHECK_LAYER_BUILD_DIR="$RUNNER_TEMP/yocto-check-layer-build"

@@ -33,6 +33,7 @@ REQUIRED_FILES = (
     "docs/guest-interface.md",
     "docs/runtime-testing.md",
     "docs/diagnostics.md",
+    "docs/sbom-evidence.md",
     "config/sources.lock.json",
     "config/diagnostics-schema-validator.lock.json",
     "config/labs/index.json",
@@ -41,8 +42,11 @@ REQUIRED_FILES = (
     "scripts/diagnostics_git.py",
     "scripts/diagnostics_inputs.py",
     "scripts/verify_diagnostics_schema_lock.py",
+    "scripts/sbom_evidence.py",
     "qemu-edu-lab",
+    "sbom-evidence.sh",
     "schemas/qemu-edu-diagnostics-v1.schema.json",
+    "schemas/qemu-edu-sbom-evidence-v1.schema.json",
     "schemas/qemu-edu-runtime-evidence-v1.schema.json",
     "schemas/qemu-edu-platform-runtime-evidence-v1.schema.json",
     ".github/workflows/fast-checks.yml",
@@ -309,6 +313,8 @@ def validate(root: Path) -> list[str]:
         "diagnostics_schema_path",
         "diagnostics_schema_validator_lock_path",
         "diagnostics_documentation_path",
+        "sbom_evidence_schema_path",
+        "sbom_evidence_documentation_path",
     ):
         relative = config.get(key)
         if not relative or not (root / str(relative)).is_file():

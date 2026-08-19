@@ -5,12 +5,14 @@ SPDX-License-Identifier: MIT
 
 # Project context
 
-- Active task: A006, provider-neutral lab diagnostics. Its deterministic,
-  read-only CLI boundary and exact hash-locked test-only schema-validator
-  dependencies were approved on 2026-08-14; publication remains unapproved.
-- Current public baseline: A005 closeout merge
-  `5f1ba4d29e842723029764c290ec3a4e7dff68c9`; the qualified final
-  runtime-affecting revision remains `340621afe3108d074e03f638b238d724bc10de5c`.
+- Active task: A008, SPDX image-composition evidence. Its manifest-schema-2,
+  locked OE-Core parser, bounded local collector, and standard-library-only
+  evidence-validator boundary were approved on 2026-08-19. Publication,
+  merge, tag, and release remain unapproved.
+- Current public baseline: A006 pull request #11 squash-merge
+  `b569199513418fc6fc8a62453dca4751d3cf8969`. Historical dual-lab runtime
+  qualification remains bound to clean A005 revision
+  `340621afe3108d074e03f638b238d724bc10de5c`.
 - Baseline: two Yocto 6.0 (`wrynose`) labs: the default x86-64 QEMU EDU PCI
   device `1234:11e8`, and an independent ARM64 `virt` platform device selected
   with `--lab platform-arm64`.
@@ -152,5 +154,47 @@ SPDX-License-Identifier: MIT
   P0-P2 finding. Draft pull request #11 published the milestone; focused
   workflow-correction head `b68033923d6bc42eca06e1538aef0d745c1acd25`
   passed Fast checks run `32210876009` and Yocto metadata run `32210876013`.
-  Public review and merge remain pending.
+  Final head `900c82f3936d9ffdf5a5499391abc368689332f6` passed Fast checks
+  run `32212167852` and Yocto metadata run `32212167855`; pull request #11
+  squash-merged as `b569199513418fc6fc8a62453dca4751d3cf8969`. A006 is Done.
+  No tag or release was published.
+- A008 advances the development identity to `0.7.0-dev` and changes lab
+  manifests to schema 2. Each selected manifest names the exact required
+  project packages and declared licenses, forbids the other lab's packages,
+  and selects one generated evidence filename. The collector imports only the
+  exact locked OE-Core SPDX 3.0.1 SHACL model, reads the raw SBOM once under a
+  128 MiB bound, validates one document/build SBOM and its rootfs graph, and
+  independently hashes every selected image artifact. The closed evidence
+  document stays below 1 MiB and its validator remains standard-library-only.
+  Raw SBOMs, images, build trees, and environment dumps stay ignored and are
+  not public-CI artifacts. Full SPDX conformance, VEX freshness, reproducible
+  builds, signing, attestations, SLSA, releases, physical hardware, source-lock
+  updates, and network services are outside A008.
+- Clean implementation revision
+  `8588e29f86c30578df99a8ffacba598479130a0a` passed all 228 isolated Linux
+  tests, the exact external schema oracle, REUSE 116/116, and every local
+  source/lab/workflow/CI/QEMU/checksum gate. Real build execution corrected
+  optional supplier-variable querying and pinned the exact versioned Yocto
+  module package names before qualification.
+- Both image recipes were rebuilt normally from `cleansstate` at that revision.
+  The PCI graph completed 4,667 tasks and ARM64 completed 4,631; each reran 20
+  image-recipe tasks including rootfs, image, and SPDX generation without
+  warnings or failures. PCI evidence SHA-256 is
+  `d4b6f88023a45888b32a875a106d27efca4e720d24313d5395091e81f1f1c05d`;
+  ARM64 evidence SHA-256 is
+  `02f6fe4d06df2a63780e0a859c51ddbc53dff0721d9c4ad96575c8463742140e`.
+  Their raw SPDX digests are
+  `2717b9c20b34bb1511ecfe091690e129003665fd0523fa3bdb69aa1562587b5a`
+  and `9ac51c30d5a74b3538afaeea80d63831b9993f153c13e514f04b03005e1dee61`;
+  both closed documents validate with clean-subject and current-input binding.
+- The normally rebuilt images also passed the proportional software-QEMU
+  requalification: PCI 21/21 in 174.238 seconds and ARM64 11/11 in 42.057
+  seconds, with zero skips, failures, or errors. Fresh runtime evidence hashes
+  are `e456a16f1369da9a60ed5aa661e954ee7d200f3780570a260c4923a3500f7b65`
+  and `5519538f609f70a937e8dab7c66764aa9dddf42a2b66e460f95d38b67526eaa0`.
+  Post-qualification hardening through final code candidate `b092b48` passed
+  all 234 isolated Linux tests and preserved both retained graph results. All
+  seven required review roles approved exact review head `31142b6` with no
+  remaining P0-P2 finding. Publication, hosted gates, merge, tag, and release
+  remain pending.
 - Public workflow state uses tool-neutral maintainer paths while preserving the same task, approval, validation, review, and handoff semantics.

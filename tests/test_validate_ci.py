@@ -67,7 +67,13 @@ class CiValidationTests(unittest.TestCase):
             text.replace('      - "scripts/qemu_security_preflight.sh"\n', "", 1)
         )
         self.assertTrue(any("pull_request paths omit" in error for error in errors))
-        for path in ('config/labs/**', "scripts/lab_config.py", "runtime-test.sh"):
+        for path in (
+            'config/labs/**',
+            "scripts/lab_config.py",
+            "runtime-test.sh",
+            "scripts/sbom_evidence.py",
+            "sbom-evidence.sh",
+        ):
             with self.subTest(path=path):
                 errors = MODULE.validate_metadata_paths(
                     text.replace(f'      - "{path}"\n', "", 1)

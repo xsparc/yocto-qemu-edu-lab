@@ -19,6 +19,7 @@ having the right to submit their work.
 | `qemu,edu-platform.yaml` | GPL-2.0-only OR BSD-2-Clause | Dual license follows the Linux Device Tree binding convention |
 | Third-party checkouts and build output | Their own licenses; not vendored here | `layers/`, legacy `poky/`, downloads, shared state, and build output are ignored |
 | Diagnostics schema validator wheels | Five MIT packages and one PSF-2.0 package; test execution only | Exact wheels are hash-locked for an isolated CI oracle and are not redistributed in this repository |
+| Generated SPDX image evidence | Generated local build output; not redistributed by this repository | The raw SBOM retains upstream/package data and licenses; the MIT project projection records only selected package/license facts and artifact hashes |
 
 The top-level `LICENSE` summarizes the mixed-license repository and `LICENSES/`
 contains the corresponding SPDX-named license texts.
@@ -80,7 +81,15 @@ boundaries change.
   hashes; the job uses no package index or dependency resolver and retains no
   wheel or environment artifact.
 - Yocto-generated SPDX SBOMs describe image contents; they complement rather
-  than replace repository file licensing.
+  than replace repository file licensing. M7 parses them with the MIT-licensed
+  model already present in the exact locked OE-Core checkout; it vendors no
+  model, schema library, package data, wheel, or SBOM. The local projected
+  evidence is generated from facts and remains ignored build output unless a
+  separately reviewed publication policy is approved.
+- An SPDX declared-license expression is build metadata, not legal advice or a
+  compatibility conclusion. The M7 allowlist checks that each project package
+  carries the expression already declared by its recipe; it does not certify
+  every transitive image package or replace REUSE/source review.
 - Release artifacts should include source revision, build input identity,
   checksums, SBOM location, and provenance. Do not claim reproducibility or a
   SLSA level without the prescribed evidence.
