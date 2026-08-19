@@ -351,6 +351,65 @@ class SbomEvidenceTests(unittest.TestCase):
             with self.assertRaisesRegex(MODULE.SbomEvidenceError, "control character"):
                 MODULE.read_evidence(path)
 
+    def test_raw_spdx_json_is_strictly_bounded_before_model_expansion(self) -> None:
+        class RawObjectSet:
+            def __init__(self) -> None:
+                self.objects: list[object] = []
+
+        class RawDeserializer:
+            def deserialize_data(self, data, object_set) -> None:
+                object_set.data = data
+
+        spdx = types.SimpleNamespace(
+            SHACLObjectSet=RawObjectSet,
+            JSONLDDeserializer=RawDeserializer,
+        )
+        parsed = MODULE.deserialize_spdx(spdx, b'{"@graph":[]}')
+        self.assertEqual({"@graph": []}, parsed.data)
+
+        for raw, expected in (
+            (b'{"@graph":[],"@graph":[]}', "duplicate JSON key"),
+            (b'{"value":NaN}', "unsupported constant"),
+            (
+                b'{"value":' + b"1" * (MODULE.MAX_JSON_INTEGER_DIGITS + 1) + b'}',
+                "integer exceeds",
+            ),
+        ):
+            with self.subTest(raw=raw), self.assertRaisesRegex(
+                MODULE.SbomEvidenceError, expected
+            ):
+                MODULE.deserialize_spdx(spdx, raw)
+
+        with (
+            mock.patch.object(MODULE, "MAX_RAW_JSON_DEPTH", 2),
+            self.assertRaisesRegex(MODULE.SbomEvidenceError, "exceeds depth"),
+        ):
+            MODULE.deserialize_spdx(spdx, b'[[[[]]]]')
+        with (
+            mock.patch.object(MODULE, "MAX_RAW_JSON_ITEMS", 3),
+            self.assertRaisesRegex(MODULE.SbomEvidenceError, "exceeds 3 values"),
+        ):
+            MODULE.deserialize_spdx(spdx, b'[1,2,3]')
+        with (
+            mock.patch.object(MODULE, "MAX_RAW_STRING_LENGTH", 3),
+            self.assertRaisesRegex(MODULE.SbomEvidenceError, "exceeds 3 characters"),
+        ):
+            MODULE.deserialize_spdx(spdx, b'{"value":"long"}')
+
+        class ExpandingDeserializer:
+            def deserialize_data(self, data, object_set) -> None:
+                object_set.objects.extend(object() for _ in range(3))
+
+        expanding = types.SimpleNamespace(
+            SHACLObjectSet=RawObjectSet,
+            JSONLDDeserializer=ExpandingDeserializer,
+        )
+        with (
+            mock.patch.object(MODULE, "MAX_SPDX_OBJECTS", 2),
+            self.assertRaisesRegex(MODULE.SbomEvidenceError, "model objects"),
+        ):
+            MODULE.deserialize_spdx(expanding, b'{"@graph":[]}')
+
     def test_locked_model_import_does_not_write_into_the_source_checkout(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -398,6 +457,23 @@ class SbomEvidenceTests(unittest.TestCase):
             objset.missing_ids.add("https://example.invalid/missing")
             identity = MODULE.LAB_IDENTITIES["pci-x86-64"]
             with self.assertRaisesRegex(MODULE.SbomEvidenceError, "unresolved"):
+                MODULE.analyze_graph(
+                    spdx=FAKE_SPDX,
+                    objset=objset,
+                    deploy_dir=deploy_dir,
+                    image=identity["image"],
+                    required_packages=identity["packages"],
+                    forbidden_packages=[],
+                )
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            objset, deploy_dir = graph_fixture(root)
+            identity = MODULE.LAB_IDENTITIES["pci-x86-64"]
+            with (
+                mock.patch.object(MODULE, "MAX_TOTAL_ARTIFACT_BYTES", 10),
+                self.assertRaisesRegex(MODULE.SbomEvidenceError, "aggregate byte"),
+            ):
                 MODULE.analyze_graph(
                     spdx=FAKE_SPDX,
                     objset=objset,
@@ -530,6 +606,14 @@ class SbomEvidenceTests(unittest.TestCase):
         self.assertFalse(schema["additionalProperties"])
         self.assertEqual(set(schema["required"]), set(schema["properties"]))
         self.assertEqual(128, schema["properties"]["artifacts"]["maxItems"])
+
+    def test_semantic_validator_caps_aggregate_artifact_bytes(self) -> None:
+        evidence = sample_evidence()
+        with (
+            mock.patch.object(MODULE, "MAX_TOTAL_ARTIFACT_BYTES", 4096),
+            self.assertRaisesRegex(MODULE.SbomEvidenceError, "aggregate byte"),
+        ):
+            MODULE.validate_evidence(evidence)
 
 
 if __name__ == "__main__":

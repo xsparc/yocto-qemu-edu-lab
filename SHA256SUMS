@@ -23,7 +23,7 @@ e810107e195b08cb57489170796060865b04985649141490544a5b8293c2b2a2  ./SECURITY.md
 63f1be2105dde9f0054ace8c4008fd24ff8dc63ec84c21b8a064c4925eee1c56  ./config/labs/pci-x86-64.json
 e1f1c385273c083eb2ae6d0f1bdf3b027aec028719cb4a9d5b0a2e52129355ce  ./config/labs/platform-arm64.json
 8b92b01e49afdce24864edcaeea2a8bf7110c638db0e3592572dccac5bb035e0  ./config/sources.lock.json
-0ee0535144394359cf951b892d0d3a2779abe7a16e2f928d058fc525e64a6070  ./docs/architecture.md
+4f1a393e9d72041b4180ab4bd6ea3a45a0808e7f58f66ba5bdf107e37e0ea1f5  ./docs/architecture.md
 1e078941e6c350d49f9d816fb9bd8640b7a1b6fbbf178e3e95f104a3834c7140  ./docs/ci.md
 0ca5868bcb935b39b690f77769dbb7f42db449b358f64870ff037dee8dfa148a  ./docs/diagnostics.md
 31de6e0b98ab9bfdcded74da81bc41fe11b6cb6c18f19e97e2c143c22114d145  ./docs/guest-interface.md
@@ -33,8 +33,8 @@ b980a803146d2aed4bb54d8ee8e6dadc451b01a9826ad562a7ca8f5c6779575c  ./docs/maintai
 4aa654399eaa584bcff2240cbf095227913dd9d34473aa2476eaa6e7c854217d  ./docs/maintainers/context.md
 6b1bcaec2ba763c57fc15b06f9794c17b998e6dbda7b38e30c9e2768d4257c81  ./docs/maintainers/decisions.md
 65f879644273c7431ccb2f132ea19e67491a5a0b9b948e729b877e4692908d3b  ./docs/maintainers/intake.md
-dca0d62f63e38bd2a5686fc8586ac10723aca7da38b12d011f516d01c694e2ec  ./docs/maintainers/ledger.md
-a8cde827cf67d40c251ac3d33efd450037bcb6ada2f0029e1f7cd2a7d0c22051  ./docs/maintainers/tasks.toml
+c7bfee49511da154f74a0e42cec735c10db6b1eb865bf67d79af35639e6ca18a  ./docs/maintainers/ledger.md
+186e736d48db5a695d3081957c0146a9fd6ebcdcede5968764b45c2ea0863d5e  ./docs/maintainers/tasks.toml
 c86beaf2d7e50e25cf122c898a5d1ef2d481d816a996e8706a6bbe0b4a99707b  ./docs/maintenance-workflow.md
 d87cc671bee02f9c36e284c119d691564021068961de46b5cbfa71a5d6bf20f5  ./docs/mapping-to-real-hardware.md
 c8f0440c7c8df8f6cae97f670575e073f90fe2672de99908606e45683722cffd  ./docs/research/2026-08-07-m1-reproducibility.md
@@ -48,7 +48,7 @@ e2e25ac2757b242cfd6d842d1b4c70249e69ca547dab31be1a93766c9253093d  ./docs/researc
 b6a0b2fce6621e571bacd69531f32784e454eb35866b0fa0c350c139603e16b2  ./docs/research/2026-08-19-m7-spdx-image-evidence.md
 9c373adefd362cf5b1b22f061f41d1f0a2dbae4b09ad6d516bc0eb7e737902db  ./docs/roadmap.md
 ce9b78e793fca006d800590b6ec83048cfd66443001bd5154176a81cdb0c49dd  ./docs/runtime-testing.md
-c949d8359f56c40b9e0ca09abc4aa16ff590286f257d66d8236026e3b86dc43a  ./docs/sbom-evidence.md
+a5222d0f5c07627d929f0362ba1655a79dc4b5107276dbe25b2f2062d22c0d89  ./docs/sbom-evidence.md
 1556e05ceb4d61fc7069660042ad89b07d17141faf1e9a278e6b3864b0a547e2  ./docs/source-lock.md
 e9bbeb6d9c213e22fe5789746b4aea64c4ee4299c61c7784b41f7afc4514ef62  ./docs/versioning.md
 b6a8a695d31346e39f06eb8ec7cc8f2ea4dbb5b805bd32152a35753fe6e54d2c  ./docs/vision.md
@@ -79,7 +79,7 @@ d0ae8e4df00905acdb25a0b7b50f84e9bbaa61cc0f4759b2ead2c09952249426  ./meta-qemu-ed
 c41bb445b519e18a97c29ebc32f5146d1a618684fab6c67c2f448073727f133b  ./qemu-edu-lab
 1c2864a0cdb17f83a51609961b922a21532886166b2d86f448e3c33ca19de357  ./run.sh
 df4306e35e0c6d797f6fed3013096438384467a82649b24879af03f7926d2a36  ./runtime-test.sh
-e5ca6fcd786b5f36ff847387e66eae3db3b2e15c36183e08d8470d1eab54cc75  ./sbom-evidence.sh
+96152417f2225c3539ad2a6c75ca40df4f02f1340bc244b884403c1d5f2faff3  ./sbom-evidence.sh
 c7ae13574c8f6c206784aaee5da30a11db1369e4858cbf0e8a0593c18194eb12  ./schemas/qemu-edu-diagnostics-v1.schema.json
 d3c44c74e226e4b454723430e963bb382134d88806c8187c4e20263eddcc01a5  ./schemas/qemu-edu-platform-runtime-evidence-v1.schema.json
 c5417ab5612246d4e94d14a4da16bd3b9d7057d739653b6e77ca4f4640fda38b  ./schemas/qemu-edu-runtime-evidence-v1.schema.json
@@ -94,7 +94,7 @@ bea6642b48d2f8a1069d862dac654573e0fa81080b7a44402249ae99a6124a4f  ./scripts/conf
 e0ce0fcd4e4841fe76afa54675e1c2378a83f20063d5f874be3a4922c7a2a1af  ./scripts/platform_runtime_evidence.py
 edd7d77e6239966ae85069dff9b222e9d8f4a927de5c30231bbae125d5ed1ea5  ./scripts/qemu_security_preflight.sh
 c76ca2a6675f6e3e3f78c55f4ae9618cbdb2585b29d6aa4b4e6a5f16e3b21feb  ./scripts/runtime_evidence.py
-0d76179b5d225206280bcb212f5c905a6df81ca7896247ed17f62ee995df4dff  ./scripts/sbom_evidence.py
+fde56138f41e6eebe44fa2fc91491604710ac7801b31af6ed97e82381de41f77  ./scripts/sbom_evidence.py
 5bde3eb85efa5e8049397996887e1a03ccc62eab5d398ff711cda2f50c0f9595  ./scripts/source_lock.py
 a4fe377a4d1e03e70b283ee75b1fcf7a29b224e88bd9eac8275a0f64aec60eda  ./scripts/update_checksums.py
 55376d7465ebf2ef0c8869f9f0f9e69c12d894f78c83129cf4fd0b0fb6c23637  ./scripts/validate_ci.py
@@ -113,8 +113,8 @@ bce1b86639acfc2f298868f760aee24b833a26282f034d83cc846ceeba7245ad  ./tests/test_d
 8085b8f8c5973e872b0108d084e2f161f49b65640eb4ec24d17531a3aac0a6b7  ./tests/test_qemu_security.py
 6e893d94f25603a5b7acee88b438bb338b05625e64f710fedc64e0822e2aad95  ./tests/test_runtime_contract.py
 a1afbcadc23b06de3a52c356d1dc155e4fec0ddc2b8a6457dad837b298412ba9  ./tests/test_runtime_evidence.py
-64c610d0f4582ac1e842732f3083c3189a216a1c4fda1399eea527afd93d87fa  ./tests/test_sbom_contract.py
-bf11db667f772c9fef20de898aa23b11b6fbf00a5c1ad4b1eacec7cebd0e4195  ./tests/test_sbom_evidence.py
+aca49d2f13ef549da0b6efd6579688223de6421a7ce3de5c7da65b706c123437  ./tests/test_sbom_contract.py
+e350762a140b2ccefdec1013dbc3dcdb07c24e6cd361c2aeb0e7b1c4f311f6db  ./tests/test_sbom_evidence.py
 91bdcde3ad0c778d3ba385b9920461990281bf1c9ff94c03473645a20cc2fbea  ./tests/test_source_lock.py
 417fc3c3edbecd3881ace46103073dbb93b6c6a7987ab24916545177e1a09a5b  ./tests/test_update_checksums.py
 48b26be5028fcadd1f48153ed5d79b2ac65ed1da917276fa44862a5f5a6d387d  ./tests/test_validate_ci.py

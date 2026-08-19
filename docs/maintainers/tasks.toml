@@ -3,7 +3,7 @@
 
 schema_version = 1
 task_id_prefix = "A"
-updated_on = "2026-08-14"
+updated_on = "2026-08-19"
 
 [[tasks]]
 id = "A000"
@@ -482,7 +482,7 @@ reviews_required = ["architecture", "quality", "devops", "security", "licensing"
 reviews_completed = []
 validation_evidence = [
   "Clean implementation revision 8588e29f86c30578df99a8ffacba598479130a0a passed source-lock, lab-catalog, workflow, CI-policy, QEMU-static, staged-checksum, and diff gates plus all 228 repository tests in isolated read-only Linux with no skips. The exact six-wheel offline Draft 2020-12 oracle passed both schemas, and pinned network-disabled REUSE 6.2.0 covered 116/116 files with zero issues.",
-  "Qualification used an unprivileged Debian 12 Docker worker bounded to four CPUs and 14 GiB RAM, with no network, no capabilities, no KVM device, and software QEMU. Source inputs remained detached, clean, and exact at BitBake acfe02fa, OE-Core 5d1aa5c, and meta-yocto 24c24cef.",
+  "Qualification used unprivileged Debian 12 worker image sha256:af7d29095405bc317d1ef1e94e3fa060c04252e9e0df9ba76392c26be684c48b, bounded to four CPUs and 14 GiB RAM with no capabilities, no KVM device, and software QEMU. One setup phase used network access to refresh only the declared public source refs; all subsequent metadata, build, SPDX, and runtime validation ran with network disabled. Source inputs remained detached, clean, and exact at BitBake acfe02fa, OE-Core 5d1aa5c, and meta-yocto 24c24cef.",
   "Real metadata/build execution found and closed two pre-qualification assumptions: optional supplier-name variables now use bitbake-getvar --ignore-undefined, and schema-2 manifests pin Yocto's exact versioned installed module-package names instead of unsafe prefixes. The final clean revision includes both focused corrections.",
   "After per-lab qemu-edu-image cleansstate, the normal PCI graph attempted 4,667 tasks with 20 image-recipe tasks rerun, and the normal ARM64 graph attempted 4,631 tasks with 20 image-recipe tasks rerun. Rootfs, compressed ext4/tar images, SPDX rootfs/image documents, and create_image_sbom_spdx all completed without BitBake warnings or failures.",
   "PCI SPDX evidence SHA-256 d4b6f88023a45888b32a875a106d27efca4e720d24313d5395091e81f1f1c05d binds raw SPDX SHA-256 2717b9c20b34bb1511ecfe091690e129003665fd0523fa3bdb69aa1562587b5a, 55 installed packages, the exact three project package/license rules, and two independently hashed image artifacts.",

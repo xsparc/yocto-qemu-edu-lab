@@ -87,7 +87,8 @@ EVIDENCE_OUTPUT=$(
     python3 "$EVIDENCE_TOOL" --repo "$ROOT_DIR" --lab "$QEMU_EDU_LAB" \
         --build-dir "$BUILD_DIR" path
 )
-rm -f -- "$EVIDENCE_OUTPUT"
+python3 "$EVIDENCE_TOOL" --repo "$ROOT_DIR" --lab "$QEMU_EDU_LAB" \
+    --build-dir "$BUILD_DIR" clear
 
 task_status=0
 bitbake "$TARGET" -c create_image_sbom_spdx || task_status=$?
@@ -110,9 +111,15 @@ python3 "$EVIDENCE_TOOL" --repo "$ROOT_DIR" --lab "$QEMU_EDU_LAB" \
     --task-exit-code "$task_status" \
     "${SETTING_ARGS[@]}"
 REVISION=$(git -C "$ROOT_DIR" rev-parse --verify HEAD)
+validation_status=0
 python3 "$EVIDENCE_TOOL" --repo "$ROOT_DIR" --lab "$QEMU_EDU_LAB" validate \
     "$EVIDENCE_OUTPUT" \
     --require-pass \
     --require-revision "$REVISION" \
-    --require-current-inputs
+    --require-current-inputs || validation_status=$?
+if [ "$validation_status" -ne 0 ]; then
+    python3 "$EVIDENCE_TOOL" --repo "$ROOT_DIR" --lab "$QEMU_EDU_LAB" \
+        --build-dir "$BUILD_DIR" clear
+    exit "$validation_status"
+fi
 printf 'SPDX image evidence: %s\n' "$EVIDENCE_OUTPUT"

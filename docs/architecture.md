@@ -130,7 +130,7 @@ human learning       CI / optional tool adapter
 External repositories and revisions must be explicit and lockable. The build
 declaration owns source identity, layer order, machine, image, and configuration
 fragments; caches remain replaceable performance aids, not source of truth.
-The current source-lock version 1 and lab-manifest version 1 declarations are
+The current source-lock version 1 and lab-manifest version 2 declarations are
 project-owned and intentionally map to kas and upstream `bitbake-setup`
 concepts if the source graph later justifies a migration.
 

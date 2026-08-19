@@ -92,15 +92,19 @@ The wrapper:
    manifest;
 3. reads and verifies all 13 effective SPDX variables with `bitbake-getvar`;
 4. verifies the source lock and manifest before task execution;
-5. deletes any stale projected evidence;
+5. deletes only the selected stale projected evidence after rejecting a
+   symlinked output name or evidence directory;
 6. runs `bitbake <image> -c create_image_sbom_spdx`;
 7. resolves `DEPLOY_DIR_IMAGE` and `IMAGE_LINK_NAME` from BitBake;
-8. reads the stable image SBOM once, with a 128 MiB limit;
+8. reads the stable image SBOM once, with a 128 MiB limit, rejects duplicate
+   keys and non-standard constants, and bounds JSON depth, values, strings, and
+   model-object expansion before the locked model consumes it;
 9. imports `oe.spdx30` only from the locked OE-Core checkout;
 10. validates and projects the graph, writes evidence atomically, then validates
    the generated document against the current clean subject.
 
-A failing task exit is returned unchanged and no evidence is collected. The
+A failing task exit is returned unchanged and no evidence is collected. Each
+artifact is limited to 8 GiB and their aggregate to 16 GiB before hashing. The
 projected JSON is limited to 1 MiB, closed to unknown fields, and rejects
 duplicate keys, excessive nesting or item counts, control characters, Unicode
 surrogates, boolean/integer aliases, path escapes, and symlink artifacts.

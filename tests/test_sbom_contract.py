@@ -28,7 +28,7 @@ class SbomContractTests(unittest.TestCase):
         text = WRAPPER.read_text(encoding="utf-8")
         verify = text.index('python3 "$CONFIGURE_TOOL"')
         preflight = text.index("preflight \"${SETTING_ARGS[@]}\"")
-        remove = text.index('rm -f -- "$EVIDENCE_OUTPUT"')
+        remove = text.index('--build-dir "$BUILD_DIR" clear')
         task = text.index('bitbake "$TARGET" -c create_image_sbom_spdx')
         collect = text.index('--build-dir "$BUILD_DIR" collect')
         validate = text.index("--require-pass")
@@ -68,6 +68,33 @@ class SbomContractTests(unittest.TestCase):
         with self.assertRaisesRegex(MODULE.SbomEvidenceError, "non-empty"):
             MODULE.active_build_dir(ROOT, pci_manifest, "")
 
+    def test_output_path_refuses_symlinked_final_component_and_directory(self) -> None:
+        manifest, _, _, _, _, _ = MODULE.selected_contract(ROOT, "pci-x86-64")
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            build = root / "build"
+            evidence_dir = build / "evidence"
+            evidence_dir.mkdir(parents=True)
+            protected = evidence_dir / "protected.json"
+            protected.write_text("protected\n", encoding="utf-8")
+            output = evidence_dir / manifest["supply_chain"]["evidence_filename"]
+            try:
+                os.symlink(protected.name, output)
+            except OSError as exc:
+                self.skipTest(f"host cannot create a symbolic link: {exc}")
+            with self.assertRaisesRegex(MODULE.SbomEvidenceError, "symbolic link"):
+                MODULE.evidence_path(root, manifest, build)
+            self.assertEqual("protected\n", protected.read_text(encoding="utf-8"))
+
+            output.unlink()
+            protected.unlink()
+            evidence_dir.rmdir()
+            outside = root / "outside"
+            outside.mkdir()
+            os.symlink(outside, evidence_dir, target_is_directory=True)
+            with self.assertRaisesRegex(MODULE.SbomEvidenceError, "regular directory"):
+                MODULE.evidence_path(root, manifest, build)
+
     def test_makefile_exposes_one_explicit_evidence_target(self) -> None:
         makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
         self.assertIn("sbom-evidence:\n\t./sbom-evidence.sh", makefile)
@@ -90,6 +117,33 @@ class SbomContractTests(unittest.TestCase):
         self.assertEqual(2, result.returncode)
         self.assertIn("unknown lab", result.stderr)
         self.assertEqual("", result.stdout)
+
+    def test_validator_rejects_oversized_integer_without_traceback_or_path(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            evidence = Path(temporary) / "oversized.json"
+            evidence.write_bytes(
+                b'{"value":' + b"1" * (MODULE.MAX_JSON_INTEGER_DIGITS + 1) + b'}'
+            )
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(ROOT / "scripts/sbom_evidence.py"),
+                    "--repo",
+                    str(ROOT),
+                    "validate",
+                    str(evidence),
+                ],
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+        self.assertEqual(1, result.returncode)
+        self.assertEqual("", result.stdout)
+        self.assertEqual(1, len(result.stderr.splitlines()))
+        self.assertTrue(result.stderr.startswith("sbom-evidence: FAIL:"))
+        self.assertIn("integer exceeds", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
+        self.assertNotIn(str(ROOT), result.stderr)
 
     @unittest.skipIf(sys.platform == "win32", "requires a native Linux Bash environment")
     def test_wrapper_rejects_explicit_empty_lab_before_dependencies(self) -> None:
@@ -143,6 +197,10 @@ case "$1" in
                 exit "${PREFLIGHT_STATUS:-0}"
                 ;;
             *' path '*) printf '%s\n' "$FAKE_EVIDENCE" ;;
+            *' clear '*)
+                printf 'clear:%s\n' "$*" >> "$CALL_LOG"
+                rm -f -- "$FAKE_EVIDENCE"
+                ;;
             *' collect '*)
                 if [ -e "$FAKE_EVIDENCE" ]; then stale=yes; else stale=no; fi
                 printf 'collect:stale=%s:%s\n' "$stale" "$*" >> "$CALL_LOG"
@@ -244,10 +302,11 @@ exit "${TASK_STATUS:-0}"
         self.assertIn("--distro poky", calls[0])
         self.assertIn("--machine qemu-edu-x86-64", calls[0])
         self.assertTrue(calls[1].startswith("preflight:"))
-        self.assertEqual("bitbake:qemu-edu-image -c create_image_sbom_spdx", calls[2])
-        self.assertTrue(calls[3].startswith("collect:stale=no:"))
-        self.assertTrue(calls[4].startswith("validate:"))
-        self.assertIn("--require-current-inputs", calls[4])
+        self.assertTrue(calls[2].startswith("clear:"))
+        self.assertEqual("bitbake:qemu-edu-image -c create_image_sbom_spdx", calls[3])
+        self.assertTrue(calls[4].startswith("collect:stale=no:"))
+        self.assertTrue(calls[5].startswith("validate:"))
+        self.assertIn("--require-current-inputs", calls[5])
 
     def test_configuration_failure_prevents_preflight_and_task(self) -> None:
         result = self.run_wrapper(VERIFY_STATUS="5")
@@ -282,6 +341,8 @@ exit "${TASK_STATUS:-0}"
         validated = self.run_wrapper(VALIDATE_STATUS="8")
         self.assertEqual(8, validated.returncode)
         self.assertTrue(any(call.startswith("validate:") for call in self.calls()))
+        self.assertEqual(2, sum(call.startswith("clear:") for call in self.calls()))
+        self.assertFalse(self.evidence.exists())
 
         self.log.unlink(missing_ok=True)
         missing = self.run_wrapper(DEPLOY_EMPTY="1")

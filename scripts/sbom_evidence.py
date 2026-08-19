@@ -8,7 +8,6 @@ from __future__ import annotations
 import argparse
 import hashlib
 import importlib
-import io
 import json
 import os
 import re
@@ -41,8 +40,14 @@ MAX_ARTIFACTS = 128
 MAX_INSTALLED_PACKAGES = 8192
 MAX_STRING_LENGTH = 4096
 MAX_ARTIFACT_BYTES = 8 * 1024 * 1024 * 1024
+MAX_TOTAL_ARTIFACT_BYTES = 16 * 1024 * 1024 * 1024
 MAX_JSON_DEPTH = 32
 MAX_JSON_ITEMS = 20000
+MAX_RAW_JSON_DEPTH = 64
+MAX_RAW_JSON_ITEMS = 250000
+MAX_RAW_STRING_LENGTH = 65536
+MAX_SPDX_OBJECTS = 50000
+MAX_JSON_INTEGER_DIGITS = 64
 ROOTFS_BUILD_TYPE = "http://openembedded.org/bitbake/do_create_rootfs_spdx/rootfs"
 SHA1 = re.compile(r"[0-9a-f]{40}\Z")
 SHA256 = re.compile(r"[0-9a-f]{64}\Z")
@@ -130,32 +135,55 @@ def reject_duplicate_pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     return result
 
 
-def validate_json_shape(value: Any, *, depth: int = 0) -> int:
-    if depth > MAX_JSON_DEPTH:
-        raise SbomEvidenceError(f"evidence JSON exceeds depth {MAX_JSON_DEPTH}")
+def validate_json_shape(
+    value: Any,
+    *,
+    depth: int = 0,
+    max_depth: int = MAX_JSON_DEPTH,
+    max_items: int = MAX_JSON_ITEMS,
+    max_string_length: int = MAX_STRING_LENGTH,
+    where: str = "evidence JSON",
+) -> int:
+    if depth > max_depth:
+        raise SbomEvidenceError(f"{where} exceeds depth {max_depth}")
     if value is None or type(value) in (bool, int):
         return 1
     if isinstance(value, str):
-        string_value(value, "evidence JSON string", allow_empty=True)
+        string_value(
+            value,
+            f"{where} string",
+            allow_empty=True,
+            max_length=max_string_length,
+        )
         return 1
     if isinstance(value, list):
         count = 1
         for item in value:
-            count += validate_json_shape(item, depth=depth + 1)
-            if count > MAX_JSON_ITEMS:
-                raise SbomEvidenceError(
-                    f"evidence JSON exceeds {MAX_JSON_ITEMS} values"
-                )
+            count += validate_json_shape(
+                item,
+                depth=depth + 1,
+                max_depth=max_depth,
+                max_items=max_items,
+                max_string_length=max_string_length,
+                where=where,
+            )
+            if count > max_items:
+                raise SbomEvidenceError(f"{where} exceeds {max_items} values")
         return count
     if isinstance(value, dict):
         count = 1
         for key, item in value.items():
-            string_value(key, "evidence JSON key")
-            count += validate_json_shape(item, depth=depth + 1)
-            if count > MAX_JSON_ITEMS:
-                raise SbomEvidenceError(
-                    f"evidence JSON exceeds {MAX_JSON_ITEMS} values"
-                )
+            string_value(key, f"{where} key", max_length=max_string_length)
+            count += validate_json_shape(
+                item,
+                depth=depth + 1,
+                max_depth=max_depth,
+                max_items=max_items,
+                max_string_length=max_string_length,
+                where=where,
+            )
+            if count > max_items:
+                raise SbomEvidenceError(f"{where} exceeds {max_items} values")
         return count
     raise SbomEvidenceError("evidence JSON contains an unsupported value type")
 
@@ -322,14 +350,37 @@ def evidence_path(
         if build_dir is not None
         else (repo / manifest["build"]["build_dir"]).resolve()
     )
-    path = (
-        build_root
-        / "evidence"
-        / manifest["supply_chain"]["evidence_filename"]
-    ).resolve()
-    if path.parent != build_root / "evidence":
-        raise SbomEvidenceError("evidence path escapes the selected build directory")
+    evidence_dir = build_root / "evidence"
+    if evidence_dir.exists():
+        if evidence_dir.is_symlink() or not evidence_dir.is_dir():
+            raise SbomEvidenceError("evidence directory is not a regular directory")
+        if evidence_dir.resolve(strict=True) != evidence_dir:
+            raise SbomEvidenceError("evidence directory escapes the selected build directory")
+    path = evidence_dir / manifest["supply_chain"]["evidence_filename"]
+    if path.is_symlink():
+        raise SbomEvidenceError("evidence output must not be a symbolic link")
+    if path.exists() and not path.is_file():
+        raise SbomEvidenceError("evidence output is not a regular file")
     return path
+
+
+def verify_evidence_output(path: Path, *, create_parent: bool = False) -> None:
+    parent = path.parent
+    if create_parent:
+        parent.mkdir(parents=True, exist_ok=True)
+    if parent.is_symlink() or not parent.is_dir():
+        raise SbomEvidenceError("evidence directory is not a regular directory")
+    if parent.resolve(strict=True) != parent:
+        raise SbomEvidenceError("evidence directory escapes the selected build directory")
+    if path.is_symlink():
+        raise SbomEvidenceError("evidence output must not be a symbolic link")
+    if path.exists() and not path.is_file():
+        raise SbomEvidenceError("evidence output is not a regular file")
+
+
+def clear_evidence(path: Path) -> None:
+    verify_evidence_output(path, create_parent=True)
+    path.unlink(missing_ok=True)
 
 
 def active_build_dir(
@@ -381,14 +432,52 @@ def read_sbom(path: Path) -> tuple[bytes, str]:
     return raw, hashlib.sha256(raw).hexdigest()
 
 
+def reject_json_constant(value: str) -> None:
+    raise SbomEvidenceError(f"JSON contains unsupported constant {value}")
+
+
+def parse_bounded_integer(value: str) -> int:
+    digits = value[1:] if value.startswith("-") else value
+    if len(digits) > MAX_JSON_INTEGER_DIGITS:
+        raise SbomEvidenceError(
+            f"JSON integer exceeds {MAX_JSON_INTEGER_DIGITS} digits"
+        )
+    return int(value)
+
+
 def deserialize_spdx(spdx: Any, raw: bytes) -> Any:
+    try:
+        data = json.loads(
+            raw.decode("utf-8"),
+            object_pairs_hook=reject_duplicate_pairs,
+            parse_constant=reject_json_constant,
+            parse_int=parse_bounded_integer,
+        )
+    except SbomEvidenceError:
+        raise
+    except (UnicodeDecodeError, json.JSONDecodeError, RecursionError) as exc:
+        raise SbomEvidenceError(f"invalid SPDX JSON: {exc}") from exc
+    validate_json_shape(
+        data,
+        max_depth=MAX_RAW_JSON_DEPTH,
+        max_items=MAX_RAW_JSON_ITEMS,
+        max_string_length=MAX_RAW_STRING_LENGTH,
+        where="SPDX JSON",
+    )
     objset = spdx.SHACLObjectSet()
     try:
-        spdx.JSONLDDeserializer().read(io.BytesIO(raw), objset)
+        spdx.JSONLDDeserializer().deserialize_data(data, objset)
     except Exception as exc:
         raise SbomEvidenceError(
             f"SPDX 3 model validation failed: {type(exc).__name__}"
         ) from exc
+    objects = getattr(objset, "objects", None)
+    if objects is None or not hasattr(objects, "__len__"):
+        raise SbomEvidenceError("SPDX model did not expose a bounded object set")
+    if len(objects) > MAX_SPDX_OBJECTS:
+        raise SbomEvidenceError(
+            f"SPDX graph exceeds {MAX_SPDX_OBJECTS} model objects"
+        )
     return objset
 
 
@@ -575,6 +664,7 @@ def analyze_graph(
     deploy_root = deploy_dir.resolve(strict=True)
     artifact_records: list[dict[str, Any]] = []
     seen_artifacts: set[str] = set()
+    total_artifact_bytes = 0
     for artifact in sorted(root_files, key=lambda item: item.name):
         basename = safe_token(artifact.name, "artifact basename")
         if basename in seen_artifacts:
@@ -588,6 +678,11 @@ def analyze_graph(
             raise SbomEvidenceError(f"artifact escapes the deploy directory: {basename}")
         declared_digest = only_sha256(spdx, artifact, f"artifact {basename}")
         actual_digest, size = hash_file(resolved)
+        total_artifact_bytes += size
+        if total_artifact_bytes > MAX_TOTAL_ARTIFACT_BYTES:
+            raise SbomEvidenceError(
+                "image artifacts exceed the aggregate byte bound"
+            )
         if actual_digest != declared_digest:
             raise SbomEvidenceError(f"artifact SHA-256 mismatch: {basename}")
         artifact_records.append(
@@ -883,17 +978,22 @@ def validate_evidence(
     if not isinstance(artifacts, list) or len(artifacts) != artifact_count:
         raise SbomEvidenceError("artifacts do not match source_sbom.artifact_count")
     artifact_names: list[str] = []
+    total_artifact_bytes = 0
     for index, raw_artifact in enumerate(artifacts):
         artifact = object_value(raw_artifact, f"artifacts[{index}]")
         exact_keys(artifact, {"basename", "sha256", "size_bytes"}, f"artifacts[{index}]")
         artifact_names.append(safe_token(artifact["basename"], f"artifacts[{index}].basename"))
         sha256_value(artifact["sha256"], f"artifacts[{index}].sha256")
-        integer_value(
+        total_artifact_bytes += integer_value(
             artifact["size_bytes"],
             f"artifacts[{index}].size_bytes",
             minimum=1,
             maximum=MAX_ARTIFACT_BYTES,
         )
+        if total_artifact_bytes > MAX_TOTAL_ARTIFACT_BYTES:
+            raise SbomEvidenceError(
+                "image artifacts exceed the aggregate byte bound"
+            )
     if artifact_names != sorted(artifact_names) or len(artifact_names) != len(set(artifact_names)):
         raise SbomEvidenceError("artifacts must be unique and sorted by basename")
 
@@ -949,8 +1049,13 @@ def read_evidence(path: Path) -> dict[str, Any]:
         raise SbomEvidenceError(f"evidence exceeds {MAX_EVIDENCE_BYTES} bytes")
     try:
         data = json.loads(
-            raw.decode("utf-8"), object_pairs_hook=reject_duplicate_pairs
+            raw.decode("utf-8"),
+            object_pairs_hook=reject_duplicate_pairs,
+            parse_constant=reject_json_constant,
+            parse_int=parse_bounded_integer,
         )
+    except SbomEvidenceError:
+        raise
     except (UnicodeDecodeError, json.JSONDecodeError, RecursionError) as exc:
         raise SbomEvidenceError(f"invalid evidence JSON: {exc}") from exc
     if not isinstance(data, dict):
@@ -960,7 +1065,7 @@ def read_evidence(path: Path) -> dict[str, Any]:
 
 
 def write_evidence(path: Path, evidence: dict[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
+    verify_evidence_output(path, create_parent=True)
     payload = json.dumps(evidence, indent=2, sort_keys=True) + "\n"
     if len(payload.encode("utf-8")) > MAX_EVIDENCE_BYTES:
         raise SbomEvidenceError("generated evidence exceeds its byte bound")
@@ -979,6 +1084,7 @@ def write_evidence(path: Path, evidence: dict[str, Any]) -> None:
             handle.write(payload)
             handle.flush()
             os.fsync(handle.fileno())
+        verify_evidence_output(path)
         os.replace(temporary, path)
     finally:
         if temporary is not None and temporary.exists():
@@ -997,6 +1103,7 @@ def main() -> int:
     preflight = subparsers.add_parser("preflight", help="verify current SPDX inputs")
     preflight.add_argument("--setting", action="append", default=[])
     subparsers.add_parser("path", help="print the selected generated evidence path")
+    subparsers.add_parser("clear", help="remove only the selected stale evidence file")
     collect = subparsers.add_parser("collect", help="collect the selected image SPDX evidence")
     collect.add_argument("--deploy-dir", required=True)
     collect.add_argument("--image-link-name", required=True)
@@ -1023,8 +1130,13 @@ def main() -> int:
             return 0
         manifest, selected, _, _, _, _ = selected_contract(repo, lab_id)
         build_dir = active_build_dir(repo, manifest, args.build_dir)
-        if args.command == "path":
-            print(evidence_path(repo, manifest, build_dir))
+        if args.command in ("path", "clear"):
+            output = evidence_path(repo, manifest, build_dir)
+            if args.command == "path":
+                print(output)
+            else:
+                clear_evidence(output)
+                print(f"sbom-evidence: cleared: {output}")
             return 0
         settings = parse_settings(args.setting)
         source_authority(repo)
