@@ -520,12 +520,14 @@ def only_sha256(spdx: Any, element: Any, where: str) -> str:
     return sha256_value(values[0], f"{where} SHA-256")
 
 
-def hash_file(path: Path) -> tuple[str, int]:
+def hash_file(path: Path, *, remaining_bytes: int | None = None) -> tuple[str, int]:
     size = path.stat().st_size
     if size < 1 or size > MAX_ARTIFACT_BYTES:
         raise SbomEvidenceError(
             f"artifact size must be from 1 through {MAX_ARTIFACT_BYTES} bytes"
         )
+    if remaining_bytes is not None and size > remaining_bytes:
+        raise SbomEvidenceError("image artifacts exceed the aggregate byte bound")
     digest = hashlib.sha256()
     with path.open("rb") as handle:
         while True:
@@ -704,12 +706,9 @@ def analyze_graph(
         if resolved.parent != deploy_root:
             raise SbomEvidenceError(f"artifact escapes the deploy directory: {basename}")
         declared_digest = only_sha256(spdx, artifact, f"artifact {basename}")
-        actual_digest, size = hash_file(resolved)
+        remaining_bytes = MAX_TOTAL_ARTIFACT_BYTES - total_artifact_bytes
+        actual_digest, size = hash_file(resolved, remaining_bytes=remaining_bytes)
         total_artifact_bytes += size
-        if total_artifact_bytes > MAX_TOTAL_ARTIFACT_BYTES:
-            raise SbomEvidenceError(
-                "image artifacts exceed the aggregate byte bound"
-            )
         if actual_digest != declared_digest:
             raise SbomEvidenceError(f"artifact SHA-256 mismatch: {basename}")
         artifact_records.append(

@@ -505,6 +505,21 @@ class SbomEvidenceTests(unittest.TestCase):
                     forbidden_packages=[],
                 )
 
+    def test_hash_file_rejects_aggregate_overage_before_open(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            artifact = Path(temporary) / "artifact.bin"
+            artifact.write_bytes(b"eleven-byte")
+            with (
+                mock.patch.object(
+                    Path,
+                    "open",
+                    side_effect=AssertionError("over-budget artifact was opened"),
+                ) as open_file,
+                self.assertRaisesRegex(MODULE.SbomEvidenceError, "aggregate byte"),
+            ):
+                MODULE.hash_file(artifact, remaining_bytes=10)
+            open_file.assert_not_called()
+
     def test_graph_analysis_rejects_wrong_purposes_type_scope_and_forbidden_input(self) -> None:
         identity = MODULE.LAB_IDENTITIES["pci-x86-64"]
         cases = ("root-purpose", "build-type", "package-purpose", "input-scope")
