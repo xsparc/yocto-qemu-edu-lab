@@ -83,9 +83,10 @@ AI readiness means high-quality interfaces, not adding a chatbot first:
 - logs and source stay local unless the user deliberately selects a provider;
 - no prompt or model output becomes approval, test evidence, or project truth.
 
-An MCP adapter is a possible M6 integration because MCP standardizes resources
-and tools, but it must remain thin and replaceable. The lab CLI and evidence
-schema are the primary contract.
+M6 deliberately stops at the local diagnostics contract. An MCP, A2A, or other
+transport adapter is possible only as separately approved later work. It must
+remain thin and replaceable; the lab CLI and evidence schema stay authoritative
+and the adapter cannot gain state-changing authority by implication.
 
 ## Stop and escalate conditions
 

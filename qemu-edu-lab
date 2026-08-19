@@ -1,0 +1,102 @@
+#!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 Yocto QEMU EDU learning project contributors
+# SPDX-License-Identifier: MIT
+"""Read-only project diagnostics entry point."""
+
+from __future__ import annotations
+
+import sys
+
+sys.dont_write_bytecode = True
+
+import argparse  # noqa: E402
+import os  # noqa: E402
+from pathlib import Path  # noqa: E402
+
+
+ROOT = Path(__file__).resolve().parent
+SCRIPT_DIR = ROOT / "scripts"
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+class BoundedArgumentParser(argparse.ArgumentParser):
+    """Reject invalid arguments without reflecting attacker-controlled bytes."""
+
+    def error(self, message: str) -> None:
+        del message
+        self.print_usage(sys.stderr)
+        self.exit(2, f"{self.prog}: invalid arguments\n")
+
+
+def parser() -> argparse.ArgumentParser:
+    result = BoundedArgumentParser(
+        prog="qemu-edu-lab",
+        description="Inspect deterministic, read-only QEMU EDU lab state.",
+    )
+    result.add_argument(
+        "--lab",
+        help="catalog lab id; defaults to the catalog selection",
+    )
+    result.add_argument(
+        "--format",
+        choices=("text", "json"),
+        default="text",
+        help="output format (default: text)",
+    )
+    result.add_argument("command", choices=("status", "doctor", "inspect", "evidence"))
+    return result
+
+
+def load_runtime():
+    """Import project code only inside the fixed diagnostic error boundary."""
+    import diagnostics
+
+    return diagnostics
+
+
+def disable_stdout() -> None:
+    """Prevent a failed buffered pipe from being retried at interpreter exit."""
+    try:
+        descriptor = os.open(os.devnull, os.O_WRONLY)
+        try:
+            os.dup2(descriptor, sys.stdout.fileno())
+        finally:
+            os.close(descriptor)
+    except (AttributeError, OSError, TypeError, ValueError):
+        pass
+
+
+def main() -> int:
+    arguments = parser().parse_args()
+    runtime = None
+    try:
+        runtime = load_runtime()
+        document, exit_code = runtime.command_document(
+            ROOT, arguments.command, arguments.lab
+        )
+        payload = (
+            runtime.json_bytes(document)
+            if arguments.format == "json"
+            else runtime.text_bytes(document)
+        )
+    except Exception as exc:
+        if runtime is not None and isinstance(exc, runtime.DiagnosticArgumentError):
+            sys.stderr.buffer.write(b"qemu-edu-lab: invalid arguments\n")
+            sys.stderr.buffer.flush()
+            return 2
+        sys.stderr.buffer.write(b"qemu-edu-lab: internal diagnostic failure\n")
+        sys.stderr.buffer.flush()
+        return 1
+    try:
+        sys.stdout.buffer.write(payload)
+        sys.stdout.buffer.flush()
+    except (BrokenPipeError, OSError, ValueError):
+        disable_stdout()
+        sys.stderr.buffer.write(b"qemu-edu-lab: output unavailable\n")
+        sys.stderr.buffer.flush()
+        return 1
+    return exit_code
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

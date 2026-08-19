@@ -50,7 +50,10 @@ objects. Repeated setup of the exact state is idempotent.
 All source paths must be normalized repository-relative paths below `layers/`.
 Origins must be credential-free HTTPS URLs, commits must be full lowercase
 SHA-1 object IDs, and schema version 1 rejects unknown fields or source IDs.
-Git is invoked with argument arrays, never a shell command string.
+Git is invoked with argument arrays, never a shell command string. Origin
+checks read exactly one raw local `remote.origin.url`, so URL rewrite rules and
+included configuration cannot disguise another remote. Git replacement refs
+are disabled while source identity and cleanliness are inspected.
 
 The helper refuses dirty trees, wrong origins, wrong object formats, attached
 branches, and unexpected `HEAD` commits. It never runs `reset`, `clean`, or a

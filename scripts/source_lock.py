@@ -18,6 +18,10 @@ from urllib.parse import urlsplit
 
 SCHEMA_VERSION = 1
 DEFAULT_LOCK = "config/sources.lock.json"
+MAX_JSON_BYTES = 64 * 1024
+MAX_STRING_LENGTH = 4096
+MAX_JSON_DEPTH = 64
+MAX_JSON_ITEMS = 100_000
 PROJECT_REF_PREFIX = "refs/yocto-qemu-edu-lab"
 SOURCE_IDS = {"bitbake", "openembedded-core", "meta-yocto"}
 SOURCE_URLS = {
@@ -58,19 +62,68 @@ class LockError(ValueError):
     """A source lock or checkout failed a closed validation rule."""
 
 
-def read_lock(path: Path) -> tuple[dict[str, Any], str]:
+def _duplicate_guard(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    value: dict[str, Any] = {}
+    for key, item in pairs:
+        if key in value:
+            raise LockError(f"duplicate JSON key: {key}")
+        value[key] = item
+    return value
+
+
+def _reject_constant(value: str) -> Any:
+    raise LockError(f"unsupported JSON constant: {value}")
+
+
+def _validate_json_shape(value: Any) -> None:
+    pending = [(value, 1)]
+    items = 0
+    while pending:
+        current, depth = pending.pop()
+        items += 1
+        if items > MAX_JSON_ITEMS:
+            raise LockError(f"JSON input exceeds {MAX_JSON_ITEMS} values")
+        if depth > MAX_JSON_DEPTH:
+            raise LockError(f"JSON input exceeds depth {MAX_JSON_DEPTH}")
+        if isinstance(current, str):
+            if len(current) > MAX_STRING_LENGTH:
+                raise LockError(f"JSON string exceeds {MAX_STRING_LENGTH} characters")
+            if any(0xD800 <= ord(character) <= 0xDFFF for character in current):
+                raise LockError("JSON contains an invalid Unicode surrogate")
+        elif isinstance(current, dict):
+            pending.extend((item, depth + 1) for item in current.keys())
+            pending.extend((item, depth + 1) for item in current.values())
+        elif isinstance(current, list):
+            pending.extend((item, depth + 1) for item in current)
+
+
+def parse_lock_bytes(raw: bytes, where: str = "source lock") -> tuple[dict[str, Any], str]:
+    """Parse and validate one already-bounded source-lock byte sequence."""
+    if len(raw) > MAX_JSON_BYTES:
+        raise LockError(f"{where} exceeds {MAX_JSON_BYTES} bytes")
     try:
-        raw = path.read_bytes()
-    except OSError as exc:
-        raise LockError(f"cannot read {path}: {exc}") from exc
-    try:
-        data = json.loads(raw)
-    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-        raise LockError(f"invalid JSON in {path}: {exc}") from exc
+        text = raw.decode("utf-8")
+        data = json.loads(
+            text,
+            object_pairs_hook=_duplicate_guard,
+            parse_constant=_reject_constant,
+        )
+    except (UnicodeDecodeError, json.JSONDecodeError, RecursionError) as exc:
+        raise LockError(f"invalid JSON in {where}: {exc}") from exc
+    _validate_json_shape(data)
     if not isinstance(data, dict):
         raise LockError("lock root must be a JSON object")
     validate_lock(data)
     return data, hashlib.sha256(raw).hexdigest()
+
+
+def read_lock(path: Path) -> tuple[dict[str, Any], str]:
+    try:
+        with path.open("rb") as handle:
+            raw = handle.read(MAX_JSON_BYTES + 1)
+    except OSError as exc:
+        raise LockError(f"cannot read {path}: {exc}") from exc
+    return parse_lock_bytes(raw, str(path))
 
 
 def exact_keys(value: dict[str, Any], expected: set[str], where: str) -> None:
@@ -92,6 +145,8 @@ def object_value(value: Any, where: str) -> dict[str, Any]:
 def string_value(value: Any, where: str) -> str:
     if not isinstance(value, str) or not value:
         raise LockError(f"{where} must be a non-empty string")
+    if len(value) > MAX_STRING_LENGTH:
+        raise LockError(f"{where} exceeds {MAX_STRING_LENGTH} characters")
     return value
 
 
@@ -253,7 +308,7 @@ def locked_path(root: Path, relative: str) -> Path:
 
 def git(path: Path, *arguments: str, check: bool = True) -> subprocess.CompletedProcess[str]:
     result = subprocess.run(
-        ["git", "-C", str(path), *arguments],
+        ["git", "--no-replace-objects", "-C", str(path), *arguments],
         check=False,
         capture_output=True,
         text=True,
@@ -266,6 +321,26 @@ def git(path: Path, *arguments: str, check: bool = True) -> subprocess.Completed
 
 def git_output(path: Path, *arguments: str) -> str:
     return git(path, *arguments).stdout.strip()
+
+
+def origin_url(path: Path) -> str | None:
+    """Return exactly one raw local origin URL without includes or rewrites."""
+    result = git(
+        path,
+        "config",
+        "--local",
+        "--no-includes",
+        "--null",
+        "--get-all",
+        "remote.origin.url",
+        check=False,
+    )
+    if result.returncode or not result.stdout.endswith("\0"):
+        return None
+    values = result.stdout.split("\0")
+    if len(values) != 2 or values[1] != "":
+        return None
+    return values[0]
 
 
 def inspect_source(root: Path, source: dict[str, Any]) -> dict[str, Any]:
@@ -291,9 +366,7 @@ def inspect_source(root: Path, source: dict[str, Any]) -> dict[str, Any]:
         return result
 
     result["state"] = "drifted"
-    origin = git(path, "remote", "get-url", "origin", check=False)
-    if origin.returncode == 0:
-        result["origin"] = origin.stdout.strip()
+    result["origin"] = origin_url(path)
     if result["origin"] != source["url"]:
         errors.append(f"origin must be {source['url']}")
 
@@ -333,7 +406,7 @@ def preflight_existing(root: Path, source: dict[str, Any]) -> tuple[Path, bool]:
         return path, False
     if not path.is_dir() or git(path, "rev-parse", "--is-inside-work-tree", check=False).returncode:
         raise LockError(f"{source['id']}: existing path is not a Git worktree")
-    if git_output(path, "remote", "get-url", "origin") != source["url"]:
+    if origin_url(path) != source["url"]:
         raise LockError(f"{source['id']}: refusing checkout with a different origin")
     if git_output(path, "rev-parse", "--show-object-format") != source["object_format"]:
         raise LockError(f"{source['id']}: refusing checkout with a different object format")

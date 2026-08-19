@@ -32,9 +32,17 @@ REQUIRED_FILES = (
     "docs/versioning.md",
     "docs/guest-interface.md",
     "docs/runtime-testing.md",
+    "docs/diagnostics.md",
     "config/sources.lock.json",
+    "config/diagnostics-schema-validator.lock.json",
     "config/labs/index.json",
     "scripts/lab_config.py",
+    "scripts/diagnostics.py",
+    "scripts/diagnostics_git.py",
+    "scripts/diagnostics_inputs.py",
+    "scripts/verify_diagnostics_schema_lock.py",
+    "qemu-edu-lab",
+    "schemas/qemu-edu-diagnostics-v1.schema.json",
     "schemas/qemu-edu-runtime-evidence-v1.schema.json",
     "schemas/qemu-edu-platform-runtime-evidence-v1.schema.json",
     ".github/workflows/fast-checks.yml",
@@ -47,6 +55,7 @@ REQUIRED_VALIDATION_COMMANDS = (
     "python3 scripts/validate_workflow.py",
     "python3 scripts/validate_ci.py",
     "python3 scripts/verify_qemu_security.py static",
+    "python3 scripts/verify_diagnostics_schema_lock.py",
     "python3 -m unittest discover -s tests -p test_*.py",
     "python3 scripts/update_checksums.py --check",
     "git diff --check",
@@ -58,11 +67,199 @@ REQUIRED_PATH_LISTS = {
         "schemas/qemu-edu-runtime-evidence-v2.schema.json",
     ),
 }
+MAX_TOML_BYTES = 256 * 1024
+MAX_LEDGER_BYTES = 256 * 1024
+MAX_TASK_ID_LENGTH = 64
+TASK_ID = re.compile(r"A[0-9]{3,}\Z")
+EXPECTED_STATUSES = ["Proposed", "Ready", "In Progress", "Blocked", "Done"]
+WORKFLOW_KEYS = {
+    "statuses",
+    "max_in_progress",
+    "ready_requires_user_approval",
+    "done_requires_validation_evidence",
+    "done_requires_review_evidence",
+    "one_pull_request_per_milestone",
+    "public_actions_require_explicit_scope",
+}
+REQUIRED_TRUE_POLICIES = (
+    "ready_requires_user_approval",
+    "done_requires_validation_evidence",
+    "done_requires_review_evidence",
+    "one_pull_request_per_milestone",
+    "public_actions_require_explicit_scope",
+)
 
 
 def load_toml(path: Path) -> dict[str, Any]:
     with path.open("rb") as handle:
         return tomllib.load(handle)
+
+
+def parse_toml_bytes(raw: bytes, label: str) -> dict[str, Any]:
+    if len(raw) > MAX_TOML_BYTES:
+        raise ValueError(f"{label} exceeds {MAX_TOML_BYTES} bytes")
+    try:
+        value = tomllib.loads(raw.decode("utf-8"))
+    except (UnicodeDecodeError, tomllib.TOMLDecodeError) as exc:
+        raise ValueError(f"invalid {label}: {exc}") from exc
+    if not isinstance(value, dict):
+        raise ValueError(f"{label} must contain a TOML table")
+    return value
+
+
+def read_bounded(path: Path, maximum: int) -> bytes:
+    with path.open("rb") as handle:
+        raw = handle.read(maximum + 1)
+    if len(raw) > maximum:
+        raise ValueError(f"{path.name} exceeds {maximum} bytes")
+    return raw
+
+
+def validate_models(
+    config: dict[str, Any],
+    task_state: dict[str, Any],
+    ledger: str | None,
+) -> tuple[list[str], dict[str, str] | None]:
+    errors: list[str] = []
+    workflow_value = config.get("workflow", {})
+    if not isinstance(workflow_value, dict):
+        errors.append("workflow must be a TOML table")
+        workflow: dict[str, Any] = {}
+    else:
+        workflow = workflow_value
+    if set(workflow) != WORKFLOW_KEYS:
+        errors.append("workflow fields differ from the closed policy contract")
+    if workflow.get("statuses") != EXPECTED_STATUSES:
+        errors.append("workflow.statuses differs from the closed status contract")
+    statuses = EXPECTED_STATUSES
+    if type(workflow.get("max_in_progress")) is not int or workflow.get(
+        "max_in_progress"
+    ) != 1:
+        errors.append("workflow.max_in_progress must be exactly 1")
+    for policy in REQUIRED_TRUE_POLICIES:
+        if workflow.get(policy) is not True:
+            errors.append(f"workflow.{policy} must be true")
+
+    validation_commands = config.get("validation_commands", [])
+    if not isinstance(validation_commands, list) or not all(
+        isinstance(command, str) and command for command in validation_commands
+    ):
+        errors.append("validation_commands must be an array of non-empty strings")
+        validation_commands = []
+    if len(validation_commands) != len(set(validation_commands)):
+        errors.append("validation_commands contains duplicates")
+    for command in REQUIRED_VALIDATION_COMMANDS:
+        if command not in validation_commands:
+            errors.append(f"validation_commands is missing: {command}")
+
+    prefix = config.get("task_id_prefix")
+    if prefix != "A":
+        errors.append("task_id_prefix must be exactly A")
+    if task_state.get("task_id_prefix") != "A":
+        errors.append("tasks.toml task_id_prefix must be exactly A")
+
+    tasks = task_state.get("tasks", [])
+    if not isinstance(tasks, list):
+        errors.append("tasks must be an array of tables")
+        return errors, None
+
+    ids: set[str] = set()
+    active_tasks: list[dict[str, str]] = []
+    task_by_id: dict[str, dict[str, Any]] = {}
+    dependencies_by_id: dict[str, list[str]] = {}
+    for task in tasks:
+        if not isinstance(task, dict):
+            errors.append("each task must be a TOML table")
+            continue
+        task_id_value = task.get("id", "")
+        status_value = task.get("status", "")
+        task_id = task_id_value if isinstance(task_id_value, str) else ""
+        status = status_value if isinstance(status_value, str) else ""
+        task_by_id[task_id] = task
+        if len(task_id) > MAX_TASK_ID_LENGTH or not TASK_ID.fullmatch(task_id):
+            errors.append(f"invalid task id: {task_id or '<empty>'}")
+        if task_id in ids:
+            errors.append(f"duplicate task id: {task_id}")
+        ids.add(task_id)
+        if status not in statuses:
+            errors.append(f"{task_id} has invalid status: {status}")
+        if status == "In Progress":
+            active_tasks.append({"id": task_id, "status": status})
+        approval = task.get("approval", "")
+        if status in {"Ready", "In Progress", "Done"} and (
+            not isinstance(approval, str) or not approval.strip()
+        ):
+            errors.append(f"{task_id} is executable without approval evidence")
+        for field in ("milestone", "title", "outcome", "scope", "acceptance_criteria", "validation"):
+            value = task.get(field)
+            if value in (None, "", []):
+                errors.append(f"{task_id} has no {field}")
+        if status == "Done":
+            result = task.get("result", "")
+            if not isinstance(result, str) or not result.strip():
+                errors.append(f"{task_id} is Done without a result")
+            if not task.get("validation_evidence"):
+                errors.append(f"{task_id} is Done without validation evidence")
+            if not task.get("review_evidence"):
+                errors.append(f"{task_id} is Done without review evidence")
+            required_value = task.get("reviews_required", [])
+            completed_value = task.get("reviews_completed", [])
+            if not isinstance(required_value, list) or not all(
+                isinstance(item, str) and item for item in required_value
+            ):
+                errors.append(f"{task_id} reviews_required must be a string array")
+                required_value = []
+            if not isinstance(completed_value, list) or not all(
+                isinstance(item, str) and item for item in completed_value
+            ):
+                errors.append(f"{task_id} reviews_completed must be a string array")
+                completed_value = []
+            required_reviews = set(required_value)
+            completed_reviews = set(completed_value)
+            missing_reviews = sorted(required_reviews - completed_reviews)
+            if missing_reviews:
+                errors.append(
+                    f"{task_id} is Done without completed reviews: "
+                    + ", ".join(missing_reviews)
+                )
+        dependency_value = task.get("dependencies", [])
+        if not isinstance(dependency_value, list) or not all(
+            isinstance(item, str) and item for item in dependency_value
+        ):
+            errors.append(f"{task_id} dependencies must be a string array")
+            dependency_value = []
+        dependencies_by_id[task_id] = dependency_value
+
+    max_in_progress = 1
+    if len(active_tasks) > max_in_progress:
+        errors.append(f"{len(active_tasks)} tasks are In Progress")
+
+    for task_id, task in task_by_id.items():
+        for dependency in dependencies_by_id.get(task_id, []):
+            if dependency == task_id:
+                errors.append(f"{task_id} depends on itself")
+            elif dependency not in task_by_id:
+                errors.append(f"{task_id} has unknown dependency: {dependency}")
+        if task.get("status") in {"Ready", "In Progress", "Done"}:
+            for dependency in dependencies_by_id.get(task_id, []):
+                if dependency not in task_by_id:
+                    continue
+                if task_by_id[dependency].get("status") != "Done":
+                    errors.append(
+                        f"{task_id} is executable before dependency {dependency} is Done"
+                    )
+
+    if ledger is not None:
+        for task_id in ids:
+            task = task_by_id[task_id]
+            milestone = re.escape(str(task.get("milestone", "")))
+            status = re.escape(str(task.get("status", "")))
+            pattern = rf"(?m)^\| {re.escape(task_id)} \| {milestone} \| {status} \|"
+            if not re.search(pattern, ledger):
+                errors.append(f"ledger is missing {task_id}")
+
+    active_task = active_tasks[0] if len(active_tasks) == 1 and not errors else None
+    return errors, active_task
 
 
 def validate(root: Path) -> list[str]:
@@ -78,113 +275,21 @@ def validate(root: Path) -> list[str]:
         return errors
 
     try:
-        config = load_toml(config_path)
-        task_state = load_toml(tasks_path)
-    except (OSError, tomllib.TOMLDecodeError) as exc:
-        errors.append(f"invalid workflow TOML: {exc}")
+        config_raw = read_bounded(config_path, MAX_TOML_BYTES)
+        tasks_raw = read_bounded(tasks_path, MAX_TOML_BYTES)
+        ledger_raw = read_bounded(ledger_path, MAX_LEDGER_BYTES) if ledger_path.is_file() else None
+        config = parse_toml_bytes(config_raw, "workflow configuration")
+        task_state = parse_toml_bytes(tasks_raw, "task state")
+        if ledger_raw is not None:
+            ledger = ledger_raw.decode("utf-8")
+        else:
+            ledger = None
+    except (OSError, UnicodeDecodeError, ValueError) as exc:
+        errors.append(f"invalid workflow input: {exc}")
         return errors
 
-    workflow = config.get("workflow", {})
-    statuses = workflow.get("statuses", [])
-    if not isinstance(statuses, list) or not statuses:
-        errors.append("workflow.statuses must be a non-empty list")
-        statuses = []
-
-    validation_commands = config.get("validation_commands", [])
-    if not isinstance(validation_commands, list) or not all(
-        isinstance(command, str) and command for command in validation_commands
-    ):
-        errors.append("validation_commands must be an array of non-empty strings")
-        validation_commands = []
-    if len(validation_commands) != len(set(validation_commands)):
-        errors.append("validation_commands contains duplicates")
-    for command in REQUIRED_VALIDATION_COMMANDS:
-        if command not in validation_commands:
-            errors.append(f"validation_commands is missing: {command}")
-
-    prefix = config.get("task_id_prefix", "A")
-    if task_state.get("task_id_prefix") != prefix:
-        errors.append("task_id_prefix differs between config.toml and tasks.toml")
-
-    tasks = task_state.get("tasks", [])
-    if not isinstance(tasks, list):
-        errors.append("tasks must be an array of tables")
-        return errors
-
-    ids: set[str] = set()
-    active = 0
-    task_by_id: dict[str, dict[str, Any]] = {}
-    for task in tasks:
-        if not isinstance(task, dict):
-            errors.append("each task must be a TOML table")
-            continue
-        task_id = str(task.get("id", ""))
-        status = str(task.get("status", ""))
-        task_by_id[task_id] = task
-        if not re.fullmatch(re.escape(str(prefix)) + r"\d{3,}", task_id):
-            errors.append(f"invalid task id: {task_id or '<empty>'}")
-        if task_id in ids:
-            errors.append(f"duplicate task id: {task_id}")
-        ids.add(task_id)
-        if status not in statuses:
-            errors.append(f"{task_id} has invalid status: {status}")
-        if status == "In Progress":
-            active += 1
-        if status in {"Ready", "In Progress", "Done"} and workflow.get(
-            "ready_requires_user_approval", True
-        ) and not str(task.get("approval", "")).strip():
-            errors.append(f"{task_id} is executable without approval evidence")
-        for field in ("milestone", "title", "outcome", "scope", "acceptance_criteria", "validation"):
-            value = task.get(field)
-            if value in (None, "", []):
-                errors.append(f"{task_id} has no {field}")
-        if status == "Done":
-            if not str(task.get("result", "")).strip():
-                errors.append(f"{task_id} is Done without a result")
-            if workflow.get("done_requires_validation_evidence", True) and not task.get(
-                "validation_evidence"
-            ):
-                errors.append(f"{task_id} is Done without validation evidence")
-            if workflow.get("done_requires_review_evidence", True) and not task.get(
-                "review_evidence"
-            ):
-                errors.append(f"{task_id} is Done without review evidence")
-            required_reviews = set(task.get("reviews_required", []))
-            completed_reviews = set(task.get("reviews_completed", []))
-            missing_reviews = sorted(required_reviews - completed_reviews)
-            if missing_reviews:
-                errors.append(
-                    f"{task_id} is Done without completed reviews: "
-                    + ", ".join(missing_reviews)
-                )
-
-    if active > int(workflow.get("max_in_progress", 1)):
-        errors.append(f"{active} tasks are In Progress")
-
-    for task_id, task in task_by_id.items():
-        for dependency in task.get("dependencies", []):
-            if dependency == task_id:
-                errors.append(f"{task_id} depends on itself")
-            elif dependency not in task_by_id:
-                errors.append(f"{task_id} has unknown dependency: {dependency}")
-        if task.get("status") in {"Ready", "In Progress", "Done"}:
-            for dependency in task.get("dependencies", []):
-                if dependency not in task_by_id:
-                    continue
-                if task_by_id[dependency].get("status") != "Done":
-                    errors.append(
-                        f"{task_id} is executable before dependency {dependency} is Done"
-                    )
-
-    if ledger_path.is_file():
-        ledger = ledger_path.read_text(encoding="utf-8")
-        for task_id in ids:
-            task = task_by_id[task_id]
-            milestone = re.escape(str(task.get("milestone", "")))
-            status = re.escape(str(task.get("status", "")))
-            pattern = rf"(?m)^\| {re.escape(task_id)} \| {milestone} \| {status} \|"
-            if not re.search(pattern, ledger):
-                errors.append(f"ledger is missing {task_id}")
+    model_errors, _ = validate_models(config, task_state, ledger)
+    errors.extend(model_errors)
 
     for key in (
         "design_path",
@@ -201,6 +306,9 @@ def validate(root: Path) -> list[str]:
         "runtime_testing_path",
         "runtime_evidence_schema_path",
         "platform_runtime_evidence_schema_path",
+        "diagnostics_schema_path",
+        "diagnostics_schema_validator_lock_path",
+        "diagnostics_documentation_path",
     ):
         relative = config.get(key)
         if not relative or not (root / str(relative)).is_file():

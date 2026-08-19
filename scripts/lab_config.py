@@ -27,6 +27,9 @@ MANIFEST_SCHEMA_VERSION = 1
 DEFAULT_INDEX = "config/labs/index.json"
 DEFAULT_SOURCE_LOCK = "config/sources.lock.json"
 MAX_JSON_BYTES = 64 * 1024
+MAX_STRING_LENGTH = 4096
+MAX_JSON_DEPTH = 64
+MAX_JSON_ITEMS = 100_000
 INDEX_KEYS = {"schema_version", "default_lab", "labs"}
 INDEX_ENTRY_KEYS = {"id", "manifest", "sha256"}
 MANIFEST_KEYS = {
@@ -140,20 +143,58 @@ def duplicate_guard(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     return result
 
 
-def read_json(path: Path, where: str) -> tuple[dict[str, Any], str]:
-    try:
-        raw = path.read_bytes()
-    except OSError as exc:
-        raise LabError(f"cannot read {where}: {exc}") from exc
+def reject_constant(value: str) -> Any:
+    raise LabError(f"unsupported JSON constant: {value}")
+
+
+def validate_json_shape(value: Any) -> None:
+    pending = [(value, 1)]
+    items = 0
+    while pending:
+        current, depth = pending.pop()
+        items += 1
+        if items > MAX_JSON_ITEMS:
+            raise LabError(f"JSON input exceeds {MAX_JSON_ITEMS} values")
+        if depth > MAX_JSON_DEPTH:
+            raise LabError(f"JSON input exceeds depth {MAX_JSON_DEPTH}")
+        if isinstance(current, str):
+            if len(current) > MAX_STRING_LENGTH:
+                raise LabError(f"JSON string exceeds {MAX_STRING_LENGTH} characters")
+            if any(0xD800 <= ord(character) <= 0xDFFF for character in current):
+                raise LabError("JSON contains an invalid Unicode surrogate")
+        elif isinstance(current, dict):
+            pending.extend((item, depth + 1) for item in current.keys())
+            pending.extend((item, depth + 1) for item in current.values())
+        elif isinstance(current, list):
+            pending.extend((item, depth + 1) for item in current)
+
+
+def parse_json_bytes(raw: bytes, where: str) -> tuple[dict[str, Any], str]:
+    """Parse one already-bounded JSON input without reopening its path."""
     if len(raw) > MAX_JSON_BYTES:
         raise LabError(f"{where} exceeds {MAX_JSON_BYTES} bytes")
     try:
-        data = json.loads(raw, object_pairs_hook=duplicate_guard)
-    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        text = raw.decode("utf-8")
+        data = json.loads(
+            text,
+            object_pairs_hook=duplicate_guard,
+            parse_constant=reject_constant,
+        )
+    except (UnicodeDecodeError, json.JSONDecodeError, RecursionError) as exc:
         raise LabError(f"invalid JSON in {where}: {exc}") from exc
+    validate_json_shape(data)
     if not isinstance(data, dict):
         raise LabError(f"{where} root must be an object")
     return data, hashlib.sha256(raw).hexdigest()
+
+
+def read_json(path: Path, where: str) -> tuple[dict[str, Any], str]:
+    try:
+        with path.open("rb") as handle:
+            raw = handle.read(MAX_JSON_BYTES + 1)
+    except OSError as exc:
+        raise LabError(f"cannot read {where}: {exc}") from exc
+    return parse_json_bytes(raw, where)
 
 
 def validate_manifest(data: dict[str, Any], expected_id: str) -> None:
@@ -241,11 +282,9 @@ def validate_manifest(data: dict[str, Any], expected_id: str) -> None:
             )
 
 
-def default_build_parity(root: Path, default_manifest: dict[str, Any]) -> None:
-    try:
-        source_data, _ = read_lock(locked_path(root, DEFAULT_SOURCE_LOCK))
-    except LockError as exc:
-        raise LabError(f"source lock is invalid: {exc}") from exc
+def default_build_parity_data(
+    source_data: dict[str, Any], default_manifest: dict[str, Any]
+) -> None:
     legacy = source_data["build"]
     selected = default_manifest["build"]
     for field in ("build_dir", "distro", "machine", "targets", "layers"):
@@ -255,12 +294,7 @@ def default_build_parity(root: Path, default_manifest: dict[str, Any]) -> None:
             )
 
 
-def read_catalog(
-    root: Path, index_relative: str = DEFAULT_INDEX
-) -> tuple[dict[str, Any], str, dict[str, dict[str, Any]], dict[str, str]]:
-    root = root.resolve()
-    index_path = locked_path(root, relative_path(index_relative, "index path", under="config"))
-    index, index_digest = read_json(index_path, index_relative)
+def validate_index(index: dict[str, Any]) -> None:
     exact_keys(index, INDEX_KEYS, "lab index")
     if type(index["schema_version"]) is not int or index["schema_version"] != INDEX_SCHEMA_VERSION:
         raise LabError(f"unsupported lab-index schema_version {index['schema_version']!r}")
@@ -271,11 +305,8 @@ def read_catalog(
     if not isinstance(entries, list) or not entries:
         raise LabError("lab index.labs must be a non-empty array")
 
-    manifests: dict[str, dict[str, Any]] = {}
-    digests: dict[str, str] = {}
+    ids: set[str] = set()
     paths: set[str] = set()
-    build_dirs: set[str] = set()
-    machines: set[str] = set()
     for entry_index, raw_entry in enumerate(entries):
         where = f"lab index.labs[{entry_index}]"
         entry = object_value(raw_entry, where)
@@ -283,8 +314,9 @@ def read_catalog(
         lab_id = string_value(entry["id"], f"{where}.id")
         if not LAB_ID.fullmatch(lab_id):
             raise LabError(f"{where}.id contains unsupported characters")
-        if lab_id in manifests:
+        if lab_id in ids:
             raise LabError(f"duplicate lab id: {lab_id}")
+        ids.add(lab_id)
         manifest_relative = relative_path(
             entry["manifest"], f"{where}.manifest", under="config"
         )
@@ -296,9 +328,34 @@ def read_catalog(
         expected_digest = string_value(entry["sha256"], f"{where}.sha256")
         if not SHA256.fullmatch(expected_digest):
             raise LabError(f"{where}.sha256 must be a lowercase SHA-256")
-        manifest, actual_digest = read_json(
-            locked_path(root, manifest_relative), manifest_relative
-        )
+    if default_lab not in ids:
+        raise LabError(f"default lab {default_lab!r} is not declared")
+
+
+def parse_index_bytes(raw: bytes, where: str = DEFAULT_INDEX) -> tuple[dict[str, Any], str]:
+    index, digest = parse_json_bytes(raw, where)
+    validate_index(index)
+    return index, digest
+
+
+def _catalog_from_index(
+    index: dict[str, Any],
+    index_digest: str,
+    manifest_reader: Any,
+    source_data: dict[str, Any],
+) -> tuple[dict[str, Any], str, dict[str, dict[str, Any]], dict[str, str]]:
+    entries = index["labs"]
+    default_lab = index["default_lab"]
+    manifests: dict[str, dict[str, Any]] = {}
+    digests: dict[str, str] = {}
+    build_dirs: set[str] = set()
+    machines: set[str] = set()
+    for raw_entry in entries:
+        entry = raw_entry
+        lab_id = entry["id"]
+        manifest_relative = entry["manifest"]
+        expected_digest = entry["sha256"]
+        manifest, actual_digest = manifest_reader(manifest_relative)
         if actual_digest != expected_digest:
             raise LabError(
                 f"{manifest_relative} SHA-256 is {actual_digest}, expected {expected_digest}"
@@ -315,10 +372,48 @@ def read_catalog(
         manifests[lab_id] = manifest
         digests[lab_id] = actual_digest
 
-    if default_lab not in manifests:
-        raise LabError(f"default lab {default_lab!r} is not declared")
-    default_build_parity(root, manifests[default_lab])
+    default_build_parity_data(source_data, manifests[default_lab])
     return index, index_digest, manifests, digests
+
+
+def read_catalog_bytes(
+    index_raw: bytes,
+    manifest_bytes: dict[str, bytes],
+    source_data: dict[str, Any],
+    index_relative: str = DEFAULT_INDEX,
+) -> tuple[dict[str, Any], str, dict[str, dict[str, Any]], dict[str, str]]:
+    """Validate an index and manifests from bytes read exactly once by a caller."""
+    index, index_digest = parse_index_bytes(index_raw, index_relative)
+
+    def read_manifest(relative: str) -> tuple[dict[str, Any], str]:
+        raw = manifest_bytes.get(relative)
+        if raw is None:
+            raise LabError(f"cannot read {relative}")
+        return parse_json_bytes(raw, relative)
+
+    return _catalog_from_index(index, index_digest, read_manifest, source_data)
+
+
+def read_catalog(
+    root: Path, index_relative: str = DEFAULT_INDEX
+) -> tuple[dict[str, Any], str, dict[str, dict[str, Any]], dict[str, str]]:
+    root = root.resolve()
+    index_path = locked_path(root, relative_path(index_relative, "index path", under="config"))
+    try:
+        with index_path.open("rb") as handle:
+            index_raw = handle.read(MAX_JSON_BYTES + 1)
+    except OSError as exc:
+        raise LabError(f"cannot read {index_relative}: {exc}") from exc
+    index, index_digest = parse_index_bytes(index_raw, index_relative)
+    try:
+        source_data, _ = read_lock(locked_path(root, DEFAULT_SOURCE_LOCK))
+    except LockError as exc:
+        raise LabError(f"source lock is invalid: {exc}") from exc
+
+    def read_manifest(relative: str) -> tuple[dict[str, Any], str]:
+        return read_json(locked_path(root, relative), relative)
+
+    return _catalog_from_index(index, index_digest, read_manifest, source_data)
 
 
 def select_lab(

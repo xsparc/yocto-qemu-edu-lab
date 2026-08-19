@@ -10,11 +10,12 @@ resource-constrained, or metadata-only checks into build or runtime claims.
 
 | Tier | Trigger and environment | Evidence | Not proved |
 |---|---|---|---|
-| Fast checks | Every PR, main push, or manual run on `ubuntu-24.04` | Source-lock and lab-manifest schemas, workflow/CI policy, unit tests, both QEMU patch identities, checksums, changed-line whitespace, ShellCheck, actionlint, REUSE | Upstream availability, BitBake parse, image build, guest runtime |
+| Fast checks | Every PR, main push, or manual run on `ubuntu-24.04` | Source-lock, lab-manifest, workflow, CI, diagnostics, and QEMU security contracts; unit tests; independent diagnostics Draft 2020-12 validation; checksums; changed-line whitespace; ShellCheck; actionlint; REUSE | Upstream availability, BitBake parse, image build, guest runtime |
 | Yocto metadata | Relevant PR/main changes or manual run on `ubuntu-24.04` | Exact source resolution, cached offline recheck, both manifest compositions, `bitbake -p`, expanded image metadata, per-machine QEMU append/recipe/dependency isolation, both machine checks through `yocto-check-layer` | Patched source, compiled image or emulator, QEMU boot, guest behavior, offline recipe fetches, bit-for-bit output |
 | Full build/runtime | Local/manual on an adequately sized Linux host; no hosted runner currently configured | A completed lab-specific `runtime-test.sh` run builds, boots, executes its required OEQA cases, and emits PCI version-3 or platform version-1 evidence | Nothing until the command actually completes; one lab's result does not qualify the other and metadata CI is not runtime proof |
 
-The stable fast job IDs are `repository`, `static`, and `licensing`. The metadata
+The stable fast job IDs are `repository`, `static`, `diagnostics-schema`, and
+`licensing`. The metadata
 job is path-scoped and initially advisory; path-filtered checks should not be
 made universally required because unrelated pull requests may not create them.
 For native layer checking, CI creates a separate core-only build directory with
@@ -34,6 +35,10 @@ The metadata verifier requires both inputs exactly once for either profile.
   persist credentials and fetches history only for patch comparison.
 - Static tools are downloaded from their official HTTPS release pages and
   checked against committed SHA-256 values before execution.
+- The diagnostics schema job uses CPython 3.12 and downloads only the six exact
+  wheels in `config/diagnostics-schema-validator.lock.json`. It verifies wheel,
+  embedded-license, identity, and dependency metadata before installing with no
+  index, resolver, source distribution, cache, or artifact publication.
 - REUSE runs from a digest-pinned container with no network, no capabilities,
   a read-only filesystem, and a read-only repository mount.
 - Workflows do not use `pull_request_target`, privileged follow-up events,
@@ -62,6 +67,7 @@ python3 scripts/lab_config.py validate
 python3 scripts/validate_workflow.py
 python3 scripts/validate_ci.py
 python3 scripts/verify_qemu_security.py static
+python3 scripts/verify_diagnostics_schema_lock.py
 python3 -m unittest discover -s tests -p 'test_*.py' -v
 python3 scripts/update_checksums.py --check
 git diff --check
@@ -104,6 +110,6 @@ raw build trees, shared state, downloads, and environment dumps remain
 excluded.
 
 After the first green M1 runs, maintainers should separately consider making
-the three stable fast jobs required, enabling repository-wide action SHA
+the four stable fast jobs required, enabling repository-wide action SHA
 enforcement, restricting allowed actions, and enabling Dependabot security
 updates. These are repository-setting changes, not implied by this pull request.

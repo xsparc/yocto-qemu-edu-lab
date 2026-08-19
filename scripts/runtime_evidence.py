@@ -22,6 +22,8 @@ KIND = "qemu-edu-runtime"
 PROJECT_NAME = "yocto-qemu-edu-lab"
 MAX_JSON_BYTES = 4 * 1024 * 1024
 MAX_STRING_LENGTH = 4096
+MAX_JSON_DEPTH = 64
+MAX_JSON_ITEMS = 100_000
 GUEST_CONTRACT_NAME = "qemu-edu-sysfs"
 SUITE_NAME = "qemu-edu-baseline"
 V1_EXPECTED_TESTS = (
@@ -89,28 +91,76 @@ class EvidenceError(ValueError):
     """The input or evidence violates the closed runtime contract."""
 
 
+def _reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    value: dict[str, Any] = {}
+    for key, item in pairs:
+        if key in value:
+            raise EvidenceError(f"duplicate JSON key: {key!r}")
+        value[key] = item
+    return value
+
+
+def _reject_constant(value: str) -> Any:
+    raise EvidenceError(f"unsupported JSON constant: {value}")
+
+
+def _validate_json_shape(value: Any) -> None:
+    pending: list[tuple[Any, int]] = [(value, 1)]
+    items = 0
+    while pending:
+        current, depth = pending.pop()
+        items += 1
+        if items > MAX_JSON_ITEMS:
+            raise EvidenceError(f"JSON input exceeds {MAX_JSON_ITEMS} values")
+        if depth > MAX_JSON_DEPTH:
+            raise EvidenceError(f"JSON input exceeds depth {MAX_JSON_DEPTH}")
+        if isinstance(current, str):
+            if len(current) > MAX_STRING_LENGTH:
+                raise EvidenceError(
+                    f"JSON string exceeds {MAX_STRING_LENGTH} characters"
+                )
+            if any(0xD800 <= ord(character) <= 0xDFFF for character in current):
+                raise EvidenceError("JSON contains an invalid Unicode surrogate")
+        elif isinstance(current, dict):
+            pending.extend((key, depth + 1) for key in current)
+            pending.extend((item, depth + 1) for item in current.values())
+        elif isinstance(current, list):
+            pending.extend((item, depth + 1) for item in current)
+        elif isinstance(current, float) and not math.isfinite(current):
+            raise EvidenceError("JSON contains a non-finite number")
+
+
+def parse_object_bytes(
+    raw: bytes,
+    label: str = "JSON input",
+    *,
+    max_bytes: int = MAX_JSON_BYTES,
+) -> dict[str, Any]:
+    """Parse one bounded evidence object without reopening its source path."""
+    if len(raw) > max_bytes:
+        raise EvidenceError(f"{label} exceeds the {max_bytes}-byte safety limit")
+    try:
+        text = raw.decode("utf-8")
+        value = json.loads(
+            text,
+            object_pairs_hook=_reject_duplicate_keys,
+            parse_constant=_reject_constant,
+        )
+    except (UnicodeDecodeError, json.JSONDecodeError, RecursionError) as exc:
+        raise EvidenceError(f"could not parse {label}: {exc}") from exc
+    _validate_json_shape(value)
+    if not isinstance(value, dict):
+        raise EvidenceError(f"{label} must contain a JSON object")
+    return value
+
+
 def read_object(path: Path) -> dict[str, Any]:
     try:
-        if path.stat().st_size > MAX_JSON_BYTES:
-            raise EvidenceError(
-                f"JSON input exceeds the {MAX_JSON_BYTES}-byte safety limit: {path}"
-            )
-        text = path.read_text(encoding="utf-8")
-
-        def reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
-            value: dict[str, Any] = {}
-            for key, item in pairs:
-                if key in value:
-                    raise EvidenceError(f"duplicate JSON key: {key!r}")
-                value[key] = item
-            return value
-
-        value = json.loads(text, object_pairs_hook=reject_duplicate_keys)
-    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        with path.open("rb") as handle:
+            raw = handle.read(MAX_JSON_BYTES + 1)
+    except OSError as exc:
         raise EvidenceError(f"could not read JSON object {path}: {exc}") from exc
-    if not isinstance(value, dict):
-        raise EvidenceError(f"{path} must contain a JSON object")
-    return value
+    return parse_object_bytes(raw, str(path))
 
 
 def require_exact_keys(value: dict[str, Any], expected: set[str], label: str) -> None:

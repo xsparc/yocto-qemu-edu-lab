@@ -240,23 +240,52 @@ known-good path. No source-version rollback or evidence translation is needed.
 
 ## M6 — Provider-neutral diagnostics and optional tool access
 
-Outcome: `doctor`, `inspect`, and test evidence are safe and structured enough
+Outcome: `status`, `doctor`, `inspect`, and test evidence are safe and structured enough
 for people, CI, and optional assistants.
 
-Candidate scope:
+Approved on 2026-08-14: implement a standard-library-only, read-only
+`0.6.0-dev` diagnostics core. Its version-1 schema has exact check order,
+deterministic bytes, bounded single-read inputs, fixed Git queries, and honest
+current-versus-historical evidence binding.
 
-- add a dependency-light local CLI with versioned JSON schemas;
-- expose read-only project state and evidence through an adapter only after the
-  CLI contract is stable;
-- evaluate MCP against the current specification without coupling the lab to a
-  particular SDK or model;
-- threat-model paths, subprocess arguments, secrets, untrusted logs, and tool
-  approval boundaries.
+Scope:
+
+- add the four local commands with deterministic text and closed JSON schema 1;
+- preserve pass, warning, fail, and unavailable states with exact exit
+  precedence;
+- bind evidence only from the selected manifest path and reuse the existing
+  source, catalog, workflow, and evidence semantic validators;
+- run independent schema conformance through six exact hash-locked test-only
+  wheels on Linux CPython 3.12;
+- document paths, subprocesses, secrets, untrusted inputs, licensing, rollback,
+  and future-adapter approval boundaries.
+
+Non-scope: MCP, A2A, model or provider SDKs, diagnostic networking, mutation,
+repair, setup, build, boot, test execution, alternate evidence paths, and input
+version updates.
+
+The dated primary-source rationale is recorded in
+[`research/2026-08-14-m6-diagnostics.md`](research/2026-08-14-m6-diagnostics.md).
 
 Acceptance gate: the complete lab remains usable without AI; schema and security
 tests pass; state-changing tools are absent or separately approved.
 
-Rollback: remove the adapter while preserving the CLI and evidence format.
+Clean implementation revision `25109d4f471492c0f2e101deca4f0a86c61c49a0`
+passes 203 Windows tests with 16 expected native-Linux skips and all 203 tests in
+a network-disabled, capability-free Linux CPython 3.12 environment with a
+read-only repository. The exact six-wheel Draft 2020-12 oracle and pinned REUSE
+108/108 gate pass. All seven required reviews approved with no remaining P0-P2
+finding. Draft pull request #11 published focused workflow-correction head
+`b68033923d6bc42eca06e1538aef0d745c1acd25`, which passed Fast checks run
+`32210876009` and Yocto metadata run `32210876013`. Public review and merge
+remain open.
+
+Rollback: revert the complete focused A006 milestone change. A partial
+retirement must also revert the project version decision, maintainer
+configuration, workflow validator requirements, Makefile targets, CI job,
+checksums, tests, and documentation rather than deleting only the CLI and
+schema. Existing build wrappers, lab manifests, guest interfaces, and
+PCI/platform runtime-evidence formats remain unchanged.
 
 ## Horizon — Physical target bridge and course ecosystem
 

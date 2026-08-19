@@ -11,7 +11,7 @@ Device-Tree/platform-driver lab, and optional provider-neutral diagnostics. The
 core build and learning path will remain usable without an AI service. See
 [`docs/vision.md`](docs/vision.md) and [`docs/roadmap.md`](docs/roadmap.md).
 
-The current development identity is `0.5.0-dev`; no release is implied. Yocto
+The current development identity is `0.6.0-dev`; no release is implied. Yocto
 metadata inputs are locked to the 6.0.2 Wrynose point release.
 
 Two closed lab manifests share the same locked sources and image target while
@@ -118,6 +118,21 @@ Inspect the metadata before compiling:
 ./inspect.sh
 ./inspect.sh --lab platform-arm64
 ```
+
+Inspect declared project state without configuring or building anything:
+
+```bash
+./qemu-edu-lab status
+./qemu-edu-lab doctor
+./qemu-edu-lab --format json inspect
+./qemu-edu-lab --lab platform-arm64 --format json evidence
+```
+
+These commands are offline, read-only, and standard-library-only at runtime.
+They use closed check order, deterministic JSON, and distinct pass, warning,
+fail, and unavailable results. A warning exits 0, so strict CI consumers must
+parse the JSON result, current worktree cleanliness, and current-subject fact. See
+[`docs/diagnostics.md`](docs/diagnostics.md).
 
 Look especially for:
 

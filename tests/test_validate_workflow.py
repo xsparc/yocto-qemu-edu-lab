@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import copy
 import importlib.util
 import json
 import shutil
@@ -97,6 +98,27 @@ class WorkflowValidationTests(unittest.TestCase):
             errors,
         )
 
+    def test_diagnostics_contract_files_and_lock_command_are_required(self) -> None:
+        root = self.copy_repository()
+        (root / "schemas/qemu-edu-diagnostics-v1.schema.json").unlink()
+        errors = MODULE.validate(root)
+        self.assertIn(
+            "missing required file: schemas/qemu-edu-diagnostics-v1.schema.json",
+            errors,
+        )
+
+        root = self.copy_repository()
+        config_path = root / "docs/maintainers/config.toml"
+        config_path.write_text(
+            config_path.read_text(encoding="utf-8").replace(
+                '  "python3 scripts/verify_diagnostics_schema_lock.py",\n', "", 1
+            ),
+            encoding="utf-8",
+        )
+        self.assertIn(
+            "validation_commands is missing: python3 scripts/verify_diagnostics_schema_lock.py",
+            MODULE.validate(root),
+        )
     def test_historical_evidence_schema_list_is_closed(self) -> None:
         root = self.copy_repository()
         path = root / "docs/maintainers/config.toml"
@@ -133,6 +155,51 @@ class WorkflowValidationTests(unittest.TestCase):
         ids = [task["id"] for task in state["tasks"]]
         self.assertEqual(len(ids), len(set(ids)))
 
+    def test_task_prefix_and_ids_are_closed_ascii_project_identifiers(self) -> None:
+        config = MODULE.load_toml(ROOT / "docs/maintainers/config.toml")
+        state = MODULE.load_toml(ROOT / "docs/maintainers/tasks.toml")
+        for prefix in (
+            "/home/alice/token=supersecret-",
+            "A\nprivate",
+            "B",
+            "",
+        ):
+            with self.subTest(prefix=prefix):
+                changed_config = copy.deepcopy(config)
+                changed_state = copy.deepcopy(state)
+                changed_config["task_id_prefix"] = prefix
+                changed_state["task_id_prefix"] = prefix
+                errors, active = MODULE.validate_models(
+                    changed_config, changed_state, None
+                )
+                self.assertIn("task_id_prefix must be exactly A", errors)
+                self.assertIn(
+                    "tasks.toml task_id_prefix must be exactly A", errors
+                )
+                self.assertIsNone(active)
+
+        for task_id in (
+            "A\u0660\u0660\u0666",
+            "A006\nprivate",
+            "/home/alice/token=supersecret-006",
+            "A" + "0" * MODULE.MAX_TASK_ID_LENGTH,
+        ):
+            with self.subTest(task_id=task_id):
+                changed_state = copy.deepcopy(state)
+                active_task = next(
+                    task
+                    for task in changed_state["tasks"]
+                    if task["status"] == "In Progress"
+                )
+                active_task["id"] = task_id
+                errors, active = MODULE.validate_models(
+                    config, changed_state, None
+                )
+                self.assertTrue(
+                    any(error.startswith("invalid task id:") for error in errors)
+                )
+                self.assertIsNone(active)
+
     def test_only_one_task_is_in_progress(self) -> None:
         state = MODULE.load_toml(ROOT / "docs/maintainers/tasks.toml")
         active = [task["id"] for task in state["tasks"] if task["status"] == "In Progress"]
@@ -149,6 +216,46 @@ class WorkflowValidationTests(unittest.TestCase):
         )
         path.write_text(text, encoding="utf-8")
         self.assertIn("A000 is executable without approval evidence", MODULE.validate(root))
+
+    def test_policy_flags_cannot_disable_approval_or_closeout_gates(self) -> None:
+        root = self.copy_repository()
+        config_path = root / "docs/maintainers/config.toml"
+        text = config_path.read_text(encoding="utf-8")
+        for policy in (
+            "ready_requires_user_approval",
+            "done_requires_validation_evidence",
+            "done_requires_review_evidence",
+        ):
+            text = text.replace(f"{policy} = true", f"{policy} = false", 1)
+        config_path.write_text(text, encoding="utf-8")
+
+        tasks_path = root / "docs/maintainers/tasks.toml"
+        tasks = tasks_path.read_text(encoding="utf-8")
+        tasks = self.replace_in_task(
+            tasks,
+            "A006",
+            next(
+                line
+                for line in tasks.splitlines()
+                if line.startswith(
+                    'approval = "Repository owner explicitly approved A006'
+                )
+            ),
+            'approval = ""',
+        )
+        tasks_path.write_text(tasks, encoding="utf-8")
+
+        errors = MODULE.validate(root)
+        self.assertIn(
+            "workflow.ready_requires_user_approval must be true", errors
+        )
+        self.assertIn(
+            "workflow.done_requires_validation_evidence must be true", errors
+        )
+        self.assertIn(
+            "workflow.done_requires_review_evidence must be true", errors
+        )
+        self.assertIn("A006 is executable without approval evidence", errors)
 
     def test_unknown_dependency_is_reported_without_crashing(self) -> None:
         root = self.copy_repository()
@@ -179,41 +286,45 @@ class WorkflowValidationTests(unittest.TestCase):
         root = self.copy_repository()
         tasks_path = root / "docs/maintainers/tasks.toml"
         state = MODULE.load_toml(tasks_path)
-        task = next(task for task in state["tasks"] if task["status"] == "Proposed")
+        task = next(task for task in state["tasks"] if task["status"] != "Done")
         task_id = task["id"]
+        original_status = task["status"]
         text = tasks_path.read_text(encoding="utf-8")
         text = self.replace_in_task(
-            text, task_id, 'status = "Proposed"', 'status = "Done"'
+            text, task_id, f'status = "{original_status}"', 'status = "Done"'
         )
-        text = self.replace_in_task(
-            text, task_id, 'approval = ""', 'approval = "Test approval"'
+        completed = ", ".join(
+            f'"{review}"' for review in task["reviews_completed"]
         )
         text = self.replace_in_task(
             text,
             task_id,
-            "reviews_completed = []",
+            f"reviews_completed = [{completed}]",
             'reviews_completed = ["quality"]',
         )
-        text = self.replace_in_task(
-            text,
-            task_id,
-            "validation_evidence = []",
-            'validation_evidence = ["tests passed"]',
-        )
-        text = self.replace_in_task(
-            text,
-            task_id,
-            "review_evidence = []",
-            'review_evidence = ["quality reviewed"]',
-        )
-        text = self.replace_in_task(
-            text, task_id, 'result = ""', 'result = "complete"'
-        )
+        if not task["validation_evidence"]:
+            text = self.replace_in_task(
+                text,
+                task_id,
+                "validation_evidence = []",
+                'validation_evidence = ["tests passed"]',
+            )
+        if not task["review_evidence"]:
+            text = self.replace_in_task(
+                text,
+                task_id,
+                "review_evidence = []",
+                'review_evidence = ["quality reviewed"]',
+            )
+        if not task["result"]:
+            text = self.replace_in_task(
+                text, task_id, 'result = ""', 'result = "complete"'
+            )
         tasks_path.write_text(text, encoding="utf-8")
         ledger_path = root / "docs/maintainers/ledger.md"
         ledger_path.write_text(
             ledger_path.read_text(encoding="utf-8").replace(
-                f'| {task_id} | {task["milestone"]} | Proposed |',
+                f'| {task_id} | {task["milestone"]} | {original_status} |',
                 f'| {task_id} | {task["milestone"]} | Done |',
                 1,
             ),
@@ -225,6 +336,30 @@ class WorkflowValidationTests(unittest.TestCase):
             f"{task_id} is Done without completed reviews: " + ", ".join(missing),
             errors,
         )
+
+    def test_malformed_limits_and_dependency_types_fail_without_crashing(self) -> None:
+        root = self.copy_repository()
+        config_path = root / "docs/maintainers/config.toml"
+        config_path.write_text(
+            config_path.read_text(encoding="utf-8").replace(
+                "max_in_progress = 1", "max_in_progress = true", 1
+            ),
+            encoding="utf-8",
+        )
+        self.assertIn(
+            "workflow.max_in_progress must be exactly 1",
+            MODULE.validate(root),
+        )
+
+        root = self.copy_repository()
+        tasks_path = root / "docs/maintainers/tasks.toml"
+        tasks_path.write_text(
+            tasks_path.read_text(encoding="utf-8").replace(
+                'dependencies = ["A005"]', 'dependencies = "A005"', 1
+            ),
+            encoding="utf-8",
+        )
+        self.assertIn("A006 dependencies must be a string array", MODULE.validate(root))
 
 
 if __name__ == "__main__":
