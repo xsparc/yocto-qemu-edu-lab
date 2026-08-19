@@ -275,7 +275,10 @@ passes 203 Windows tests with 16 expected native-Linux skips and all 203 tests i
 a network-disabled, capability-free Linux CPython 3.12 environment with a
 read-only repository. The exact six-wheel Draft 2020-12 oracle and pinned REUSE
 108/108 gate pass. All seven required reviews approved with no remaining P0-P2
-finding. Hosted checks, publication, and merge remain open.
+finding. Draft pull request #11 published focused workflow-correction head
+`b68033923d6bc42eca06e1538aef0d745c1acd25`, which passed Fast checks run
+`32210876009` and Yocto metadata run `32210876013`. Public review and merge
+remain open.
 
 Rollback: revert the complete focused A006 milestone change. A partial
 retirement must also revert the project version decision, maintainer

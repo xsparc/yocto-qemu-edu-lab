@@ -149,5 +149,8 @@ SPDX-License-Identifier: MIT
   and the exact six-wheel size/digest/metadata/license verifier, ephemeral
   installed Draft 2020-12 oracle, actionlint, ShellCheck, and pinned REUSE
   108/108 gates pass. All seven required reviews approved with no remaining
-  P0-P2 finding. Hosted jobs, publication, and merge remain pending.
+  P0-P2 finding. Draft pull request #11 published the milestone; focused
+  workflow-correction head `b68033923d6bc42eca06e1538aef0d745c1acd25`
+  passed Fast checks run `32210876009` and Yocto metadata run `32210876013`.
+  Public review and merge remain pending.
 - Public workflow state uses tool-neutral maintainer paths while preserving the same task, approval, validation, review, and handoff semantics.
