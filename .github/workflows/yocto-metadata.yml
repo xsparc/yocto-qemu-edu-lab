@@ -132,7 +132,15 @@ jobs:
             SPDX_PRETTY \
             SPDX_PROFILES \
             SPDX_VERSION; do
-            value=$(bitbake-getvar --value --recipe qemu-edu-image "$name")
+            case "$name" in
+              SPDX_IMAGE_SUPPLIER_name|SPDX_PACKAGE_SUPPLIER_name)
+                value=$(bitbake-getvar --ignore-undefined --value \
+                  --recipe qemu-edu-image "$name")
+                ;;
+              *)
+                value=$(bitbake-getvar --value --recipe qemu-edu-image "$name")
+                ;;
+            esac
             SPDX_ARGS+=(--setting "$name=$value")
           done
           python3 "$GITHUB_WORKSPACE/scripts/sbom_evidence.py" \
@@ -182,7 +190,15 @@ jobs:
             SPDX_PRETTY \
             SPDX_PROFILES \
             SPDX_VERSION; do
-            value=$(bitbake-getvar --value --recipe qemu-edu-image "$name")
+            case "$name" in
+              SPDX_IMAGE_SUPPLIER_name|SPDX_PACKAGE_SUPPLIER_name)
+                value=$(bitbake-getvar --ignore-undefined --value \
+                  --recipe qemu-edu-image "$name")
+                ;;
+              *)
+                value=$(bitbake-getvar --value --recipe qemu-edu-image "$name")
+                ;;
+            esac
             SPDX_ARGS+=(--setting "$name=$value")
           done
           python3 "$GITHUB_WORKSPACE/scripts/sbom_evidence.py" \

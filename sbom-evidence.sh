@@ -67,7 +67,16 @@ SETTING_NAMES=(
 )
 SETTING_ARGS=()
 for setting_name in "${SETTING_NAMES[@]}"; do
-    setting_value=$(bitbake-getvar --value --recipe "$TARGET" "$setting_name")
+    case "$setting_name" in
+        SPDX_IMAGE_SUPPLIER_name|SPDX_PACKAGE_SUPPLIER_name)
+            setting_value=$(bitbake-getvar --ignore-undefined --value \
+                --recipe "$TARGET" "$setting_name")
+            ;;
+        *)
+            setting_value=$(bitbake-getvar --value --recipe "$TARGET" \
+                "$setting_name")
+            ;;
+    esac
     SETTING_ARGS+=(--setting "$setting_name=$setting_value")
 done
 

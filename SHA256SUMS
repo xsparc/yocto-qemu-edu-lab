@@ -4,7 +4,7 @@
 c07157c7eb67f56bf1a4f1d7ce2e8dea5eff26b74db8cfa6723fc373af06073c  ./.gitattributes
 40d66c5c5de45edeb53d6349b7c0e8b11e817dd2f261f07fdbf9ab7a6aac3cb3  ./.github/PULL_REQUEST_TEMPLATE.md
 71fb4d8abb852aea95871f63857acad91cb6a5ca42715c6b52161477621ad877  ./.github/workflows/fast-checks.yml
-f39e9acd1ba01974ab376449768aad01033adff508d848c4f32f5fb442f26c54  ./.github/workflows/yocto-metadata.yml
+e8885fd4a72c35aac58998c542e11af108c1ae0bf7f4ac016a6856a47cc083bb  ./.github/workflows/yocto-metadata.yml
 690c83b46d40cdbed574a651327f0dd7dd1b70ac373a98c33db9dde1b41a1dc8  ./.gitignore
 acc32cc49b3964aa96d689cc90e0ca9239d2400304f90cc11b78d919d18a6a99  ./CONTRIBUTING.md
 eb1c3030e8cdec589b3a0d6c52c22ae16811f790d63bec1ec490c141fcd67a7a  ./LICENSE
@@ -79,7 +79,7 @@ d0ae8e4df00905acdb25a0b7b50f84e9bbaa61cc0f4759b2ead2c09952249426  ./meta-qemu-ed
 c41bb445b519e18a97c29ebc32f5146d1a618684fab6c67c2f448073727f133b  ./qemu-edu-lab
 1c2864a0cdb17f83a51609961b922a21532886166b2d86f448e3c33ca19de357  ./run.sh
 df4306e35e0c6d797f6fed3013096438384467a82649b24879af03f7926d2a36  ./runtime-test.sh
-9e8a0304b873065b07d4bec6e6a265b0cfdeca376f2db5d8247700077c570f52  ./sbom-evidence.sh
+e5ca6fcd786b5f36ff847387e66eae3db3b2e15c36183e08d8470d1eab54cc75  ./sbom-evidence.sh
 c7ae13574c8f6c206784aaee5da30a11db1369e4858cbf0e8a0593c18194eb12  ./schemas/qemu-edu-diagnostics-v1.schema.json
 d3c44c74e226e4b454723430e963bb382134d88806c8187c4e20263eddcc01a5  ./schemas/qemu-edu-platform-runtime-evidence-v1.schema.json
 c5417ab5612246d4e94d14a4da16bd3b9d7057d739653b6e77ca4f4640fda38b  ./schemas/qemu-edu-runtime-evidence-v1.schema.json
@@ -113,7 +113,7 @@ bce1b86639acfc2f298868f760aee24b833a26282f034d83cc846ceeba7245ad  ./tests/test_d
 8085b8f8c5973e872b0108d084e2f161f49b65640eb4ec24d17531a3aac0a6b7  ./tests/test_qemu_security.py
 6e893d94f25603a5b7acee88b438bb338b05625e64f710fedc64e0822e2aad95  ./tests/test_runtime_contract.py
 a1afbcadc23b06de3a52c356d1dc155e4fec0ddc2b8a6457dad837b298412ba9  ./tests/test_runtime_evidence.py
-02205ff5b978db84a04f3224871f681798076cb67fa16bf7102fe6eec63e50a6  ./tests/test_sbom_contract.py
+64c610d0f4582ac1e842732f3083c3189a216a1c4fda1399eea527afd93d87fa  ./tests/test_sbom_contract.py
 bf11db667f772c9fef20de898aa23b11b6fbf00a5c1ad4b1eacec7cebd0e4195  ./tests/test_sbom_evidence.py
 91bdcde3ad0c778d3ba385b9920461990281bf1c9ff94c03473645a20cc2fbea  ./tests/test_source_lock.py
 417fc3c3edbecd3881ace46103073dbb93b6c6a7987ab24916545177e1a09a5b  ./tests/test_update_checksums.py

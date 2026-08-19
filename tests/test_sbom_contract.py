@@ -39,6 +39,7 @@ class SbomContractTests(unittest.TestCase):
         self.assertLess(collect, validate)
         self.assertIn('--require-revision "$REVISION"', text)
         self.assertIn("--require-current-inputs", text)
+        self.assertIn("--ignore-undefined --value", text)
         self.assertGreaterEqual(text.count('--build-dir "$BUILD_DIR"'), 3)
         self.assertNotIn("SBOM_EVIDENCE_OUTPUT", text)
 
