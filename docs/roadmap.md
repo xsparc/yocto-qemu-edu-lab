@@ -342,8 +342,9 @@ then passed 21/21 PCI and 11/11 ARM64 software-QEMU tests with zero skips,
 failures, or errors. Post-qualification hardening through code candidate
 `b092b48` passed all 234 isolated Linux tests and retained both qualified graph
 results. All seven required review roles approved exact review head `31142b6`
-with no remaining P0-P2 finding. Publication, hosted gates, merge, tag, and
-release remain pending; A008 stays In Progress.
+with no remaining P0-P2 finding. Published head `82d9970` passed Fast checks
+run `32231165395` and Yocto metadata run `32231165336`; pull request #12
+squash-merged as `00ad952`. A008 is Done. No tag or release was published.
 
 The dated source analysis and compatibility boundary are recorded in
 [`research/2026-08-19-m7-spdx-image-evidence.md`](research/2026-08-19-m7-spdx-image-evidence.md).

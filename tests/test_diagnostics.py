@@ -574,7 +574,13 @@ class DiagnosticsTests(unittest.TestCase):
 
     def test_reused_context_clears_active_task_after_workflow_errors(self) -> None:
         ctx = diagnostics.Context(ROOT, "pci-x86-64")
-        self.assertEqual("pass", ctx.workflow().status)
+        active = {"id": "A008", "status": "In Progress"}
+        with patch.object(
+            diagnostics.validate_workflow,
+            "validate_models",
+            return_value=([], active),
+        ):
+            self.assertEqual("pass", ctx.workflow().status)
         self.assertIsNotNone(ctx.active_task)
 
         with patch.object(
@@ -585,7 +591,12 @@ class DiagnosticsTests(unittest.TestCase):
             self.assertEqual("fail", ctx.workflow().status)
         self.assertIsNone(ctx.active_task)
 
-        self.assertEqual("pass", ctx.workflow().status)
+        with patch.object(
+            diagnostics.validate_workflow,
+            "validate_models",
+            return_value=([], active),
+        ):
+            self.assertEqual("pass", ctx.workflow().status)
         self.assertIsNotNone(ctx.active_task)
         with patch.object(
             diagnostics,
@@ -745,6 +756,11 @@ class DiagnosticsTests(unittest.TestCase):
 
     def test_semantic_validator_suppresses_active_task_when_workflow_fails(self) -> None:
         document, _ = diagnostics.command_document(ROOT, "status", None)
+        document["data"]["active_task"] = {
+            "id": "A008",
+            "status": "In Progress",
+        }
+        diagnostics.validate_document(document)
         self.assertIsNotNone(document["data"]["active_task"])
         for status in ("fail", "unavailable"):
             with self.subTest(status=status):

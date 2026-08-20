@@ -5,12 +5,11 @@ SPDX-License-Identifier: MIT
 
 # Project context
 
-- Active task: A008, SPDX image-composition evidence. Its manifest-schema-2,
-  locked OE-Core parser, bounded local collector, and standard-library-only
-  evidence-validator boundary were approved on 2026-08-19. Publication,
-  merge, tag, and release remain unapproved.
-- Current public baseline: A006 pull request #11 squash-merge
-  `b569199513418fc6fc8a62453dca4751d3cf8969`. Historical dual-lab runtime
+- Active task: none. A008/M7 completed the manifest-schema-2, locked OE-Core
+  parser, bounded local collector, and standard-library-only SPDX evidence
+  boundary. Later horizon work remains proposed until separately approved.
+- Current public baseline: A008 pull request #12 squash-merge
+  `00ad9521f9c2441fbd72d4340cdd197d46fa5f8a`. Historical dual-lab runtime
   qualification remains bound to clean A005 revision
   `340621afe3108d074e03f638b238d724bc10de5c`.
 - Baseline: two Yocto 6.0 (`wrynose`) labs: the default x86-64 QEMU EDU PCI
@@ -195,6 +194,8 @@ SPDX-License-Identifier: MIT
   Post-qualification hardening through final code candidate `b092b48` passed
   all 234 isolated Linux tests and preserved both retained graph results. All
   seven required review roles approved exact review head `31142b6` with no
-  remaining P0-P2 finding. Publication, hosted gates, merge, tag, and release
-  remain pending.
+  remaining P0-P2 finding. Published head `82d9970` passed Fast checks run
+  `32231165395` and Yocto metadata run `32231165336`; pull request #12
+  squash-merged as `00ad9521f9c2441fbd72d4340cdd197d46fa5f8a`. A008 is Done.
+  No tag or release was published.
 - Public workflow state uses tool-neutral maintainer paths while preserving the same task, approval, validation, review, and handoff semantics.

@@ -30,11 +30,11 @@ e1f1c385273c083eb2ae6d0f1bdf3b027aec028719cb4a9d5b0a2e52129355ce  ./config/labs/
 34d12858929ccfc62a8ebed58ba9827bef2f0d9e1c732b6f663d443d1221477e  ./docs/licensing.md
 ab3a763550768ff8de2574f4b528fdbf60ad8e8fe24245e80cf52f562c201496  ./docs/maintainers/README.md
 b980a803146d2aed4bb54d8ee8e6dadc451b01a9826ad562a7ca8f5c6779575c  ./docs/maintainers/config.toml
-c3651cfed2745fad9f9f1df5cdf7a576d408d3c39221a4287af1ea453579b72c  ./docs/maintainers/context.md
+def0c6a9838c97590ebff8cb2af0829cf08619f486701e896d3ca074470e4461  ./docs/maintainers/context.md
 6b1bcaec2ba763c57fc15b06f9794c17b998e6dbda7b38e30c9e2768d4257c81  ./docs/maintainers/decisions.md
 65f879644273c7431ccb2f132ea19e67491a5a0b9b948e729b877e4692908d3b  ./docs/maintainers/intake.md
-b2575aae601352d986ebdcc0ab14065077784c0566e3e42e9fac8ac001baa7af  ./docs/maintainers/ledger.md
-fc351b0a99cefdcd6586de1446c071d00110dd4cd9284280486622d9a35ca6dd  ./docs/maintainers/tasks.toml
+aff013356ad1365aa3886da259ebc8ab8e4c3caf0fdb0f52212d1a88f4e41657  ./docs/maintainers/ledger.md
+28e688bb4354a2a1782acb196cfe29fccd35113ebc3c2b2047c7efe8870fbd84  ./docs/maintainers/tasks.toml
 c86beaf2d7e50e25cf122c898a5d1ef2d481d816a996e8706a6bbe0b4a99707b  ./docs/maintenance-workflow.md
 d87cc671bee02f9c36e284c119d691564021068961de46b5cbfa71a5d6bf20f5  ./docs/mapping-to-real-hardware.md
 c8f0440c7c8df8f6cae97f670575e073f90fe2672de99908606e45683722cffd  ./docs/research/2026-08-07-m1-reproducibility.md
@@ -46,11 +46,11 @@ b4771fd6e821c086a6d3f12ca22e5188d186516ba1356c9d73915684df8e3029  ./docs/researc
 28ded809046174e0607a221a953de75384c03a4df9343147428b05a1eeff7125  ./docs/research/2026-08-11-m5-platform-lab.md
 e2e25ac2757b242cfd6d842d1b4c70249e69ca547dab31be1a93766c9253093d  ./docs/research/2026-08-14-m6-diagnostics.md
 b6a0b2fce6621e571bacd69531f32784e454eb35866b0fa0c350c139603e16b2  ./docs/research/2026-08-19-m7-spdx-image-evidence.md
-89f5d08f3d4b43e858f46edc361e9c0fad2d46c1b5d3efdc76485c5aac2f8f5c  ./docs/roadmap.md
+76fb7badda2272795ed1a0f3ab11308ad49db8f42eac9923b78f318de3c78173  ./docs/roadmap.md
 ce9b78e793fca006d800590b6ec83048cfd66443001bd5154176a81cdb0c49dd  ./docs/runtime-testing.md
 a5222d0f5c07627d929f0362ba1655a79dc4b5107276dbe25b2f2062d22c0d89  ./docs/sbom-evidence.md
 1556e05ceb4d61fc7069660042ad89b07d17141faf1e9a278e6b3864b0a547e2  ./docs/source-lock.md
-1dd225f9c1f3d9c84013d5531a00d9a0eddf68410173a41fbc190761843097ab  ./docs/versioning.md
+bb2d92d1c9ff70819ba887f83d2a9679a13b81d475450f5786a4f48dfda27570  ./docs/versioning.md
 b6a8a695d31346e39f06eb8ec7cc8f2ea4dbb5b805bd32152a35753fe6e54d2c  ./docs/vision.md
 e8068500361df6f8a27075ca88ea48748d9f0433e1db8ac8ec5d189176552062  ./environment.sh
 a423d411c60d6a250e7f20faf40e41299ed779007459626f581992ce8d208363  ./inspect.sh
@@ -103,7 +103,7 @@ a4fe377a4d1e03e70b283ee75b1fcf7a29b224e88bd9eac8275a0f64aec60eda  ./scripts/upda
 d18b9d6ecd40e6cebb54fe5a34b83db5ca14c0cdb778e7457599f1158d19c60d  ./scripts/verify_qemu_security.py
 fddb773f074eb7ec00b55d92bae1b44f0d6d14f715314608437fa68c1dc26e52  ./setup.sh
 97e28b444512a281b5378a8b6404f1a43a0fadf5d2a006f05753cbd4dbacf7f1  ./tests/test_configure_build.py
-0a6701726c3def9e68b7bd92c4f70f15c118e30d9dc971777971645db804029d  ./tests/test_diagnostics.py
+6a3d59f64a0b0315e685408a269c5d6e3e5a06f333aee6a96ce63fb8839bcde3  ./tests/test_diagnostics.py
 d1c2929cc4167b654bba9a7f49df20f53afd3e524d7c3e808be442d3d1e4b315  ./tests/test_diagnostics_cli.py
 bce1b86639acfc2f298868f760aee24b833a26282f034d83cc846ceeba7245ad  ./tests/test_diagnostics_schema_lock.py
 02d3e829c784aab15706fd85c74eaccea71eee430091b3869b800715804a4f24  ./tests/test_environment.py
@@ -118,6 +118,6 @@ a9649ed13f6ea8be934d417baa9881f01099904b7727b418bd62dc9382282dbe  ./tests/test_s
 91bdcde3ad0c778d3ba385b9920461990281bf1c9ff94c03473645a20cc2fbea  ./tests/test_source_lock.py
 417fc3c3edbecd3881ace46103073dbb93b6c6a7987ab24916545177e1a09a5b  ./tests/test_update_checksums.py
 48b26be5028fcadd1f48153ed5d79b2ac65ed1da917276fa44862a5f5a6d387d  ./tests/test_validate_ci.py
-ff308a61da371b0eb6921d71fb830b4ae66367534e8ddf234c9b876766038ab9  ./tests/test_validate_workflow.py
+6c8e2e220e8e348cb800c4a01029ce166df7667675d300654111c95069a36fac  ./tests/test_validate_workflow.py
 fcee2460a982e87aed865c24bec55555dcfd22637e16e9bb0ff9d20d6ef2af1e  ./tests/validate_diagnostics_schema.py
 cbf6631310301ae6156172ad4cea7b449209024107c72ded65f50fb9d850bb47  ./tests/validate_sbom_schema.py
