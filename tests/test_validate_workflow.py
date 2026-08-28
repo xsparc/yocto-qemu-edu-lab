@@ -207,11 +207,8 @@ class WorkflowValidationTests(unittest.TestCase):
         ):
             with self.subTest(task_id=task_id):
                 changed_state = copy.deepcopy(state)
-                active_task = next(
-                    task
-                    for task in changed_state["tasks"]
-                    if task["status"] == "In Progress"
-                )
+                active_task = changed_state["tasks"][-1]
+                active_task["status"] = "In Progress"
                 active_task["id"] = task_id
                 errors, active = MODULE.validate_models(
                     config, changed_state, None
@@ -307,13 +304,9 @@ class WorkflowValidationTests(unittest.TestCase):
         root = self.copy_repository()
         tasks_path = root / "docs/maintainers/tasks.toml"
         state = MODULE.load_toml(tasks_path)
-        task = next(task for task in state["tasks"] if task["status"] != "Done")
+        task = next(task for task in state["tasks"] if task["status"] == "Done")
         task_id = task["id"]
-        original_status = task["status"]
         text = tasks_path.read_text(encoding="utf-8")
-        text = self.replace_in_task(
-            text, task_id, f'status = "{original_status}"', 'status = "Done"'
-        )
         completed = ", ".join(
             f'"{review}"' for review in task["reviews_completed"]
         )
@@ -342,15 +335,6 @@ class WorkflowValidationTests(unittest.TestCase):
                 text, task_id, 'result = ""', 'result = "complete"'
             )
         tasks_path.write_text(text, encoding="utf-8")
-        ledger_path = root / "docs/maintainers/ledger.md"
-        ledger_path.write_text(
-            ledger_path.read_text(encoding="utf-8").replace(
-                f'| {task_id} | {task["milestone"]} | {original_status} |',
-                f'| {task_id} | {task["milestone"]} | Done |',
-                1,
-            ),
-            encoding="utf-8",
-        )
         errors = MODULE.validate(root)
         missing = sorted(set(task["reviews_required"]) - {"quality"})
         self.assertIn(
