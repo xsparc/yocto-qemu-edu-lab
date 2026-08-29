@@ -91,9 +91,10 @@ class SdkFoundationContractTests(unittest.TestCase):
             (ROOT / "docs/maintainers/tasks.toml").read_text(encoding="utf-8")
         )
         task = next(item for item in state["tasks"] if item["id"] == "A009")
-        self.assertEqual("In Progress", task["status"])
+        self.assertEqual("Done", task["status"])
         self.assertEqual("M8", task["milestone"])
         self.assertIn("explicitly approved A009/M8", task["approval"])
+        self.assertIn("squash-merged through pull request #14", task["result"])
         decisions = (ROOT / "docs/maintainers/decisions.md").read_text(
             encoding="utf-8"
         )

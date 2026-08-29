@@ -406,7 +406,7 @@ Final acceptance requires an adequately sized isolated Linux worker, exact
 clean-revision direct-eSDK loops for both labs, a closed immutable
 `qemu-edu-sdk-evidence-v1` document per lab, and proportional requalification
 of the base image's SPDX and historical runtime evidence after schema-3 digest
-changes. A009 is In Progress. Repository-local controller and schema checks are
+changes. A009 is Done. Repository-local controller and schema checks alone are
 not dual-lab SDK, deployment, image, SPDX, or runtime qualification evidence.
 
 Qualification status: clean publication implementation candidate
@@ -441,15 +441,19 @@ Software QEMU passed all 21 PCI and 11 ARM64 runtime tests with no skips,
 failures, or errors; evidence hashes are
 `56ddda2d3dfc418eb6dbbfce192c27afcf6661774c4e470614cad22a45149e91`
 and `52722c5745a9d56e3c767a3c516657cafc1f854ef503ea2623c0173a77e876c3`.
-All seven delegated reviews are complete. Draft pull request #14 publishes the
+All seven delegated reviews are complete. Pull request #14 published the
 explicit reconstructed clean branch. Initial Fast checks passed all four jobs;
 the metadata lane parsed 956 recipes with zero errors, then its sample verifier
 failed closed because the OE environment had changed into the build directory
 and the workflow omitted the explicit repository root. Corrected code-bearing
 head `2dd9cd0` passed all four jobs in Fast checks run `33246698811` and every
 step in Yocto metadata run `33246698836`, including both profiles, both closed
-SDK configurations, and the layer audit. Draft pull request #14 remains open.
-No merge, tag, release, or artifact publication is claimed.
+SDK configurations, and the layer audit. Final head `5ca21b1` passed Fast
+checks run `33247507794` and Yocto metadata run `33247507795`. Pull request
+#14 squash-merged as `4dd8c792`; the resulting `main` revision passed Fast
+checks run `33253594345` and Yocto metadata run `33253594300`. A009 is Done.
+No tag, release, standalone SDK, build artifact, image, SBOM, runtime document,
+signing claim, or attestation was published.
 
 The dated primary-source rationale and provider-neutral direction brief are in
 [`research/2026-08-20-m8-direct-esdk-devtool.md`](research/2026-08-20-m8-direct-esdk-devtool.md).
