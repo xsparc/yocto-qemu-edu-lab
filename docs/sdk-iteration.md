@@ -238,6 +238,8 @@ explicit reconstructed clean branch. Its initial Fast checks passed all four
 jobs; the Yocto metadata lane parsed 956 recipes with zero errors and then
 exposed a missing explicit repository-root argument after OE environment setup
 changed into the build directory. The focused workflow correction preserves
-the exact metadata checks and awaits hosted rerun. A009 remains In Progress;
-no merge, tag, release, standalone SDK, physical-hardware result, signing claim,
-or attestation is claimed.
+the exact checks. Corrected code-bearing head `2dd9cd0` passed all four Fast
+checks in run `33246698811` and the complete dual-profile metadata, closed SDK
+configuration, and layer-audit run `33246698836`. A009 and draft pull request
+#14 remain open; no merge, tag, release, standalone SDK, physical-hardware
+result, signing claim, or attestation is claimed.

@@ -445,9 +445,11 @@ All seven delegated reviews are complete. Draft pull request #14 publishes the
 explicit reconstructed clean branch. Initial Fast checks passed all four jobs;
 the metadata lane parsed 956 recipes with zero errors, then its sample verifier
 failed closed because the OE environment had changed into the build directory
-and the workflow omitted the explicit repository root. The focused invocation
-correction awaits hosted rerun. No merge, tag, release, or artifact publication
-is claimed.
+and the workflow omitted the explicit repository root. Corrected code-bearing
+head `2dd9cd0` passed all four jobs in Fast checks run `33246698811` and every
+step in Yocto metadata run `33246698836`, including both profiles, both closed
+SDK configurations, and the layer audit. Draft pull request #14 remains open.
+No merge, tag, release, or artifact publication is claimed.
 
 The dated primary-source rationale and provider-neutral direction brief are in
 [`research/2026-08-20-m8-direct-esdk-devtool.md`](research/2026-08-20-m8-direct-esdk-devtool.md).

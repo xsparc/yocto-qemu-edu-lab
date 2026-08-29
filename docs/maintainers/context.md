@@ -24,7 +24,11 @@ SPDX-License-Identifier: MIT
   errors, then failed closed because `environment.sh` had changed into the
   build directory before the sample-metadata verifier was called without its
   explicit repository root. The focused correction supplies that root to both
-  lab invocations and adds a regression assertion; hosted reruns remain open.
+  lab invocations and adds a regression assertion. Corrected code-bearing head
+  `2dd9cd0b3876f4af01fc1cf09be207e03fb78af0` passed all four jobs in Fast
+  checks run `33246698811` and every step in Yocto metadata run `33246698836`,
+  including both ordinary profiles, both closed SDK configurations, and the
+  layer audit. PR #14 remains draft and A009 remains In Progress.
 - A009 uses one disposable `build-sdk-<lab>` root per selected lab. Normal
   build roots remain authoritative and are not mutated by the development
   workflow. The controller accepts no arbitrary recipe, target, QEMU, SSH, or

@@ -30,11 +30,11 @@ c531d25dc13f63505974f7c2699556b79563efd1db90b4e6385c93109e366ea4  ./docs/ci.md
 499053865b0ba61a82d39c5a03115e2fa5be797bb186dc6ed73260db13056110  ./docs/licensing.md
 ab3a763550768ff8de2574f4b528fdbf60ad8e8fe24245e80cf52f562c201496  ./docs/maintainers/README.md
 7cb799106bd1b22fa78ac57830c313a4a4ae08b6b8e33d0c88a45486befa8079  ./docs/maintainers/config.toml
-ec0c194446e3888d6c06533f79ad3cf563c30dc369eeef2fa76a1d8db4ddfbbd  ./docs/maintainers/context.md
+a4e68029533dc5890a4c19082d1b7cd7e33138c9eaac63a4d8e0a68d0918ec79  ./docs/maintainers/context.md
 accee14ae2e187c4d6bbccab43bbecdaf816d10576006112bff21905253466d8  ./docs/maintainers/decisions.md
 65f879644273c7431ccb2f132ea19e67491a5a0b9b948e729b877e4692908d3b  ./docs/maintainers/intake.md
-28c9a38567b47fa24a91c5657fd66cdf2bf84f318b0be8a1d3ba5c25fedfda6d  ./docs/maintainers/ledger.md
-ab8b6b5d63506ca0c0ba56b22e42d880abd3884a788d2c37d20f75d0e4b983c8  ./docs/maintainers/tasks.toml
+2fa53b6d60a38923d5053ced4100cc6d9d12798334d51a9b5c8247e0fef9fd46  ./docs/maintainers/ledger.md
+482b536ff0ba9606b7b392938fa80617e1c27bc7e9bc54df9cfe1b9dd8071db1  ./docs/maintainers/tasks.toml
 c86beaf2d7e50e25cf122c898a5d1ef2d481d816a996e8706a6bbe0b4a99707b  ./docs/maintenance-workflow.md
 d87cc671bee02f9c36e284c119d691564021068961de46b5cbfa71a5d6bf20f5  ./docs/mapping-to-real-hardware.md
 c8f0440c7c8df8f6cae97f670575e073f90fe2672de99908606e45683722cffd  ./docs/research/2026-08-07-m1-reproducibility.md
@@ -47,10 +47,10 @@ b4771fd6e821c086a6d3f12ca22e5188d186516ba1356c9d73915684df8e3029  ./docs/researc
 e2e25ac2757b242cfd6d842d1b4c70249e69ca547dab31be1a93766c9253093d  ./docs/research/2026-08-14-m6-diagnostics.md
 b6a0b2fce6621e571bacd69531f32784e454eb35866b0fa0c350c139603e16b2  ./docs/research/2026-08-19-m7-spdx-image-evidence.md
 2c843c8220ae21869c6a0feb99b7ab4557df2009275d612da5a2c23226b9ea9f  ./docs/research/2026-08-20-m8-direct-esdk-devtool.md
-306b38eeb94d84c131869d234314e0eb547bd1cd0fcb1d50822e125b07393d0b  ./docs/roadmap.md
+0f5f91242d8ab3aef2738c06e4e7b6797e35b2be006f82b837c1b1bc366e69e6  ./docs/roadmap.md
 ce9b78e793fca006d800590b6ec83048cfd66443001bd5154176a81cdb0c49dd  ./docs/runtime-testing.md
 4e65b8a752acc2b7721265a60719d90218ac249adac45ac1a1f3bccee81da53f  ./docs/sbom-evidence.md
-0bc7de087207005a1e8d718fa0e0ed452456f026550544a0d8ea0e1525c2a122  ./docs/sdk-iteration.md
+2bcbdd4f0dfa3b0e7aac1fe11be88e5622bd85d985c92d532c54ea82baa92975  ./docs/sdk-iteration.md
 37df9a4e5c5f37e9943f4f16d30565438d30a1e8604ba3191b92b278ed7ea0d7  ./docs/source-lock.md
 6c1c416578b8783d5e2809e5307cd6dc6258dc1ec25c1036ad60689fe20a70f8  ./docs/versioning.md
 b6a8a695d31346e39f06eb8ec7cc8f2ea4dbb5b805bd32152a35753fe6e54d2c  ./docs/vision.md
