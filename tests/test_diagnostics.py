@@ -453,6 +453,7 @@ class DiagnosticsTests(unittest.TestCase):
         future["description"] = "Synthetic future catalog fixture."
         future["build"]["build_dir"] = "build-future"
         future["build"]["machine"] = "qemu-edu-future"
+        future["development"]["build_dir"] = "build-sdk-future-riscv"
         future_relative = "config/labs/future-riscv.json"
         future_raw = (
             json.dumps(future, sort_keys=True, separators=(",", ":")) + "\n"

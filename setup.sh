@@ -85,3 +85,5 @@ printf '  Run after building: BUILD_DIR=%q %q --lab %q\n' \
     "$BUILD_DIR" "$ROOT_DIR/run.sh" "$QEMU_EDU_LAB"
 printf '  Runtime test: BUILD_DIR=%q %q --lab %q\n' \
     "$BUILD_DIR" "$ROOT_DIR/runtime-test.sh" "$QEMU_EDU_LAB"
+printf '  Direct-eSDK iteration: %q --lab %q\n' \
+    "$ROOT_DIR/sdk-test.sh" "$QEMU_EDU_LAB"

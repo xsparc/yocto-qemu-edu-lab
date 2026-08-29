@@ -250,6 +250,10 @@ def main() -> int:
         rejected(validator, changed)
     for status in ("fail", "unavailable"):
         changed = copy.deepcopy(baseline)
+        changed["data"]["active_task"] = {
+            "id": "A008",
+            "status": "In Progress",
+        }
         changed["checks"][2] = diagnostics.check(
             "workflow.task", status
         ).object()

@@ -1,5 +1,5 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "id": "platform-arm64",
   "description": "Device Tree and platform-driver lab on the ARM64 QEMU virt machine",
   "build": {
@@ -47,7 +47,18 @@
     "forbidden_packages": [
       "kernel-module-qemu-edu-6.18.24-yocto-standard",
       "qemu-edu-driver",
+      "qemu-edu-sdk-sample",
       "qemu-edu-tools"
     ]
+  },
+  "development": {
+    "profile": "direct-esdk-devtool-v1",
+    "build_dir": "build-sdk-platform-arm64",
+    "recipe": "qemu-edu-sdk-sample",
+    "source_dir": "learner-source/qemu-edu-sdk-sample",
+    "ide": "none",
+    "guest_binary": "/usr/bin/qemu-edu-sdk-sample",
+    "evidence_filename": "qemu-edu-sdk-evidence-v1.json",
+    "evidence_schema_version": 1
   }
 }

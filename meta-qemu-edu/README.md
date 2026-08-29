@@ -16,12 +16,16 @@ boot path then verifies its profile-relevant post-patch source and
 architecture-specific executable in `qemu-helper-native`'s consumer sysroot
 before `runqemu` can start.
 
-Lab manifest schema 2 also gives each machine one closed SPDX image-evidence
-profile. Both select the same image recipe, but each requires its own three
-driver/tool packages and forbids the other machine's project packages. The
-evidence collector checks those package purposes and declared licenses in the
-locked OE-Core SPDX 3.0.1 graph, then independently hashes every root image
-artifact.
+Lab manifest schema 3 gives each machine one closed SPDX image-evidence profile
+and one isolated direct-eSDK development profile. Both select the same image
+recipe, but each requires its own three driver/tool packages and forbids the
+other machine's project packages plus the development-only
+`qemu-edu-sdk-sample`. The evidence collector checks those package purposes
+and declared licenses in the locked OE-Core SPDX 3.0.1 graph, then independently
+hashes every root image artifact. The development profile uses a separate
+`build-sdk-<lab>` root and never installs the sample in the base image. The
+repository-level `sdk-test.sh` command owns its fixed devtool lifecycle and
+pass-only local evidence; the layer does not expose a generic deploy surface.
 
 See the repository-level `README.md` for the learning path and host setup,
 `CONTRIBUTING.md` for maintainer and patch-submission guidance, `SECURITY.md`

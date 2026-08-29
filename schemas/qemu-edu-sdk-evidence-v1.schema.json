@@ -1,0 +1,211 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xsparc.github.io/yocto-qemu-edu-lab/schemas/qemu-edu-sdk-evidence-v1.schema.json",
+  "title": "QEMU EDU direct-eSDK iteration evidence version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "kind",
+    "project",
+    "inputs",
+    "lab",
+    "workflow",
+    "source",
+    "execution",
+    "checks",
+    "task_exit_code",
+    "result"
+  ],
+  "properties": {
+    "schema_version": {"const": 1},
+    "kind": {"const": "qemu-edu-sdk-iteration-evidence"},
+    "project": {"$ref": "#/$defs/project"},
+    "inputs": {"$ref": "#/$defs/inputs"},
+    "lab": {"$ref": "#/$defs/lab"},
+    "workflow": {"$ref": "#/$defs/workflow"},
+    "source": {"$ref": "#/$defs/source"},
+    "execution": {"$ref": "#/$defs/execution"},
+    "checks": {"$ref": "#/$defs/checks"},
+    "task_exit_code": {"const": 0},
+    "result": {"const": "passed"}
+  },
+  "oneOf": [
+    {
+      "properties": {
+        "lab": {
+          "properties": {
+            "id": {"const": "pci-x86-64"},
+            "machine": {"const": "qemu-edu-x86-64"},
+            "development_build_dir": {"const": "build-sdk-pci-x86-64"}
+          }
+        },
+        "execution": {"properties": {"architecture": {"const": "x86_64"}}}
+      }
+    },
+    {
+      "properties": {
+        "lab": {
+          "properties": {
+            "id": {"const": "platform-arm64"},
+            "machine": {"const": "qemu-edu-platform-arm64"},
+            "development_build_dir": {"const": "build-sdk-platform-arm64"}
+          }
+        },
+        "execution": {"properties": {"architecture": {"const": "aarch64"}}}
+      }
+    }
+  ],
+  "$defs": {
+    "sha1": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}(?![\\s\\S])"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}(?![\\s\\S])"
+    },
+    "token": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._+-]*(?![\\s\\S])",
+      "maxLength": 4096
+    },
+    "project_version": {
+      "type": "string",
+      "pattern": "^(?:0|[1-9][0-9]*)\\.(?:0|[1-9][0-9]*)\\.(?:0|[1-9][0-9]*)(?:-(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(?:\\.(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?(?![\\s\\S])",
+      "maxLength": 128
+    },
+    "project": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version", "revision", "dirty"],
+      "properties": {
+        "name": {"const": "yocto-qemu-edu-lab"},
+        "version": {"$ref": "#/$defs/project_version"},
+        "revision": {"$ref": "#/$defs/sha1"},
+        "dirty": {"const": false}
+      }
+    },
+    "inputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_lock_sha256",
+        "openembedded_core_commit",
+        "lab_index_sha256",
+        "lab_manifest_sha256",
+        "yocto_version",
+        "yocto_series"
+      ],
+      "properties": {
+        "source_lock_sha256": {"$ref": "#/$defs/sha256"},
+        "openembedded_core_commit": {"$ref": "#/$defs/sha1"},
+        "lab_index_sha256": {"$ref": "#/$defs/sha256"},
+        "lab_manifest_sha256": {"$ref": "#/$defs/sha256"},
+        "yocto_version": {"$ref": "#/$defs/token"},
+        "yocto_series": {"$ref": "#/$defs/token"}
+      }
+    },
+    "lab": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "machine",
+        "image",
+        "development_build_dir",
+        "recipe",
+        "source_dir",
+        "guest_binary"
+      ],
+      "properties": {
+        "id": {"enum": ["pci-x86-64", "platform-arm64"]},
+        "machine": {"enum": ["qemu-edu-x86-64", "qemu-edu-platform-arm64"]},
+        "image": {"const": "qemu-edu-image"},
+        "development_build_dir": {
+          "enum": ["build-sdk-pci-x86-64", "build-sdk-platform-arm64"]
+        },
+        "recipe": {"const": "qemu-edu-sdk-sample"},
+        "source_dir": {"const": "learner-source/qemu-edu-sdk-sample"},
+        "guest_binary": {"const": "/usr/bin/qemu-edu-sdk-sample"}
+      }
+    },
+    "workflow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["profile", "sdk_mode", "ide", "transport"],
+      "properties": {
+        "profile": {"const": "direct-esdk-devtool-v1"},
+        "sdk_mode": {"const": "direct-build"},
+        "ide": {"const": "none"},
+        "transport": {"const": "runqemu-slirp-loopback-ssh"}
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sha256", "preserved_after_reset"],
+      "properties": {
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "preserved_after_reset": {"const": true}
+      }
+    },
+    "execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "architecture",
+        "expected_output",
+        "artifact_sha256",
+        "base_absent",
+        "undeployed_absent",
+        "cold_boot_absent"
+      ],
+      "properties": {
+        "architecture": {"enum": ["x86_64", "aarch64"]},
+        "expected_output": {"const": "qemu-edu-sdk-sample workspace"},
+        "artifact_sha256": {"$ref": "#/$defs/sha256"},
+        "base_absent": {"const": true},
+        "undeployed_absent": {"const": true},
+        "cold_boot_absent": {"const": true}
+      }
+    },
+    "check": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "status"],
+      "properties": {
+        "id": {"type": "string", "maxLength": 64},
+        "status": {"const": "passed"}
+      }
+    },
+    "checks": {
+      "type": "array",
+      "minItems": 20,
+      "maxItems": 20,
+      "prefixItems": [
+        {"allOf": [{"$ref": "#/$defs/check"}, {"properties": {"id": {"const": "preflight.sources"}}}]},
+        {"allOf": [{"$ref": "#/$defs/check"}, {"properties": {"id": {"const": "preflight.tooling"}}}]},
+        {"allOf": [{"$ref": "#/$defs/check"}, {"properties": {"id": {"const": "preflight.composition"}}}]},
+        {"allOf": [{"$ref": "#/$defs/check"}, {"properties": {"id": {"const": "preflight.emulator"}}}]},
+        {"allOf": [{"$ref": "#/$defs/check"}, {"properties": {"id": {"const": "workspace.created"}}}]},
+        {"allOf": [{"$ref": "#/$defs/check"}, {"properties": {"id": {"const": "source.prepared"}}}]},
+        {"allOf": [{"$ref": "#/$defs/check"}, {"properties": {"id": {"const": "recipe.modified"}}}]},
+        {"allOf": [{"$ref": "#/$defs/check"}, {"properties": {"id": {"const": "recipe.built"}}}]},
+        {"allOf": [{"$ref": "#/$defs/check"}, {"properties": {"id": {"const": "artifact.bound"}}}]},
+        {"allOf": [{"$ref": "#/$defs/check"}, {"properties": {"id": {"const": "sdk.generated"}}}]},
+        {"allOf": [{"$ref": "#/$defs/check"}, {"properties": {"id": {"const": "base.absent"}}}]},
+        {"allOf": [{"$ref": "#/$defs/check"}, {"properties": {"id": {"const": "target.architecture"}}}]},
+        {"allOf": [{"$ref": "#/$defs/check"}, {"properties": {"id": {"const": "target.deployed"}}}]},
+        {"allOf": [{"$ref": "#/$defs/check"}, {"properties": {"id": {"const": "target.executed"}}}]},
+        {"allOf": [{"$ref": "#/$defs/check"}, {"properties": {"id": {"const": "target.undeployed"}}}]},
+        {"allOf": [{"$ref": "#/$defs/check"}, {"properties": {"id": {"const": "target.absent"}}}]},
+        {"allOf": [{"$ref": "#/$defs/check"}, {"properties": {"id": {"const": "workspace.reset"}}}]},
+        {"allOf": [{"$ref": "#/$defs/check"}, {"properties": {"id": {"const": "source.retained"}}}]},
+        {"allOf": [{"$ref": "#/$defs/check"}, {"properties": {"id": {"const": "cold_boot.absent"}}}]},
+        {"allOf": [{"$ref": "#/$defs/check"}, {"properties": {"id": {"const": "cleanup.complete"}}}]}
+      ],
+      "items": false
+    }
+  }
+}

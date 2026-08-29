@@ -33,6 +33,9 @@ METADATA_REQUIRED_PATHS = {
     "scripts/qemu_security_preflight.sh",
     "scripts/verify_qemu_security.py",
     "scripts/sbom_evidence.py",
+    "scripts/sdk_evidence.py",
+    "scripts/sdk_iteration.py",
+    "scripts/sdk_tooling.py",
     "setup.sh",
     "environment.sh",
     "build.sh",
@@ -40,6 +43,8 @@ METADATA_REQUIRED_PATHS = {
     "run.sh",
     "runtime-test.sh",
     "sbom-evidence.sh",
+    "sdk-test.sh",
+    "schemas/qemu-edu-sdk-evidence-v1.schema.json",
     "Makefile",
     "meta-qemu-edu/**",
 }

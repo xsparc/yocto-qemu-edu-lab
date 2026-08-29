@@ -355,6 +355,114 @@ tests, maintainer configuration, checksums, and documentation. Existing guest
 interfaces and historical runtime-evidence schemas remain immutable and need
 no translation.
 
+## M8 — Isolated direct-eSDK application iteration
+
+Outcome: each supported lab can use the exact locked Yocto development tools to
+modify, cross-build, deploy, execute, undeploy, and reset one small userspace
+application without changing the authoritative base image.
+
+Approved on 2026-08-20: advance the development identity to `0.8.0-dev`, move
+the lab catalog to manifest schema 3, and add one
+`direct-esdk-devtool-v1` profile per lab. Each profile selects a disposable
+development build root, fixed MIT/libc-only sample recipe and source path,
+IDE-neutral mode, guest binary, and local evidence filename. The sample stays
+forbidden from both base images.
+
+The implemented host controller is bounded to this sequence:
+
+- verify exact source locks, selected lab composition, patched QEMU consumer,
+  build directory, fixed development profile, and clean repository before OE
+  environment setup; then atomically own the complete SDK configuration before
+  the first BitBake parse;
+- create exactly one closed generated workspace layer in the disposable build
+  root, keep the build root and empty components out of `BBPATH`, reject
+  retained executable or metadata drift, and authenticate the one generated
+  `devtool.conf` before devtool can consume the workspace,
+  prepare the declared learner source outside that layer, and use locked
+  `devtool modify -n`, `devtool build`, and
+  `devtool ide-sdk --mode modified --ide none`;
+- start the selected locked `runqemu` path in snapshot/slirp mode and accept
+  only its bounded loopback SSH endpoint;
+- prove the binary is absent, deploy only the fixed recipe, verify target
+  architecture, built/deployed SHA-256 identity, and exact output, undeploy it,
+  and prove absence again;
+- stop QEMU, authenticate the exact locked-source-derived active append and its
+  checksum state, reset the devtool recipe without a metadata clean task,
+  revalidate inert workspace metadata, retain the separate learner source in
+  place, remove unqualified evidence, and prove cold-boot base-image absence.
+
+Non-scope: standalone SDK installers, arbitrary recipes or targets, user QEMU
+or SSH arguments, non-loopback targets, package-manager operations, production
+updates, raw logs, build trees, images, binaries, public SDK artifacts, MCP,
+A2A, provider SDKs, hosted services, releases, signing, attestations, and
+physical hardware.
+
+Public pull-request CI remains repository, licensing, and metadata evidence.
+The metadata lane verifies the exact locked SDK executable/plugin authority,
+forbids project devtool/sample-append overrides, and checks the effective sample
+PN/PV/license/machine/source contract for both profiles without
+compiling the sample or claiming a direct-eSDK run.
+Final acceptance requires an adequately sized isolated Linux worker, exact
+clean-revision direct-eSDK loops for both labs, a closed immutable
+`qemu-edu-sdk-evidence-v1` document per lab, and proportional requalification
+of the base image's SPDX and historical runtime evidence after schema-3 digest
+changes. A009 is In Progress. Repository-local controller and schema checks are
+not dual-lab SDK, deployment, image, SPDX, or runtime qualification evidence.
+
+Qualification status: clean publication implementation candidate
+`86daf481ff69f3e515887997aff519393239e56a` is exactly one A009 commit over
+the squash-merged A008 closeout `8f498899cb71615b99ccd210f1eecd95ebfe69a9`,
+has tree
+`d38260ffab599dd3c575510fa326bfcc93a304bb`, and does not contain the known
+non-publishable `733169d` history. That tree is byte-identical to qualified
+implementation `03840b93aed2cbddb6301eb82643bae655c81486`. The complete
+native-Linux suite passed 320/320 at that qualified revision. After the
+history-only re-anchor, the closeout tree passed all 320 Windows-visible tests
+with 34 expected POSIX skips, all three exact schema oracles, source, lab,
+workflow, CI, QEMU, checksum, whitespace, and digest-pinned REUSE 130/130
+gates. Both ordinary metadata profiles and cross-architecture sample builds
+remain qualified. The final correction performs a read-only retained-
+output preflight that rejects every pre-existing learner source directory or IDE
+result before tooling, configuration, QEMU, or image-build mutation.
+
+Both network-disabled direct-eSDK loops passed their full
+absent-build-deploy-execute-undeploy-reset-cold-absence sequence. PCI completed
+or reused 4,738 image tasks and ARM64 completed or reused 4,702; their closed
+SDK evidence SHA-256 values are
+`049964cae352006c172b02f2226d8126ff39eb95ed88224de81b702f17e363d1`
+and `b960e3af52eb09125d7681b48025ee4594a64be6556b4e3e53907f351515a09d`.
+Those revision-bound documents remain attributed to `03840b93`; the re-anchor
+does not relabel or regenerate them.
+Normal image/SPDX requalification then completed 4,667 PCI tasks and 4,631
+ARM64 tasks. The current-input evidence hashes are
+`c7c6a0b4efb2646580cacfaa4001721aa53aa924bbdb3f8df80c70f5423d5d58`
+and `033760973a635fcc3e21999cc7da72bcb777b51fbe3e39ecabb7e8ddef11ff3c`.
+Software QEMU passed all 21 PCI and 11 ARM64 runtime tests with no skips,
+failures, or errors; evidence hashes are
+`56ddda2d3dfc418eb6dbbfce192c27afcf6661774c4e470614cad22a45149e91`
+and `52722c5745a9d56e3c767a3c516657cafc1f854ef503ea2623c0173a77e876c3`.
+All seven delegated reviews are complete. Draft pull request #14 publishes the
+explicit reconstructed clean branch. Initial Fast checks passed all four jobs;
+the metadata lane parsed 956 recipes with zero errors, then its sample verifier
+failed closed because the OE environment had changed into the build directory
+and the workflow omitted the explicit repository root. Corrected code-bearing
+head `2dd9cd0` passed all four jobs in Fast checks run `33246698811` and every
+step in Yocto metadata run `33246698836`, including both profiles, both closed
+SDK configurations, and the layer audit. Draft pull request #14 remains open.
+No merge, tag, release, or artifact publication is claimed.
+
+The dated primary-source rationale and provider-neutral direction brief are in
+[`research/2026-08-20-m8-direct-esdk-devtool.md`](research/2026-08-20-m8-direct-esdk-devtool.md).
+
+Rollback: revert the complete focused A009 change, including project version,
+manifest schema/digests, sample recipe, controller, evidence schema, CI/tests,
+checksums, and documentation. Remove only generated disposable development
+roots and ignored evidence after resolving their absolute paths; do not delete
+normal build roots, learner source, or retained IDE output. Move or archive
+both `learner-source/qemu-edu-sdk-sample` and `learner-ide-sdk` outside the
+selected development root before a later run.
+Historical runtime, diagnostics, and SPDX evidence schemas remain immutable.
+
 ## Horizon — Physical target bridge and course ecosystem
 
 Potential work after evidence from M0–M7:
@@ -362,7 +470,7 @@ Potential work after evidence from M0–M7:
 - FPGA or supported development-board mapping with explicit QEMU/physical
   evidence separation;
 - instructor exercise packs with expected failure signatures;
-- SDK/eSDK workflows for application and driver iteration;
+- driver-oriented SDK iteration beyond the bounded M8 userspace sample;
 - signed or attestable release provenance, only after its own threat model and
   approval boundary;
 - community-contributed labs that pass the same compatibility and license gates.

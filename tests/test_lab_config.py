@@ -98,9 +98,15 @@ class LabConfigTests(unittest.TestCase):
         self.assertEqual("qemu-edu-x86-64", manifest["build"]["machine"])
         self.assertEqual("qemu-edu-driver", manifest["build"]["driver_target"])
         self.assertEqual(["qemu-edu-image"], manifest["build"]["targets"])
-        self.assertEqual(2, manifest["schema_version"])
+        self.assertEqual(3, manifest["schema_version"])
         self.assertEqual(
             "spdx3-image-v1", manifest["supply_chain"]["evidence_profile"]
+        )
+        self.assertEqual(
+            "direct-esdk-devtool-v1", manifest["development"]["profile"]
+        )
+        self.assertEqual(
+            "build-sdk-pci-x86-64", manifest["development"]["build_dir"]
         )
 
     def test_supply_chain_package_rules_are_closed_sorted_and_disjoint(self) -> None:
@@ -130,6 +136,17 @@ class LabConfigTests(unittest.TestCase):
     def test_explicit_empty_lab_fails_closed(self) -> None:
         with self.assertRaisesRegex(MODULE.LabError, "unknown lab"):
             MODULE.select_lab(ROOT, "")
+
+    def test_unsafe_lab_selector_is_bounded_and_not_reflected(self) -> None:
+        for selector in (
+            "future\nprivate",
+            "\x1b[31mprivate",
+            "a" * (MODULE.MAX_STRING_LENGTH + 1),
+        ):
+            with self.subTest(selector_length=len(selector)):
+                with self.assertRaises(MODULE.LabError) as raised:
+                    MODULE.select_lab(ROOT, selector)
+                self.assertEqual("unknown lab", str(raised.exception))
 
     @unittest.skipIf(
         sys.platform == "win32", "requires a native Linux Bash environment"
@@ -178,6 +195,59 @@ class LabConfigTests(unittest.TestCase):
         manifest["build"]["driver_target"] = "qemu-edu-driver"
         with self.assertRaisesRegex(MODULE.LabError, "driver_target"):
             MODULE.validate_manifest(manifest, "platform-arm64")
+
+    def test_development_profile_is_closed_and_sample_stays_out_of_base_image(self) -> None:
+        _, manifests, _ = self.repository_data()
+        for lab_id, manifest in manifests.items():
+            with self.subTest(lab=lab_id):
+                development = manifest["development"]
+                self.assertEqual("direct-esdk-devtool-v1", development["profile"])
+                self.assertEqual(f"build-sdk-{lab_id}", development["build_dir"])
+                self.assertEqual("qemu-edu-sdk-sample", development["recipe"])
+                self.assertEqual("none", development["ide"])
+                self.assertIn(
+                    development["recipe"],
+                    manifest["supply_chain"]["forbidden_packages"],
+                )
+                MODULE.validate_manifest(copy.deepcopy(manifest), lab_id)
+
+        changed = copy.deepcopy(manifests["platform-arm64"])
+        changed["development"]["ide"] = "vscode"
+        with self.assertRaisesRegex(MODULE.LabError, "development ide"):
+            MODULE.validate_manifest(changed, "platform-arm64")
+
+        changed = copy.deepcopy(manifests["platform-arm64"])
+        changed["development"]["guest_binary"] = "/tmp/qemu-edu-sdk-sample"
+        with self.assertRaisesRegex(MODULE.LabError, "directly under /usr/bin"):
+            MODULE.validate_manifest(changed, "platform-arm64")
+
+        changed = copy.deepcopy(manifests["platform-arm64"])
+        changed["development"]["future"] = True
+        with self.assertRaisesRegex(MODULE.LabError, "unknown fields"):
+            MODULE.validate_manifest(changed, "platform-arm64")
+
+        changed = copy.deepcopy(manifests["platform-arm64"])
+        changed["supply_chain"]["forbidden_packages"].remove(
+            "qemu-edu-sdk-sample"
+        )
+        with self.assertRaisesRegex(MODULE.LabError, "must include"):
+            MODULE.validate_manifest(changed, "platform-arm64")
+
+    def test_development_build_root_is_exact_and_isolated(self) -> None:
+        _, manifests, _ = self.repository_data()
+        for invalid in (
+            "build-platform-arm64",
+            "build-sdk-other",
+            "workspace",
+            "layers/sdk",
+        ):
+            with self.subTest(build_dir=invalid):
+                changed = copy.deepcopy(manifests["platform-arm64"])
+                changed["development"]["build_dir"] = invalid
+                with self.assertRaisesRegex(
+                    MODULE.LabError, "must be build-sdk-platform-arm64"
+                ):
+                    MODULE.validate_manifest(changed, "platform-arm64")
 
     def test_manifest_digest_tampering_is_rejected(self) -> None:
         root, index, manifests, source_lock = self.fixture()

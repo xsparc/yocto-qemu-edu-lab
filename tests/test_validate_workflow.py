@@ -28,6 +28,7 @@ def lab_build_roots() -> set[str]:
             continue
         data = json.loads(manifest.read_text(encoding="utf-8"))
         roots.add(Path(data["build"]["build_dir"]).parts[0])
+        roots.add(Path(data["development"]["build_dir"]).parts[0])
     return roots
 
 
@@ -53,7 +54,15 @@ class WorkflowValidationTests(unittest.TestCase):
         return destination
 
     def test_repository_copy_excludes_every_lab_build_root(self) -> None:
-        self.assertEqual({"build", "build-platform-arm64"}, lab_build_roots())
+        self.assertEqual(
+            {
+                "build",
+                "build-platform-arm64",
+                "build-sdk-pci-x86-64",
+                "build-sdk-platform-arm64",
+            },
+            lab_build_roots(),
+        )
 
     def replace_in_task(
         self, text: str, task_id: str, old: str, new: str
@@ -129,6 +138,28 @@ class WorkflowValidationTests(unittest.TestCase):
             ("docs/sbom-evidence.md", "sbom_evidence_documentation_path"),
             ("scripts/sbom_evidence.py", None),
             ("sbom-evidence.sh", None),
+        ):
+            with self.subTest(relative=relative):
+                root = self.copy_repository()
+                (root / relative).unlink()
+                errors = MODULE.validate(root)
+                self.assertIn(f"missing required file: {relative}", errors)
+                if key is not None:
+                    self.assertIn(
+                        f"configured path is missing: {key}='{relative}'", errors
+                    )
+
+    def test_sdk_iteration_contract_files_are_required(self) -> None:
+        for relative, key in (
+            (
+                "schemas/qemu-edu-sdk-evidence-v1.schema.json",
+                "sdk_evidence_schema_path",
+            ),
+            ("docs/sdk-iteration.md", "sdk_iteration_documentation_path"),
+            ("scripts/sdk_evidence.py", None),
+            ("scripts/sdk_iteration.py", None),
+            ("scripts/sdk_tooling.py", None),
+            ("sdk-test.sh", None),
         ):
             with self.subTest(relative=relative):
                 root = self.copy_repository()

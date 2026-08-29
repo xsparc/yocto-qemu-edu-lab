@@ -34,6 +34,7 @@
       "required_paths": [
         "bin/bitbake",
         "bin/bitbake-getvar",
+        "bin/bitbake-layers",
         "bin/bitbake-setup"
       ]
     },
@@ -49,6 +50,13 @@
       "required_paths": [
         "oe-init-build-env",
         "meta/conf/layer.conf",
+        "scripts/devtool",
+        "scripts/lib/devtool/build.py",
+        "scripts/lib/devtool/deploy.py",
+        "scripts/lib/devtool/ide_sdk.py",
+        "scripts/lib/devtool/ide_plugins/ide_none.py",
+        "scripts/lib/devtool/standard.py",
+        "scripts/runqemu",
         "scripts/yocto-check-layer"
       ]
     },

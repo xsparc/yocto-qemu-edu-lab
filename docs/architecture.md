@@ -130,7 +130,7 @@ human learning       CI / optional tool adapter
 External repositories and revisions must be explicit and lockable. The build
 declaration owns source identity, layer order, machine, image, and configuration
 fragments; caches remain replaceable performance aids, not source of truth.
-The current source-lock version 1 and lab-manifest version 2 declarations are
+The current source-lock version 1 and lab-manifest version 3 declarations are
 project-owned and intentionally map to kas and upstream `bitbake-setup`
 concepts if the source graph later justifies a migration.
 
@@ -216,11 +216,12 @@ dependency. MCP, A2A, and provider SDKs remain outside this boundary.
 
 ### Boundary 7: image-composition evidence
 
-Lab manifest schema 2 adds a closed `supply_chain` contract beside build,
-runtime, and emulator selection. It names the evidence profile and filename,
-the required project package/license pairs, and packages forbidden from the
-other lab. The catalog and manifest digests remain the authority used by every
-wrapper.
+Lab manifest schema 2 introduced a closed `supply_chain` contract beside build,
+runtime, and emulator selection. Schema 3 retains that object unchanged while
+adding the separate development profile described below. Supply-chain fields
+name the evidence profile and filename, required project package/license pairs,
+and forbidden packages. The catalog and manifest digests remain the authority
+used by every wrapper.
 
 `sbom-evidence.sh` is the only build-facing adapter. It verifies exact BitBake
 SPDX settings, removes stale evidence, invokes the selected image's
@@ -245,13 +246,95 @@ SBOMs, image files, package lists outside the project allowlist, host paths,
 timestamps, build variables, logs, and arbitrary SPDX fields are not copied
 into the projection.
 
+### Boundary 8: isolated direct-eSDK application iteration
+
+Lab manifest schema 3 adds one closed `development` profile beside build,
+emulator, runtime, and supply-chain selection. It names a disposable
+`build-sdk-<lab>` root, the fixed `qemu-edu-sdk-sample` recipe and source
+directory, IDE-neutral SDK mode, one `/usr/bin` guest binary, and a versioned
+local evidence filename. The sample is deliberately forbidden from both base
+images, so deployment cannot be confused with image composition.
+
+The direct eSDK uses the exact locked OE-Core build environment rather than a
+standalone installer. The standard-library controller owns the only
+state-changing path:
+
+```text
+lab manifest v3 + exact source/tool/composition preflight
+                  -> closed generated workspace + separate learner source
+                  -> devtool modify/build + IDE-neutral sysroot
+                  -> locked runqemu snapshot/slirp + loopback SSH
+                  -> absent -> deploy -> execute -> undeploy -> absent
+                  -> devtool reset + inert workspace + retained learner source
+                  -> second cold-absence boot + closed pass evidence schema v1
+```
+
+Normal build directories remain authoritative and are never reused as the
+development workspace. The controller atomically removes stale evidence before
+mutation. The tooling preflight parses the fixed command/option literals from
+the exact locked OE-Core sources and requires all build-facing executables to
+resolve to their locked BitBake or OE-Core files; host Bash and OpenSSH remain
+explicit host prerequisites. The fixed `/bin/bash -p` A009 wrapper ignores
+pre-start `BASH_ENV` and imported shell functions, then clears ambient OE build-root,
+source-root, template, BitBake-passthrough, Python, and Git object/config
+overrides before sourcing the locked environment. A repository/source/evidence
+preflight runs before setup. After setup, the controller atomically owns the
+complete SDK `local.conf` and `bblayers.conf` and refuses `site.conf` and
+`auto.conf`, plus BitBake's `toolcfg.conf` and `bblock.conf`, before any
+BitBake parse. The SDK configuration seeds `BBPATH` with a structurally closed,
+controller-owned root containing only the exact `conf/local.conf`. Effective
+`BBPATH` must contain that root exactly once and otherwise contain only declared
+locked layer roots, never the disposable build root or an empty component. The
+locked metadata lane parses both SDK profiles and verifies their effective
+DISTRO, MACHINE, BBLAYERS, and BBPATH. The entrypoint resolves host Git before
+OE setup and keeps that directory ahead of OE-Core's `scripts/git` helper; the
+hardened repository adapter then revalidates the selected executable. Child processes receive only
+the verified locked BitBake library on `PYTHONPATH`, cannot import user-site
+modules or write bytecode into source checkouts, and do not inherit Python or
+shell startup injection variables. The controller accepts only locked runqemu's
+bounded loopback SSH forward. Direct guest checks use a resolved native SSH
+executable with user configuration, identities, proxies, forwarding, and local
+commands disabled. A closed generated `devtool.conf` owns the workspace and is
+reauthenticated before cleanup may invoke devtool.
+Before the layer joins `BBPATH`, the controller pins the exact executable
+statements in the generated Wrynose `layer.conf` and rejects retained plugin code, recipes, appends,
+symbolic links, and unknown entries. The project layer is also forbidden from
+providing a devtool plugin or sample append. The learner-owned source is stored beside,
+not inside, that executable layer so locked `devtool reset` cannot move it into
+a timestamped workspace attic. Recovery validates the exact locked-source form
+of the one generated append and its recipe-relative checksum record before any
+devtool subcommand when the recipe is already known to be modified. A recipe
+rediscovered through the closed inert workspace is reauthenticated before
+reset. Recovery uses `reset --no-clean` and restores the authoritative manifest
+composition without loading an unsafe workspace. The controller hashes the
+bounded regular installed file under the effective recipe `D` root and requires
+the deployed guest path to have the same SHA-256 before execution.
+Devtool deployment uses resolved native `ssh` and `scp` programs through
+temporary wrappers, a shell-safe temporary root, explicit no-strip behavior,
+and the locked `--ssh-exec` option. The controller restores
+recipe/layer/QEMU state on every exit path. Cleanup authenticates bounded raw
+configuration before BitBake or devtool, directly restores the exact base
+composition when layer removal fails, and reaps active children on controlled
+signals. Restorative cleanup completes before pass evidence is published. The
+retained learner source and IDE-neutral output are caller-owned and must be
+moved or archived outside `build-sdk-<lab>` before another run; the controller
+refuses any pre-existing retained source directory or IDE destination and
+does not recursively delete either. The
+validated atomic evidence replacement is the completion boundary; signals
+deferred inside that final transaction are treated as post-completion once the
+document is written and revalidated. It accepts no arbitrary recipe,
+target, path, QEMU argument, SSH host, port, key, or guest command. Deployment
+is a development-only file transfer, not a package-manager transaction or an
+image update. Standalone SDK installers, raw logs, build trees, binaries,
+images, provider adapters, and remote services stay outside the milestone.
+
 ## Scalability and interoperability rules
 
 - Scale through lab manifests and reusable tests, not conditional logic spread
   through shell scripts.
 - Version contracts at repository boundaries: source locks, lab definitions,
-  guest interfaces, runtime evidence, diagnostics, and supply-chain evidence
-  schemas.
+  guest interfaces, runtime evidence, diagnostics, supply-chain evidence, and
+  development-loop evidence schemas.
 - Keep machine-specific metadata in machine or BSP layers and image policy in
   image recipes.
 - Add architectures only with a documented learning objective, maintenance
@@ -285,6 +368,11 @@ into the projection.
 - Optional automation tools start read-only. Any state-changing capability must
   be separately named, approval-gated, and safe against path or argument
   injection.
+- Direct-eSDK mutation is confined to a catalog-selected disposable build root,
+  closed generated workspace layer, separate retained learner source, loopback
+  QEMU target, and fixed sample. Cleanup must undeploy, stop QEMU, reset and
+  revalidate inert workspace metadata, preserve learner source, and remove
+  unqualified evidence on every failure path.
 - Release artifacts should eventually carry SBOM and provenance evidence, but
   the project will not claim a SLSA level until it meets and verifies that
   level's requirements.

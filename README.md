@@ -8,11 +8,13 @@ Linux hardware discovery, kernel drivers, packages, and an image fit together.
 The long-term direction is a progressive, evidence-driven curriculum from this
 first virtual PCI driver through automated runtime testing, MSI, DMA, a
 Device-Tree/platform-driver lab, provider-neutral diagnostics, and bounded
-SPDX image-composition evidence. The
-core build and learning path will remain usable without an AI service. See
+SPDX image-composition evidence, then into isolated direct-eSDK application
+iteration. The core build and learning path will remain usable without an AI
+service; future optional adapters must consume the same closed local contracts.
+See
 [`docs/vision.md`](docs/vision.md) and [`docs/roadmap.md`](docs/roadmap.md).
 
-The current development identity is `0.7.0-dev`; no release is implied. Yocto
+The current development identity is `0.8.0-dev`; no release is implied. Yocto
 metadata inputs are locked to the 6.0.2 Wrynose point release.
 
 Two closed lab manifests share the same locked sources and image target while
@@ -58,6 +60,12 @@ The additive ARM64 lab implements:
 Both lab manifests also declare an SPDX image-evidence profile: three required
 project packages with exact declared licenses, the other lab's forbidden
 package set, and one generated evidence filename.
+
+Manifest schema 3 additionally declares a disposable `build-sdk-<lab>` direct
+eSDK profile for one MIT/libc-only `qemu-edu-sdk-sample`. The sample is
+deliberately absent from both base images. `sdk-test.sh` owns the closed
+modify/build/deploy/execute/undeploy/reset loop without reusing the normal build
+directory or publishing a standalone SDK installer.
 
 Neither lab implements a CPU or board model. The PCI lab uses QEMU's existing
 x86-64 PC machine, and the platform lab uses its existing ARM64 `virt` machine;
@@ -168,6 +176,21 @@ The important output directory is:
 build/tmp/deploy/images/qemu-edu-x86-64/
 build-platform-arm64/tmp/deploy/images/qemu-edu-platform-arm64/
 ```
+
+For the isolated direct-eSDK application exercise, use the separate disposable
+development roots:
+
+```bash
+./sdk-test.sh
+./sdk-test.sh --lab platform-arm64
+```
+
+This is a full local build and two-boot workflow, not a public CI shortcut. It
+accepts no arbitrary target or emulator/SSH arguments, removes unsuccessful
+evidence, owns a closed disposable-build configuration before BitBake, binds
+the deployed binary SHA-256 to the locally built file, preserves the fixed
+learner source after `devtool reset`, and records only a closed pass document.
+See [`docs/sdk-iteration.md`](docs/sdk-iteration.md).
 
 ## 4. Boot in QEMU
 

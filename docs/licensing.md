@@ -20,6 +20,8 @@ having the right to submit their work.
 | Third-party checkouts and build output | Their own licenses; not vendored here | `layers/`, legacy `poky/`, downloads, shared state, and build output are ignored |
 | Diagnostics schema validator wheels | Five MIT packages and one PSF-2.0 package; test execution only | Exact wheels are hash-locked for an isolated CI oracle and are not redistributed in this repository |
 | Generated SPDX image evidence | Generated local build output; not redistributed by this repository | The raw SBOM retains upstream/package data and licenses; the MIT project projection records only selected package/license facts and artifact hashes |
+| Direct-eSDK sample and projected iteration evidence | MIT project source and generated local evidence | The sample is project-local and libc-only; upstream devtool remains external GPL-2.0-only build-time tooling |
+| Native OpenSSH `ssh` and `scp` | SSH-OpenSSH | External A009 host prerequisites used only for bounded loopback transport; no OpenSSH source or binary is redistributed here |
 
 The top-level `LICENSE` summarizes the mixed-license repository and `LICENSES/`
 contains the corresponding SPDX-named license texts.
@@ -74,6 +76,22 @@ boundaries change.
 - Locked external Git checkouts retain their upstream licensing and are not
   covered by this repository's REUSE report. CI tools are fetched for execution
   and are not redistributed in the source tree.
+- A009's sample recipe and C source are MIT. The direct-eSDK and devtool
+  commands come from the exact locked GPL-2.0-only OE-Core checkout and remain
+  external build-time tools. The project does not vendor their source, package
+  them into the guest image, or distribute a standalone SDK installer.
+- A009's publication history is rebuilt directly on squash-merged A008 closeout
+  `8f498899`; the earlier revision containing copied expressive
+  devtool-generated comments is unreachable from the candidate. Exact
+  digest-pinned REUSE 6.2.0 and licensing re-review passed on that rewritten
+  head. A later deletion commit would not be sufficient
+  because it would leave the old blob in public history.
+- A009 additionally requires host OpenSSH `ssh` and `scp` under the SPDX
+  `SSH-OpenSSH` license identifier. GNU Bash remains the established external
+  GPL-3.0-or-later command interpreter. The guest `sha256sum` provider and
+  license are selected by the locked image and must be taken from that image's
+  generated SPDX data rather than assumed by the project. None of these
+  prerequisites is copied into or redistributed from this repository.
 - The diagnostics runtime has no third-party Python dependency. Its independent
   schema job temporarily installs exact wheels for `attrs`, `jsonschema`,
   `jsonschema-specifications`, `referencing`, and `rpds-py` under MIT, plus
