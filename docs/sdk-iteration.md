@@ -233,13 +233,16 @@ qualification volume with 670,073,917,440 bytes available before the final
 rerun. Prior caller-owned SDK outputs and evidence from both superseded clean
 candidates were moved into local
 retention directories; raw build trees and logs remain ignored and local.
-All seven delegated reviews are complete. Draft pull request #14 publishes the
+All seven delegated reviews are complete. Pull request #14 published the
 explicit reconstructed clean branch. Its initial Fast checks passed all four
 jobs; the Yocto metadata lane parsed 956 recipes with zero errors and then
 exposed a missing explicit repository-root argument after OE environment setup
 changed into the build directory. The focused workflow correction preserves
 the exact checks. Corrected code-bearing head `2dd9cd0` passed all four Fast
 checks in run `33246698811` and the complete dual-profile metadata, closed SDK
-configuration, and layer-audit run `33246698836`. A009 and draft pull request
-#14 remain open; no merge, tag, release, standalone SDK, physical-hardware
-result, signing claim, or attestation is claimed.
+configuration, and layer-audit run `33246698836`. Final head `5ca21b1` passed
+Fast checks run `33247507794` and Yocto metadata run `33247507795`. Pull
+request #14 squash-merged as `4dd8c792`; the resulting `main` revision passed
+Fast checks run `33253594345` and Yocto metadata run `33253594300`. A009 is
+Done. No tag, release, standalone SDK, physical-hardware result, signing claim,
+or attestation is claimed.

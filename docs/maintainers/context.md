@@ -5,19 +5,17 @@ SPDX-License-Identifier: MIT
 
 # Project context
 
-- Active task: A009/M8. The repository owner approved an isolated direct-eSDK
-  and devtool application-iteration boundary on 2026-08-20. Manifest schema 3,
-  the MIT/libc-only sample, closed host controller, pass-only evidence schema,
-  and failure-cleanup tests are now the local implementation candidate.
-- Current public baseline: A008 implementation pull request #12 squash-merged
-  as `00ad9521f9c2441fbd72d4340cdd197d46fa5f8a`; closeout pull request #13
-  squash-merged as `8f498899cb71615b99ccd210f1eecd95ebfe69a9`. Historical dual-lab runtime
+- Active task: none. A009/M8 completed the isolated direct-eSDK and devtool
+  application-iteration boundary. Later horizon work remains proposed until
+  separately approved.
+- Current public baseline: A009 pull request #14 squash-merged as
+  `4dd8c7927146ebb37a75ba36106c8a029cb6d549`. Historical dual-lab runtime
   qualification remains bound to clean A005 revision
   `340621afe3108d074e03f638b238d724bc10de5c`. PR #13 Fast checks run
   `32357435690` passed repository, static, and licensing jobs but failed the
   diagnostics-schema adversarial workflow-task fixture; A009 carries the
   focused fixture correction and the exact oracle now passes.
-- Draft pull request #14 publishes only the reconstructed
+- Pull request #14 published only the reconstructed
   `codex/a009-devtool-iteration-clean` branch against `main`. Its first Fast
   checks run `33244639133` passed repository, static, diagnostics-schema, and
   licensing. Yocto metadata run `33244639076` parsed 956 recipes with zero
@@ -28,7 +26,12 @@ SPDX-License-Identifier: MIT
   `2dd9cd0b3876f4af01fc1cf09be207e03fb78af0` passed all four jobs in Fast
   checks run `33246698811` and every step in Yocto metadata run `33246698836`,
   including both ordinary profiles, both closed SDK configurations, and the
-  layer audit. PR #14 remains draft and A009 remains In Progress.
+  layer audit. Final head `5ca21b10c50101573c1f770acb0859f9dcd5df8a`
+  passed Fast checks run `33247507794` and Yocto metadata run `33247507795`.
+  PR #14 squash-merged as `4dd8c7927146ebb37a75ba36106c8a029cb6d549`;
+  that `main` revision passed post-merge Fast checks run `33253594345` and
+  Yocto metadata run `33253594300`. A009 is Done; no tag or release was
+  published.
 - A009 uses one disposable `build-sdk-<lab>` root per selected lab. Normal
   build roots remain authoritative and are not mutated by the development
   workflow. The controller accepts no arbitrary recipe, target, QEMU, SSH, or
@@ -81,8 +84,8 @@ SPDX-License-Identifier: MIT
   quality/documentation, and licensing/history re-reviews approved the
   re-anchor. Publication must use an explicit clean-branch refspec because the
   old unsafe local branch remains outside the publication history. Hosted
-  gates, push, pull request, merge, tag, and release remain open, so A009
-  remains In Progress.
+  pull-request and post-merge hosted gates passed. A009 is Done. Tag and
+  release publication remain unapproved and unclaimed.
 - Baseline: two Yocto 6.0 (`wrynose`) labs: the default x86-64 QEMU EDU PCI
   device `1234:11e8`, and an independent ARM64 `virt` platform device selected
   with `--lab platform-arm64`.
