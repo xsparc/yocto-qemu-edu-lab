@@ -116,9 +116,11 @@ Before another `sdk-test.sh` run for the same lab, move or archive both
 `build-sdk-<lab>/learner-source/qemu-edu-sdk-sample` and
 `build-sdk-<lab>/learner-ide-sdk` outside the selected development build root.
 The learner source retains its compiled binary and devtool inspection links in
-addition to the edited source. The controller intentionally rejects unexpected
-retained source content and an existing IDE destination before mutation; it
-never overwrites or deletes either result.
+addition to the edited source. The controller intentionally rejects any
+pre-existing retained source directory, including an empty or source-only
+result, and an existing IDE destination immediately after the
+clean-repository check and before tooling verification, configuration, QEMU,
+or image-build mutation; it never overwrites or deletes either result.
 
 Status checks use locked `devtool -q status`, so only workspace recipe records
 are interpreted; informational logger output cannot be mistaken for a modified
@@ -197,26 +199,41 @@ not claim protection from a hostile same-UID process racing its local files.
 ## Qualification status
 
 Repository-local controller, cleanup, and schema tests are implementation
-evidence only. The earlier uncommitted candidate passed all 283 repository
-tests in native Linux with no skips. Clean local baseline `733169d` then passed
-286 Windows-visible tests with 32 expected native-Linux skips before delegated
-architecture, quality, and security review. The focused review correction is
-now committed locally after passing 314 Windows-visible tests with 34 expected
-native-Linux skips and closes all four auto-configuration paths through a dedicated
-configuration root, build-root `BBPATH` authority, explicit Linux selection,
-complete process-group reaping, deferred cancellation and restorative cleanup,
-devtool-configuration and project-layer override, effective
-`SRC_URI`, and built/deployed artifact binding findings. Earlier architecture,
-quality, DevOps, security, licensing, documentation, and independent-diff
-reviews approved the pre-qualification snapshot. Final delegated re-review
-remains pending after the real-loop corrections; the corrected native-Linux
-unit suite most recently passed all 314 tests with no skips.
-The hash-locked manylinux schema oracle and clean-revision Yocto metadata,
-build, direct-eSDK, image, SPDX, runtime, and hosted gates remain open. Neither
-unit result is qualified SDK, deployment, image, SPDX, or runtime evidence.
-A009 remains In Progress until one clean adequately sized Linux revision
-completes both lab loops, historical runtime and SPDX requalification, hosted
-gates, and public pull-request review.
-No standalone SDK, release, tag,
-physical-hardware result, signing claim, or attestation follows from this
-interface.
+evidence only. Clean publication implementation revision
+`86daf481ff69f3e515887997aff519393239e56a`, tree
+`d38260ffab599dd3c575510fa326bfcc93a304bb`, is exactly one commit over the
+squash-merged A008 closeout `8f498899cb71615b99ccd210f1eecd95ebfe69a9`
+and does not contain the non-publishable `733169d` history. Its tree is
+byte-identical to qualified revision
+`03840b93aed2cbddb6301eb82643bae655c81486`, which passed all 320 native-Linux
+tests, the exact Draft 2020-12 schema oracles, static and checksum gates, and
+digest-pinned REUSE 130/130. The re-anchored closeout tree passed all 320
+Windows-visible tests with 34 expected POSIX skips and the exact local gates.
+Both network-disabled direct-eSDK loops passed the complete
+absent-build-deploy-execute-undeploy-reset-cold-absence lifecycle: PCI reused
+or completed 4,738 image tasks and ARM64 4,702. Their evidence SHA-256 values
+are `049964cae352006c172b02f2226d8126ff39eb95ed88224de81b702f17e363d1`
+and `b960e3af52eb09125d7681b48025ee4594a64be6556b4e3e53907f351515a09d`.
+These SDK documents and the image/SPDX/runtime documents below remain
+revision-bound to `03840b93`; the history-only re-anchor does not relabel them.
+
+Normal image/SPDX requalification completed 4,667 PCI tasks and 4,631 ARM64
+tasks. Current-input evidence SHA-256 values are
+`c7c6a0b4efb2646580cacfaa4001721aa53aa924bbdb3f8df80c70f5423d5d58`
+and `033760973a635fcc3e21999cc7da72bcb777b51fbe3e39ecabb7e8ddef11ff3c`.
+Software QEMU passed PCI 21/21 and ARM64 11/11 with zero skips, failures, or
+errors; runtime evidence hashes are
+`56ddda2d3dfc418eb6dbbfce192c27afcf6661774c4e470614cad22a45149e91`
+and `52722c5745a9d56e3c767a3c516657cafc1f854ef503ea2623c0173a77e876c3`.
+Qualification used Debian 12 worker image
+`sha256:af7d29095405bc317d1ef1e94e3fa060c04252e9e0df9ba76392c26be684c48b`
+with four CPUs, 14 GiB RAM, network disabled, all capabilities dropped,
+`no-new-privileges`, no KVM device, software QEMU, and a writable local
+qualification volume with 670,073,917,440 bytes available before the final
+rerun. Prior caller-owned SDK outputs and evidence from both superseded clean
+candidates were moved into local
+retention directories; raw build trees and logs remain ignored and local.
+All seven delegated reviews are complete. Hosted gates remain open. A009
+remains In Progress; no push, pull request, merge, tag, release, publication,
+standalone SDK, physical-hardware result, signing claim, or attestation is
+claimed.

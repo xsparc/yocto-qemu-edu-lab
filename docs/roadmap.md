@@ -409,32 +409,40 @@ of the base image's SPDX and historical runtime evidence after schema-3 digest
 changes. A009 is In Progress. Repository-local controller and schema checks are
 not dual-lab SDK, deployment, image, SPDX, or runtime qualification evidence.
 
-Qualification status: an earlier uncommitted implementation candidate passed
-283 repository tests in native Linux with no skips, failures, or errors. A
-later cleanup-authority correction requires an exact active append before any
-cleanup subcommand for a known-modified recipe and again before reset after
-state rediscovery. Exact locked-source review also replaced OE's ambient
-`PYTHONPATH` suffix and user-site imports with the verified BitBake library and
-removed Python and shell startup injection from child commands. The A009 entry
-point now also clears ambient OE root/template, BitBake-passthrough, Python, and
-Git object/config overrides before environment initialization. That current
-candidate became clean local baseline `733169d` after passing 286 tests on
-Windows with 32 expected native-Linux skips. Delegated architecture, quality,
-and security review then identified pre-parse configuration, cancellation,
-cleanup-fallback, platform-gate, project-layer override, metadata, and artifact
-binding gaps. The focused correction is committed locally and passes 314
-Windows-visible tests with 34 expected native-Linux skips after closing the
-additional
-auto-configuration, build-root plugin-search, devtool-configuration, repeated
-cancellation, and complete process-group restoration paths. The earlier Linux
-result predates
-these corrections and is not relabeled. Earlier architecture, quality, DevOps,
-security, licensing, documentation, and independent-diff reviews apply only to
-their pre-qualification snapshots; final-tree re-review remains pending. The corrected
-native-Linux unit suite passes all 314 tests with no skips. The hash-locked
-manylinux schema oracle and exact clean-revision metadata remain open, along
-with both sample builds and direct-eSDK loops, image/SPDX/runtime
-requalification, hosted gates, tag, release, and publication.
+Qualification status: clean publication implementation candidate
+`86daf481ff69f3e515887997aff519393239e56a` is exactly one A009 commit over
+the squash-merged A008 closeout `8f498899cb71615b99ccd210f1eecd95ebfe69a9`,
+has tree
+`d38260ffab599dd3c575510fa326bfcc93a304bb`, and does not contain the known
+non-publishable `733169d` history. That tree is byte-identical to qualified
+implementation `03840b93aed2cbddb6301eb82643bae655c81486`. The complete
+native-Linux suite passed 320/320 at that qualified revision. After the
+history-only re-anchor, the closeout tree passed all 320 Windows-visible tests
+with 34 expected POSIX skips, all three exact schema oracles, source, lab,
+workflow, CI, QEMU, checksum, whitespace, and digest-pinned REUSE 130/130
+gates. Both ordinary metadata profiles and cross-architecture sample builds
+remain qualified. The final correction performs a read-only retained-
+output preflight that rejects every pre-existing learner source directory or IDE
+result before tooling, configuration, QEMU, or image-build mutation.
+
+Both network-disabled direct-eSDK loops passed their full
+absent-build-deploy-execute-undeploy-reset-cold-absence sequence. PCI completed
+or reused 4,738 image tasks and ARM64 completed or reused 4,702; their closed
+SDK evidence SHA-256 values are
+`049964cae352006c172b02f2226d8126ff39eb95ed88224de81b702f17e363d1`
+and `b960e3af52eb09125d7681b48025ee4594a64be6556b4e3e53907f351515a09d`.
+Those revision-bound documents remain attributed to `03840b93`; the re-anchor
+does not relabel or regenerate them.
+Normal image/SPDX requalification then completed 4,667 PCI tasks and 4,631
+ARM64 tasks. The current-input evidence hashes are
+`c7c6a0b4efb2646580cacfaa4001721aa53aa924bbdb3f8df80c70f5423d5d58`
+and `033760973a635fcc3e21999cc7da72bcb777b51fbe3e39ecabb7e8ddef11ff3c`.
+Software QEMU passed all 21 PCI and 11 ARM64 runtime tests with no skips,
+failures, or errors; evidence hashes are
+`56ddda2d3dfc418eb6dbbfce192c27afcf6661774c4e470614cad22a45149e91`
+and `52722c5745a9d56e3c767a3c516657cafc1f854ef503ea2623c0173a77e876c3`.
+All seven delegated reviews are complete. Hosted gates remain open. No A009
+push, pull request, merge, tag, release, or publication is claimed.
 
 The dated primary-source rationale and provider-neutral direction brief are in
 [`research/2026-08-20-m8-direct-esdk-devtool.md`](research/2026-08-20-m8-direct-esdk-devtool.md).

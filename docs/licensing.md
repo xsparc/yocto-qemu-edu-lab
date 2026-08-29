@@ -80,12 +80,12 @@ boundaries change.
   commands come from the exact locked GPL-2.0-only OE-Core checkout and remain
   external build-time tools. The project does not vendor their source, package
   them into the guest image, or distribute a standalone SDK installer.
-- Before A009 is pushed, its local development history must be squashed,
-  amended, or rebuilt from the A008 closeout so the earlier revision containing
-  copied expressive devtool-generated comments is absent from the published
-  branch. Run the exact REUSE and licensing review again on that rewritten head;
-  a later deletion commit is not sufficient because it leaves the old blob in
-  public history.
+- A009's publication history is rebuilt directly on squash-merged A008 closeout
+  `8f498899`; the earlier revision containing copied expressive
+  devtool-generated comments is unreachable from the candidate. Exact
+  digest-pinned REUSE 6.2.0 and licensing re-review passed on that rewritten
+  head. A later deletion commit would not be sufficient
+  because it would leave the old blob in public history.
 - A009 additionally requires host OpenSSH `ssh` and `scp` under the SPDX
   `SSH-OpenSSH` license identifier. GNU Bash remains the established external
   GPL-3.0-or-later command interpreter. The guest `sha256sum` provider and

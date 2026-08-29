@@ -18,4 +18,4 @@ SPDX-License-Identifier: MIT
 | A005 | M5 | Done | Portable ARM64 platform-driver lab | A004 | Squash-merged through pull request #9 as `e2d703e` |
 | A006 | M6 | Done | Provider-neutral lab diagnostics | A005 | Squash-merged through pull request #11 as `b569199` |
 | A008 | M7 | Done | SPDX 3 image-composition evidence | A006 | Squash-merged through pull request #12 as `00ad952` |
-| A009 | M8 | In Progress | Isolated direct-eSDK application iteration | A008 | Run exact dual-profile metadata and clean SDK/image/SPDX/runtime qualification |
+| A009 | M8 | In Progress | Isolated direct-eSDK application iteration | A008 | Run hosted gates, then seek publication authorization |

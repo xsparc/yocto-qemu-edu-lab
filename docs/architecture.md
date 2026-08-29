@@ -318,7 +318,7 @@ composition when layer removal fails, and reaps active children on controlled
 signals. Restorative cleanup completes before pass evidence is published. The
 retained learner source and IDE-neutral output are caller-owned and must be
 moved or archived outside `build-sdk-<lab>` before another run; the controller
-refuses unexpected retained source content and an existing IDE destination and
+refuses any pre-existing retained source directory or IDE destination and
 does not recursively delete either. The
 validated atomic evidence replacement is the completion boundary; signals
 deferred inside that final transaction are treated as post-completion once the

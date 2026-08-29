@@ -11,9 +11,12 @@ SPDX-License-Identifier: MIT
   and failure-cleanup tests are now the local implementation candidate.
 - Current public baseline: A008 implementation pull request #12 squash-merged
   as `00ad9521f9c2441fbd72d4340cdd197d46fa5f8a`; closeout pull request #13
-  squash-merged as `c457cfc8a7b362ceeee50c74722916a7f65453bc`. Historical dual-lab runtime
+  squash-merged as `8f498899cb71615b99ccd210f1eecd95ebfe69a9`. Historical dual-lab runtime
   qualification remains bound to clean A005 revision
-  `340621afe3108d074e03f638b238d724bc10de5c`.
+  `340621afe3108d074e03f638b238d724bc10de5c`. PR #13 Fast checks run
+  `32357435690` passed repository, static, and licensing jobs but failed the
+  diagnostics-schema adversarial workflow-task fixture; A009 carries the
+  focused fixture correction and the exact oracle now passes.
 - A009 uses one disposable `build-sdk-<lab>` root per selected lab. Normal
   build roots remain authoritative and are not mutated by the development
   workflow. The controller accepts no arbitrary recipe, target, QEMU, SSH, or
@@ -24,30 +27,50 @@ SPDX-License-Identifier: MIT
   and requires each build-facing executable to resolve to the locked BitBake
   or OE-Core checkout. Those sources remain external build-time tooling; only
   the project-local MIT, libc-only sample is packaged.
-- The latest controller correction stores retained learner source outside the
-  executable workspace, pins generated Wrynose layer metadata, authenticates
-  the exact active append and checksum before devtool recovery, reuses the
-  bounded repository-state adapter, and refuses retained plugin or path drift.
-  Clean isolated candidate `4d7efdc` is one A009 commit over A008 and excludes
-  the non-publishable `733169d` history. It passed 314/314 native-Linux tests,
-  the exact schema and licensing gates, both metadata profiles, and both
-  933-task sample builds without network access. Its first PCI direct-eSDK
-  image build completed 4,738 tasks, then safely stopped before mutation when
-  ordinary `devtool status` logger text was mistaken for recipe state. The
-  focused correction uses locked quiet status for recipe-only preflight and
-  cleanup. A subsequent real cleanup exposed locked devtool's versioned
-  `qemu-edu-sdk-sample_1.0.bbappend`; the controller now derives and
-  authenticates that exact filename and checksum path from the pinned recipe
-  version. Locked ide-sdk's generated output is atomically retained at the
-  fixed `learner-ide-sdk` sibling before reset, keeping the metadata workspace
-  inert without traversing or executing generated content. Its 56 focused
-  native tests pass. The corrected clean candidate,
-  both direct-eSDK loops, image/SPDX/runtime
-  requalification, and final delegated reviews are still open, so A009 remains
-  In Progress and historical runtime/SPDX results remain stale against current
-  source-lock and schema-3 digests. Before any push, reconstruct A009 from A008
-  closeout `c457cfc`, confirm `733169d` is unreachable, and rerun checksum,
-  exact REUSE, and licensing gates on that reconstructed history.
+- Clean publication implementation candidate
+  `86daf481ff69f3e515887997aff519393239e56a` is one A009 commit over the
+  squash-merged A008 closeout `8f498899cb71615b99ccd210f1eecd95ebfe69a9`;
+  its tree is
+  `d38260ffab599dd3c575510fa326bfcc93a304bb` and the non-publishable
+  `733169d` history is unreachable. That tree is byte-identical to qualified
+  implementation `03840b93aed2cbddb6301eb82643bae655c81486`. It incorporates
+  the real-loop corrections for
+  quiet recipe status, versioned append authentication, retained IDE output,
+  cleanup rediscovery through the exact versioned append, and an early
+  read-only preflight that rejects any pre-existing caller-owned learner source
+  or IDE output before tooling or build mutation. All 320 native-Linux tests,
+  including source-only byte preservation and empty-directory rejection, the
+  exact schema oracles, checksum and static gates, and digest-pinned REUSE
+  130/130 pass. After the history-only re-anchor, the closeout tree again
+  passed all 320 Windows-visible tests with 34 expected POSIX skips, all three
+  exact schema oracles, source, lab, workflow, CI, QEMU, checksum, whitespace,
+  and REUSE 130/130 gates. The build, SDK, image, SPDX, and runtime evidence
+  below remains attributed to `03840b93`; it is not relabeled as evidence for
+  the new commit identity.
+- Both isolated direct-eSDK loops passed without network access. PCI reused or
+  completed all 4,738 image tasks; ARM64 reused or completed all 4,702. Each
+  loop cross-built the fixed sample, retained IDE-neutral output, deployed the
+  artifact through loopback SSH, proved built/deployed SHA-256 identity and
+  exact execution, undeployed it, reset to an inert workspace, retained learner
+  source, and proved cold-boot absence. The closed evidence SHA-256 values are
+  `049964cae352006c172b02f2226d8126ff39eb95ed88224de81b702f17e363d1`
+  for PCI and
+  `b960e3af52eb09125d7681b48025ee4594a64be6556b4e3e53907f351515a09d`
+  for ARM64.
+- Normal schema-3 image/SPDX requalification completed 4,667 PCI tasks and
+  4,631 ARM64 tasks. Current-input evidence validates at SHA-256
+  `c7c6a0b4efb2646580cacfaa4001721aa53aa924bbdb3f8df80c70f5423d5d58`
+  and `033760973a635fcc3e21999cc7da72bcb777b51fbe3e39ecabb7e8ddef11ff3c`.
+  Software-QEMU regression then passed PCI 21/21 and ARM64 11/11 with zero
+  skips, failures, or errors; runtime evidence hashes are
+  `56ddda2d3dfc418eb6dbbfce192c27afcf6661774c4e470614cad22a45149e91`
+  and `52722c5745a9d56e3c767a3c516657cafc1f854ef503ea2623c0173a77e876c3`.
+  All seven delegated reviews are complete. Targeted post-merge architecture,
+  quality/documentation, and licensing/history re-reviews approved the
+  re-anchor. Publication must use an explicit clean-branch refspec because the
+  old unsafe local branch remains outside the publication history. Hosted
+  gates, push, pull request, merge, tag, and release remain open, so A009
+  remains In Progress.
 - Baseline: two Yocto 6.0 (`wrynose`) labs: the default x86-64 QEMU EDU PCI
   device `1234:11e8`, and an independent ARM64 `virt` platform device selected
   with `--lab platform-arm64`.
