@@ -17,6 +17,14 @@ SPDX-License-Identifier: MIT
   `32357435690` passed repository, static, and licensing jobs but failed the
   diagnostics-schema adversarial workflow-task fixture; A009 carries the
   focused fixture correction and the exact oracle now passes.
+- Draft pull request #14 publishes only the reconstructed
+  `codex/a009-devtool-iteration-clean` branch against `main`. Its first Fast
+  checks run `33244639133` passed repository, static, diagnostics-schema, and
+  licensing. Yocto metadata run `33244639076` parsed 956 recipes with zero
+  errors, then failed closed because `environment.sh` had changed into the
+  build directory before the sample-metadata verifier was called without its
+  explicit repository root. The focused correction supplies that root to both
+  lab invocations and adds a regression assertion; hosted reruns remain open.
 - A009 uses one disposable `build-sdk-<lab>` root per selected lab. Normal
   build roots remain authoritative and are not mutated by the development
   workflow. The controller accepts no arbitrary recipe, target, QEMU, SSH, or

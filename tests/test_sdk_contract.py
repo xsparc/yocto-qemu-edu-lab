@@ -106,7 +106,14 @@ class SdkFoundationContractTests(unittest.TestCase):
             encoding="utf-8"
         )
         self.assertEqual(2, workflow.count('--repo "$GITHUB_WORKSPACE" verify'))
-        self.assertEqual(2, workflow.count('scripts/sdk_tooling.py" metadata'))
+        self.assertEqual(
+            2,
+            workflow.count(
+                'scripts/sdk_tooling.py" \\\n'
+                '            --repo "$GITHUB_WORKSPACE" metadata \\\n'
+                "            --lab"
+            ),
+        )
         for lab_id in ("pci-x86-64", "platform-arm64"):
             self.assertIn(f"--lab {lab_id}", workflow)
         for variable in ("PN", "PV", "LICENSE", "COMPATIBLE_MACHINE", "FILE"):

@@ -441,8 +441,13 @@ Software QEMU passed all 21 PCI and 11 ARM64 runtime tests with no skips,
 failures, or errors; evidence hashes are
 `56ddda2d3dfc418eb6dbbfce192c27afcf6661774c4e470614cad22a45149e91`
 and `52722c5745a9d56e3c767a3c516657cafc1f854ef503ea2623c0173a77e876c3`.
-All seven delegated reviews are complete. Hosted gates remain open. No A009
-push, pull request, merge, tag, release, or publication is claimed.
+All seven delegated reviews are complete. Draft pull request #14 publishes the
+explicit reconstructed clean branch. Initial Fast checks passed all four jobs;
+the metadata lane parsed 956 recipes with zero errors, then its sample verifier
+failed closed because the OE environment had changed into the build directory
+and the workflow omitted the explicit repository root. The focused invocation
+correction awaits hosted rerun. No merge, tag, release, or artifact publication
+is claimed.
 
 The dated primary-source rationale and provider-neutral direction brief are in
 [`research/2026-08-20-m8-direct-esdk-devtool.md`](research/2026-08-20-m8-direct-esdk-devtool.md).

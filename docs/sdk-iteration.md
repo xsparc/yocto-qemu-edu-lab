@@ -233,7 +233,11 @@ qualification volume with 670,073,917,440 bytes available before the final
 rerun. Prior caller-owned SDK outputs and evidence from both superseded clean
 candidates were moved into local
 retention directories; raw build trees and logs remain ignored and local.
-All seven delegated reviews are complete. Hosted gates remain open. A009
-remains In Progress; no push, pull request, merge, tag, release, publication,
-standalone SDK, physical-hardware result, signing claim, or attestation is
-claimed.
+All seven delegated reviews are complete. Draft pull request #14 publishes the
+explicit reconstructed clean branch. Its initial Fast checks passed all four
+jobs; the Yocto metadata lane parsed 956 recipes with zero errors and then
+exposed a missing explicit repository-root argument after OE environment setup
+changed into the build directory. The focused workflow correction preserves
+the exact metadata checks and awaits hosted rerun. A009 remains In Progress;
+no merge, tag, release, standalone SDK, physical-hardware result, signing claim,
+or attestation is claimed.

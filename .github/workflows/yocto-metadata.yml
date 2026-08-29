@@ -117,7 +117,8 @@ jobs:
           SDK_COMPATIBLE=$(bitbake-getvar --value --recipe qemu-edu-sdk-sample COMPATIBLE_MACHINE)
           SDK_SRC_URI=$(bitbake-getvar --value --recipe qemu-edu-sdk-sample SRC_URI)
           SDK_FILE=$(bitbake-getvar --value --recipe qemu-edu-sdk-sample FILE)
-          python3 "$GITHUB_WORKSPACE/scripts/sdk_tooling.py" metadata \
+          python3 "$GITHUB_WORKSPACE/scripts/sdk_tooling.py" \
+            --repo "$GITHUB_WORKSPACE" metadata \
             --lab pci-x86-64 \
             --pn "$SDK_PN" \
             --pv "$SDK_PV" \
@@ -190,7 +191,8 @@ jobs:
           SDK_COMPATIBLE=$(bitbake-getvar --value --recipe qemu-edu-sdk-sample COMPATIBLE_MACHINE)
           SDK_SRC_URI=$(bitbake-getvar --value --recipe qemu-edu-sdk-sample SRC_URI)
           SDK_FILE=$(bitbake-getvar --value --recipe qemu-edu-sdk-sample FILE)
-          python3 "$GITHUB_WORKSPACE/scripts/sdk_tooling.py" metadata \
+          python3 "$GITHUB_WORKSPACE/scripts/sdk_tooling.py" \
+            --repo "$GITHUB_WORKSPACE" metadata \
             --lab platform-arm64 \
             --pn "$SDK_PN" \
             --pv "$SDK_PV" \
