@@ -5,9 +5,11 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -25,11 +27,20 @@ class ConfigureBuildTests(unittest.TestCase):
             (ROOT / f"config/labs/{lab}.json").read_text(encoding="utf-8")
         )
 
-    def fixture(self, local_conf: str = 'CONF_VERSION = "2"\n') -> tuple[Path, Path]:
+    def fixture(
+        self,
+        local_conf: str = 'CONF_VERSION = "2"\n',
+        *,
+        sdk: bool = False,
+    ) -> tuple[Path, Path]:
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
         root = Path(temporary.name).resolve()
-        build_dir = root / "build"
+        build_dir = (
+            root / self.manifest()["development"]["build_dir"]
+            if sdk
+            else root / "build"
+        )
         conf_dir = build_dir / "conf"
         conf_dir.mkdir(parents=True)
         (conf_dir / "local.conf").write_text(local_conf, encoding="utf-8")
@@ -44,6 +55,75 @@ class ConfigureBuildTests(unittest.TestCase):
         positions = [text.index(layer) for layer in MODULE.expected_layers(root, data)]
         self.assertEqual(sorted(positions), positions)
         self.assertNotIn("old layers", text)
+
+    def test_sdk_configuration_replaces_all_parsed_input_and_pins_workspace(self) -> None:
+        root, build_dir = self.fixture('require conf/untrusted.conf\n', sdk=True)
+        data = self.manifest()
+        workspace = build_dir / "workspace"
+        MODULE.configure_sdk(root, build_dir, data, workspace=workspace)
+        self.assertEqual(
+            MODULE.render_sdk_local_conf(data),
+            (build_dir / "conf/local.conf").read_text(encoding="utf-8"),
+        )
+        self.assertEqual(
+            MODULE.render_sdk_bblayers(root, data, workspace=workspace),
+            (build_dir / "conf/bblayers.conf").read_text(encoding="utf-8"),
+        )
+        sdk_layers = (build_dir / "conf/bblayers.conf").read_text(encoding="utf-8")
+        self.assertIn(
+            f'BBPATH = "{MODULE.sdk_configuration_root(root, data)}"',
+            sdk_layers,
+        )
+        self.assertNotIn('BBPATH = "${TOPDIR}"', sdk_layers)
+        self.assertNotIn('BBPATH = ""', sdk_layers)
+        configuration_root = MODULE.sdk_configuration_root(root, data)
+        self.assertEqual(
+            MODULE.render_sdk_local_conf(data),
+            (configuration_root / "conf/local.conf").read_text(encoding="utf-8"),
+        )
+        self.assertFalse((configuration_root / "lib/devtool").exists())
+
+    def test_sdk_configuration_rejects_automatic_side_configuration(self) -> None:
+        for name in MODULE.AUTOMATIC_BUILD_CONFIGURATION:
+            with self.subTest(name=name):
+                root, build_dir = self.fixture(sdk=True)
+                (build_dir / f"conf/{name}").write_text(
+                    'BBPATH = "/tmp/untrusted"\n', encoding="utf-8"
+                )
+                with self.assertRaisesRegex(MODULE.ConfigurationError, name):
+                    MODULE.configure_sdk(root, build_dir, self.manifest())
+                self.assertEqual(
+                    "old layers\n",
+                    (build_dir / "conf/bblayers.conf").read_text(encoding="utf-8"),
+                )
+
+    @unittest.skipUnless(os.name == "posix", "symlink contract requires POSIX")
+    def test_sdk_configuration_rejects_symlinked_automatic_configuration(self) -> None:
+        for name in MODULE.AUTOMATIC_BUILD_CONFIGURATION:
+            with self.subTest(name=name):
+                root, build_dir = self.fixture(sdk=True)
+                outside = root / f"outside-{name}"
+                outside.write_text('BBPATH = "/tmp/untrusted"\n', encoding="utf-8")
+                (build_dir / f"conf/{name}").symlink_to(outside)
+                with self.assertRaisesRegex(MODULE.ConfigurationError, name):
+                    MODULE.configure_sdk(root, build_dir, self.manifest())
+                self.assertEqual(
+                    "old layers\n",
+                    (build_dir / "conf/bblayers.conf").read_text(encoding="utf-8"),
+                )
+
+    def test_sdk_configuration_rejects_unexpected_bbpath_root_state(self) -> None:
+        root, build_dir = self.fixture(sdk=True)
+        data = self.manifest()
+        override = MODULE.sdk_configuration_root(root, data) / "lib/devtool"
+        override.mkdir(parents=True)
+        (override / "deploy.py").write_text("raise RuntimeError\n", encoding="utf-8")
+        with self.assertRaisesRegex(MODULE.ConfigurationError, "unexpected state"):
+            MODULE.configure_sdk(root, build_dir, data)
+        self.assertEqual(
+            "old layers\n",
+            (build_dir / "conf/bblayers.conf").read_text(encoding="utf-8"),
+        )
 
     def test_managed_local_values_are_last(self) -> None:
         data = self.manifest()
@@ -117,6 +197,56 @@ MACHINE = "experimental"
             bblayers=" ".join(MODULE.expected_layers(root, data)),
         )
         self.assertTrue(any("MACHINE resolved" in error for error in errors))
+
+    def test_sdk_effective_values_require_closed_nonempty_bbpath(self) -> None:
+        data = self.manifest()
+        root, build_dir = self.fixture(sdk=True)
+        configuration_path = Path("/repository/build-sdk/.qemu-edu-config")
+        configuration_root = str(configuration_path)
+        layers = ["/repository/layers/core", "/repository/meta-qemu-edu"]
+        with (
+            patch.object(MODULE, "expected_layers", return_value=layers),
+            patch.object(
+                MODULE,
+                "sdk_configuration_root",
+                return_value=configuration_path,
+            ),
+        ):
+            self.assertEqual(
+                [],
+                MODULE.sdk_effective_errors(
+                    root,
+                    data,
+                    build_dir=build_dir,
+                    distro=data["build"]["distro"],
+                    machine=data["build"]["machine"],
+                    bblayers=" ".join(layers),
+                    bbpath=os.pathsep.join(
+                        [layers[0], configuration_root, layers[1]]
+                    ),
+                ),
+            )
+            for bbpath in (
+                os.pathsep + os.pathsep.join(layers),
+                os.pathsep.join([str(build_dir), *layers]),
+                os.pathsep.join([configuration_root, str(build_dir), *layers]),
+                os.pathsep.join([configuration_root, "/tmp/undeclared", *layers]),
+                os.pathsep.join(
+                    [configuration_root, *layers, configuration_root]
+                ),
+            ):
+                with self.subTest(bbpath=bbpath):
+                    self.assertTrue(
+                        MODULE.sdk_effective_errors(
+                            root,
+                            data,
+                            build_dir=build_dir,
+                            distro=data["build"]["distro"],
+                            machine=data["build"]["machine"],
+                            bblayers=" ".join(layers),
+                            bbpath=bbpath,
+                        )
+                    )
 
     def test_arm_manifest_selects_independent_machine_and_same_layer_order(self) -> None:
         root, build_dir = self.fixture()

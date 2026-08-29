@@ -65,7 +65,8 @@ checked semantically without relabeling it as current.
 
 ## Manifest contract
 
-Lab manifest schema 2 adds one closed `supply_chain` object:
+Lab manifest schema 2 introduced one closed `supply_chain` object. Current
+schema 3 retains that object unchanged and adds a separate development profile:
 
 - `evidence_profile` is exactly `spdx3-image-v1`;
 - `evidence_filename` is the fixed basename above;

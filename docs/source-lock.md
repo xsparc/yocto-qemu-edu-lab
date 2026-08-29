@@ -45,6 +45,13 @@ python3 scripts/source_lock.py sync --offline
 read-only checkout check, and `./setup.sh --offline` configures from cached Git
 objects. Repeated setup of the exact state is idempotent.
 
+The required-path set includes the BitBake command entry points and the
+OE-Core `devtool`, `runqemu`, standard, deployment, and IDE-SDK plugin sources
+used by M8. `scripts/sdk_tooling.py` parses that fixed interface from the clean
+locked commits and, inside an initialized build environment, requires every
+build-facing executable to resolve to the corresponding locked checkout. Host
+`bash` and OpenSSH remain host dependencies rather than locked project source.
+
 ## Safety behavior
 
 All source paths must be normalized repository-relative paths below `layers/`.

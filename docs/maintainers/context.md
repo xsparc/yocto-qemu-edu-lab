@@ -5,13 +5,49 @@ SPDX-License-Identifier: MIT
 
 # Project context
 
-- Active task: none. A008/M7 completed the manifest-schema-2, locked OE-Core
-  parser, bounded local collector, and standard-library-only SPDX evidence
-  boundary. Later horizon work remains proposed until separately approved.
-- Current public baseline: A008 pull request #12 squash-merge
-  `00ad9521f9c2441fbd72d4340cdd197d46fa5f8a`. Historical dual-lab runtime
+- Active task: A009/M8. The repository owner approved an isolated direct-eSDK
+  and devtool application-iteration boundary on 2026-08-20. Manifest schema 3,
+  the MIT/libc-only sample, closed host controller, pass-only evidence schema,
+  and failure-cleanup tests are now the local implementation candidate.
+- Current public baseline: A008 implementation pull request #12 squash-merged
+  as `00ad9521f9c2441fbd72d4340cdd197d46fa5f8a`; closeout pull request #13
+  squash-merged as `c457cfc8a7b362ceeee50c74722916a7f65453bc`. Historical dual-lab runtime
   qualification remains bound to clean A005 revision
   `340621afe3108d074e03f638b238d724bc10de5c`.
+- A009 uses one disposable `build-sdk-<lab>` root per selected lab. Normal
+  build roots remain authoritative and are not mutated by the development
+  workflow. The controller accepts no arbitrary recipe, target, QEMU, SSH, or
+  path arguments; it operates only on the schema-3 profile and removes
+  unqualified evidence on failure.
+- A009 does not publish a standalone SDK installer. Its preflight parses the
+  fixed command interface from the clean locked GPL-2.0-only OE-Core sources
+  and requires each build-facing executable to resolve to the locked BitBake
+  or OE-Core checkout. Those sources remain external build-time tooling; only
+  the project-local MIT, libc-only sample is packaged.
+- The latest controller correction stores retained learner source outside the
+  executable workspace, pins generated Wrynose layer metadata, authenticates
+  the exact active append and checksum before devtool recovery, reuses the
+  bounded repository-state adapter, and refuses retained plugin or path drift.
+  Clean isolated candidate `4d7efdc` is one A009 commit over A008 and excludes
+  the non-publishable `733169d` history. It passed 314/314 native-Linux tests,
+  the exact schema and licensing gates, both metadata profiles, and both
+  933-task sample builds without network access. Its first PCI direct-eSDK
+  image build completed 4,738 tasks, then safely stopped before mutation when
+  ordinary `devtool status` logger text was mistaken for recipe state. The
+  focused correction uses locked quiet status for recipe-only preflight and
+  cleanup. A subsequent real cleanup exposed locked devtool's versioned
+  `qemu-edu-sdk-sample_1.0.bbappend`; the controller now derives and
+  authenticates that exact filename and checksum path from the pinned recipe
+  version. Locked ide-sdk's generated output is atomically retained at the
+  fixed `learner-ide-sdk` sibling before reset, keeping the metadata workspace
+  inert without traversing or executing generated content. Its 56 focused
+  native tests pass. The corrected clean candidate,
+  both direct-eSDK loops, image/SPDX/runtime
+  requalification, and final delegated reviews are still open, so A009 remains
+  In Progress and historical runtime/SPDX results remain stale against current
+  source-lock and schema-3 digests. Before any push, reconstruct A009 from A008
+  closeout `c457cfc`, confirm `733169d` is unreachable, and rerun checksum,
+  exact REUSE, and licensing gates on that reconstructed history.
 - Baseline: two Yocto 6.0 (`wrynose`) labs: the default x86-64 QEMU EDU PCI
   device `1234:11e8`, and an independent ARM64 `virt` platform device selected
   with `--lab platform-arm64`.
@@ -198,4 +234,57 @@ SPDX-License-Identifier: MIT
   `32231165395` and Yocto metadata run `32231165336`; pull request #12
   squash-merged as `00ad9521f9c2441fbd72d4340cdd197d46fa5f8a`. A008 is Done.
   No tag or release was published.
+- A009 advances the development identity to `0.8.0-dev` and the lab manifests
+  to schema 3. It adds one isolated direct-eSDK profile per lab, a fixed
+  MIT/libc-only userspace sample, a separate retained learner-source tree, and
+  a bounded controller for exact devtool, software-QEMU, loopback SSH,
+  deployment, execution, undeployment, reset, cleanup, and closed local
+  evidence. The sample remains forbidden from both authoritative base images.
+- An earlier uncommitted A009 line passed all 283 repository tests in a native
+  Linux CPython 3.12 environment with no skips, failures, or errors. A later
+  cleanup-authority correction now requires the exact active append before any
+  cleanup subcommand for a known-modified recipe and reauthenticates a
+  rediscovered recipe before reset. Exact locked-source review then replaced
+  OE's preserved ambient Python module path and user-site imports with the
+  verified BitBake library and removed Python and shell startup injection from
+  child commands. The A009 entrypoint also clears ambient OE root/template,
+  BitBake-passthrough, Python, and Git object/config overrides before sourcing
+  the exact environment. The corrected candidate passes 286 tests on Windows
+  with 32 expected native-Linux skips; the earlier Linux result is not
+  relabeled. The review also closed retained-workspace plugin, metadata,
+  source-preservation, append-authenticity, and bounded Git-state seams. This
+  became clean local baseline `733169d` after passing 286 Windows-visible tests
+  with 32 expected native-Linux skips. Delegated architecture, quality, and
+  security review then identified pre-parse configuration, cancellation,
+  cleanup-fallback, Linux-gate, project-layer override, effective-metadata, and
+  artifact-binding gaps. The focused correction is now committed locally and
+  gives the controller complete atomic SDK configuration ownership before BitBake,
+  excludes all automatic side configuration, build-root and empty `BBPATH`
+  search components, authenticates devtool configuration and cleanup before
+  parser commands, reaps complete interrupted process groups, defers repeated
+  cancellation through restorative cleanup, forbids project devtool/sample
+  append overrides, verifies effective `SRC_URI`, and binds the guest binary to
+  the locally built artifact SHA-256. It passes 314 Windows-visible tests with
+  34 expected native-Linux skips. Earlier architecture, quality, DevOps,
+  security, licensing, documentation, and independent-diff reviews approved
+  their pre-qualification snapshots. Those reviews predate later real-loop
+  corrections and remain historical input, not final-tree approval. The corrected native-Linux unit suite passes all 314 tests with
+  no skips. Clean isolated candidate `f42889b` also passes the hash-locked
+  schema oracle, exact digest-pinned REUSE, and both ordinary metadata profiles.
+  The first closed direct-eSDK parse exposed Wrynose's legitimate insertion of
+  declared locked layer roots around the seeded private configuration root. The
+  corrected effective-path contract requires that private root exactly once and
+  otherwise permits only declared locked layers; build-root, empty, undeclared,
+  project-plugin, and workspace authority remain rejected. Rewritten candidate
+  `a9986c2` passes those corrected gates, both ordinary metadata profiles, and
+  both cross-architecture sample builds. Its first PCI direct-eSDK attempt then
+  failed closed before mutation because OE-Core's environment prepended its
+  `scripts/git` helper ahead of native Git. The entrypoint correction resolves
+  host Git before OE setup and keeps it ahead of that helper while retaining the
+  hardened repository and locked build-tool checks. The next clean candidate,
+  corrected native/schema/metadata/sample gates, both direct-eSDK loops,
+  image/SPDX/runtime requalification, re-review, hosted gates, publication,
+  tag, and release remain open.
+  The pre-push history reconstruction and licensing revalidation gate recorded
+  above is mandatory for this handoff.
 - Public workflow state uses tool-neutral maintainer paths while preserving the same task, approval, validation, review, and handoff semantics.

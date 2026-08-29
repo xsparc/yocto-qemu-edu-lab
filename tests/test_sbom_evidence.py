@@ -36,7 +36,7 @@ def sample_evidence(lab_id: str = "pci-x86-64") -> dict:
         "kind": MODULE.KIND,
         "project": {
             "name": MODULE.PROJECT_NAME,
-            "version": "0.7.0-dev",
+            "version": (ROOT / "VERSION").read_text(encoding="utf-8").strip(),
             "revision": "1" * 40,
             "dirty": False,
         },

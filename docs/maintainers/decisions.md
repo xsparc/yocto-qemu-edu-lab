@@ -263,3 +263,59 @@ SPDX-License-Identifier: MIT
   supported lab package sets change, or a protected release workflow has a
   separately approved signing and publication requirement. Any revision must
   preserve historical schema-1 evidence validation and requalify both labs.
+
+## D-019: Isolate direct-eSDK iteration from authoritative lab builds
+
+- Status: Accepted on 2026-08-20 for A009; publication, merge, tag, release,
+  SDK distribution, and provider integration are not authorized by this
+  decision.
+- Decision: Advance the development identity to `0.8.0-dev` and the lab
+  manifest contract to schema 3. Give each lab one closed
+  `direct-esdk-devtool-v1` profile with a disposable build root, fixed MIT
+  sample recipe and source path, IDE-neutral SDK mode, fixed guest binary, and
+  versioned local evidence filename. The later host controller may invoke only
+  the exact locked direct-eSDK, devtool, runqemu, loopback SSH, deploy,
+  undeploy, and reset sequence selected by that profile. The retained learner
+  source is the only durable project-owned mutation and stays in a declared
+  sibling directory outside the generated workspace layer. Normal build roots,
+  historical evidence schemas, and base images remain outside its mutation
+  authority. Recovery treats generated checksums only as byte-integrity records
+  and requires the active append's exact locked-source-derived form before any
+  devtool cleanup subcommand. The SDK controller, rather than a caller-facing
+  setup command, owns complete atomic `local.conf` and `bblayers.conf` bytes;
+  it rejects automatically parsed side configuration and authenticates raw
+  composition before invoking BitBake or devtool during recovery. Its SDK
+  configuration seeds `BBPATH` with a structurally closed root containing only
+  the exact `conf/local.conf`; the effective path must contain that root exactly
+  once and otherwise contain only declared locked layers, never the disposable
+  build root or an empty search component. Cleanup reauthenticates the closed
+  `devtool.conf` before use. Host Git is resolved before OE setup and kept ahead
+  of the locked source tree's `scripts/git` helper so repository evidence
+  continues to use the hardened native adapter after environment activation.
+  Cancellation is deferred across the restorative critical section.
+  The critical section reaps complete child process groups. Restoration
+  finishes before evidence publication; the final validated atomic replacement
+  is the success commit point, so a signal deferred inside that transaction is
+  treated as post-completion. The project
+  layer may not extend the devtool plugin namespace or append the fixed sample.
+  Passing execution also binds the guest SHA-256 to the bounded regular file
+  produced under the effective recipe install root.
+- Reason: Yocto documents direct eSDK use inside a normal build as the smaller
+  maintenance path when a standalone installer is unnecessary. A libc-only
+  sample avoids deploy-target's intentional omission of runtime dependency
+  installation. Per-lab disposable roots make reset and rollback teachable
+  without silently changing the already-qualified normal configurations.
+- Licensing boundary: the sample, recipe, controller, tests, and projected
+  evidence are MIT. The exact locked upstream devtool plugins are
+  GPL-2.0-only external build-time tooling in the ignored OE-Core checkout;
+  they are neither copied nor redistributed by the project.
+- Evidence boundary: M8 must prove absent, deploy, execute, undeploy, absent,
+  built/deployed artifact identity, reset, and cold-boot absence for both labs
+  at one clean revision. It does not
+  produce a standalone SDK, package-manager transaction, production update,
+  release artifact, hosted attestation, physical-hardware result, or general
+  remote-execution API.
+- Revisit when: a separately approved course distribution needs a standalone
+  SDK, a new sample requires non-base runtime dependencies, or a read-only
+  adapter needs the closed evidence. Any expansion requires a new threat,
+  licensing, resource, and publication review.

@@ -13,6 +13,9 @@ on:
       - "scripts/qemu_security_preflight.sh"
       - "scripts/verify_qemu_security.py"
       - "scripts/sbom_evidence.py"
+      - "scripts/sdk_evidence.py"
+      - "scripts/sdk_iteration.py"
+      - "scripts/sdk_tooling.py"
       - "setup.sh"
       - "environment.sh"
       - "build.sh"
@@ -20,6 +23,8 @@ on:
       - "run.sh"
       - "runtime-test.sh"
       - "sbom-evidence.sh"
+      - "sdk-test.sh"
+      - "schemas/qemu-edu-sdk-evidence-v1.schema.json"
       - "Makefile"
       - "meta-qemu-edu/**"
   push:
@@ -34,6 +39,9 @@ on:
       - "scripts/qemu_security_preflight.sh"
       - "scripts/verify_qemu_security.py"
       - "scripts/sbom_evidence.py"
+      - "scripts/sdk_evidence.py"
+      - "scripts/sdk_iteration.py"
+      - "scripts/sdk_tooling.py"
       - "setup.sh"
       - "environment.sh"
       - "build.sh"
@@ -41,6 +49,8 @@ on:
       - "run.sh"
       - "runtime-test.sh"
       - "sbom-evidence.sh"
+      - "sdk-test.sh"
+      - "schemas/qemu-edu-sdk-evidence-v1.schema.json"
       - "Makefile"
       - "meta-qemu-edu/**"
   workflow_dispatch:
@@ -99,6 +109,22 @@ jobs:
           ./inspect.sh
           # shellcheck source=environment.sh
           source ./environment.sh
+          python3 "$GITHUB_WORKSPACE/scripts/sdk_tooling.py" \
+            --repo "$GITHUB_WORKSPACE" verify
+          SDK_PN=$(bitbake-getvar --value --recipe qemu-edu-sdk-sample PN)
+          SDK_PV=$(bitbake-getvar --value --recipe qemu-edu-sdk-sample PV)
+          SDK_LICENSE=$(bitbake-getvar --value --recipe qemu-edu-sdk-sample LICENSE)
+          SDK_COMPATIBLE=$(bitbake-getvar --value --recipe qemu-edu-sdk-sample COMPATIBLE_MACHINE)
+          SDK_SRC_URI=$(bitbake-getvar --value --recipe qemu-edu-sdk-sample SRC_URI)
+          SDK_FILE=$(bitbake-getvar --value --recipe qemu-edu-sdk-sample FILE)
+          python3 "$GITHUB_WORKSPACE/scripts/sdk_tooling.py" metadata \
+            --lab pci-x86-64 \
+            --pn "$SDK_PN" \
+            --pv "$SDK_PV" \
+            --license "$SDK_LICENSE" \
+            --compatible-machine "$SDK_COMPATIBLE" \
+            --source-uri "$SDK_SRC_URI" \
+            --recipe-file "$SDK_FILE"
           bitbake -p
           SHOW_APPENDS="$RUNNER_TEMP/qemu-system-native-appends.txt"
           bitbake-layers show-appends qemu-system-native | tee "$SHOW_APPENDS"
@@ -156,6 +182,22 @@ jobs:
           export QEMU_EDU_LAB=platform-arm64
           # shellcheck source=environment.sh
           source ./environment.sh
+          python3 "$GITHUB_WORKSPACE/scripts/sdk_tooling.py" \
+            --repo "$GITHUB_WORKSPACE" verify
+          SDK_PN=$(bitbake-getvar --value --recipe qemu-edu-sdk-sample PN)
+          SDK_PV=$(bitbake-getvar --value --recipe qemu-edu-sdk-sample PV)
+          SDK_LICENSE=$(bitbake-getvar --value --recipe qemu-edu-sdk-sample LICENSE)
+          SDK_COMPATIBLE=$(bitbake-getvar --value --recipe qemu-edu-sdk-sample COMPATIBLE_MACHINE)
+          SDK_SRC_URI=$(bitbake-getvar --value --recipe qemu-edu-sdk-sample SRC_URI)
+          SDK_FILE=$(bitbake-getvar --value --recipe qemu-edu-sdk-sample FILE)
+          python3 "$GITHUB_WORKSPACE/scripts/sdk_tooling.py" metadata \
+            --lab platform-arm64 \
+            --pn "$SDK_PN" \
+            --pv "$SDK_PV" \
+            --license "$SDK_LICENSE" \
+            --compatible-machine "$SDK_COMPATIBLE" \
+            --source-uri "$SDK_SRC_URI" \
+            --recipe-file "$SDK_FILE"
           bitbake -p
           SHOW_APPENDS="$RUNNER_TEMP/qemu-system-native-platform-appends.txt"
           bitbake-layers show-appends qemu-system-native | tee "$SHOW_APPENDS"
@@ -205,6 +247,30 @@ jobs:
             --repo "$GITHUB_WORKSPACE" \
             --lab platform-arm64 \
             preflight "${SPDX_ARGS[@]}"
+      - name: Parse closed direct-eSDK configurations
+        run: |
+          for lab in pci-x86-64 platform-arm64; do
+            SDK_BUILD_RELATIVE=$(python3 scripts/lab_config.py \
+              --lab "$lab" get development.build_dir)
+            (
+              export QEMU_EDU_LAB="$lab"
+              export BUILD_DIR="$GITHUB_WORKSPACE/$SDK_BUILD_RELATIVE"
+              # shellcheck source=environment.sh
+              source "$GITHUB_WORKSPACE/environment.sh"
+              python3 "$GITHUB_WORKSPACE/scripts/configure_build.py" \
+                --repo "$GITHUB_WORKSPACE" --lab "$lab" \
+                configure-sdk --build-dir "$BUILD_DIR"
+              SDK_DISTRO=$(bitbake-getvar --value DISTRO)
+              SDK_MACHINE=$(bitbake-getvar --value MACHINE)
+              SDK_BBLAYERS=$(bitbake-getvar --value BBLAYERS)
+              SDK_BBPATH=$(bitbake-getvar --value BBPATH)
+              python3 "$GITHUB_WORKSPACE/scripts/configure_build.py" \
+                --repo "$GITHUB_WORKSPACE" --lab "$lab" \
+                verify-sdk --build-dir "$BUILD_DIR" \
+                --distro "$SDK_DISTRO" --machine "$SDK_MACHINE" \
+                --bblayers "$SDK_BBLAYERS" --bbpath "$SDK_BBPATH"
+            )
+          done
       - name: Check the project layer
         run: |
           CHECK_LAYER_BUILD_DIR="$RUNNER_TEMP/yocto-check-layer-build"

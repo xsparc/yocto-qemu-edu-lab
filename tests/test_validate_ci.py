@@ -73,6 +73,11 @@ class CiValidationTests(unittest.TestCase):
             "runtime-test.sh",
             "scripts/sbom_evidence.py",
             "sbom-evidence.sh",
+            "scripts/sdk_evidence.py",
+            "scripts/sdk_iteration.py",
+            "scripts/sdk_tooling.py",
+            "sdk-test.sh",
+            "schemas/qemu-edu-sdk-evidence-v1.schema.json",
         ):
             with self.subTest(path=path):
                 errors = MODULE.validate_metadata_paths(
@@ -81,6 +86,16 @@ class CiValidationTests(unittest.TestCase):
                 self.assertTrue(
                     any("pull_request paths omit" in error for error in errors)
                 )
+
+    def test_metadata_lane_parses_both_closed_sdk_configurations(self) -> None:
+        text = (ROOT / ".github/workflows/yocto-metadata.yml").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("Parse closed direct-eSDK configurations", text)
+        self.assertIn("for lab in pci-x86-64 platform-arm64", text)
+        self.assertIn("configure-sdk --build-dir", text)
+        self.assertIn("SDK_BBPATH=$(bitbake-getvar --value BBPATH)", text)
+        self.assertIn("verify-sdk --build-dir", text)
 
     def test_full_action_sha_is_required(self) -> None:
         path = self.workflow(SAFE.replace(

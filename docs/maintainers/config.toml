@@ -26,6 +26,8 @@ diagnostics_schema_validator_lock_path = "config/diagnostics-schema-validator.lo
 diagnostics_documentation_path = "docs/diagnostics.md"
 sbom_evidence_schema_path = "schemas/qemu-edu-sbom-evidence-v1.schema.json"
 sbom_evidence_documentation_path = "docs/sbom-evidence.md"
+sdk_evidence_schema_path = "schemas/qemu-edu-sdk-evidence-v1.schema.json"
+sdk_iteration_documentation_path = "docs/sdk-iteration.md"
 
 validation_commands = [
   "python3 scripts/source_lock.py validate",

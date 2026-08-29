@@ -23,7 +23,7 @@ from source_lock import LockError, locked_path, read_lock  # noqa: E402
 
 
 INDEX_SCHEMA_VERSION = 1
-MANIFEST_SCHEMA_VERSION = 2
+MANIFEST_SCHEMA_VERSION = 3
 DEFAULT_INDEX = "config/labs/index.json"
 DEFAULT_SOURCE_LOCK = "config/sources.lock.json"
 MAX_JSON_BYTES = 64 * 1024
@@ -40,6 +40,7 @@ MANIFEST_KEYS = {
     "emulator",
     "runtime",
     "supply_chain",
+    "development",
 }
 BUILD_KEYS = {"build_dir", "distro", "machine", "driver_target", "targets", "layers"}
 EMULATOR_KEYS = {"preflight_profile", "system_binary"}
@@ -57,9 +58,20 @@ SUPPLY_CHAIN_KEYS = {
     "forbidden_packages",
 }
 PACKAGE_RULE_KEYS = {"name", "declared_license"}
+DEVELOPMENT_KEYS = {
+    "profile",
+    "build_dir",
+    "recipe",
+    "source_dir",
+    "ide",
+    "guest_binary",
+    "evidence_filename",
+    "evidence_schema_version",
+}
 LAB_ID = re.compile(r"[a-z0-9][a-z0-9-]*\Z")
 TOKEN = re.compile(r"[A-Za-z0-9][A-Za-z0-9._+-]*\Z")
 BUILD_DIRECTORY = re.compile(r"build(?:-[a-z0-9][a-z0-9-]*)?\Z")
+DEVELOPMENT_BUILD_DIRECTORY = re.compile(r"build-sdk-[a-z0-9][a-z0-9-]*\Z")
 SHA256 = re.compile(r"[0-9a-f]{64}\Z")
 LICENSE_EXPRESSION = re.compile(r"[A-Za-z0-9][A-Za-z0-9.+() -]*\Z")
 PROFILE_RULES = {
@@ -79,6 +91,16 @@ PROFILE_RULES = {
         "evidence_profile": "platform-v1",
         "evidence_filename": "qemu-edu-platform-runtime-v1.json",
         "guest_contract_version": 1,
+        "evidence_schema_version": 1,
+    },
+}
+DEVELOPMENT_PROFILE_RULES = {
+    "direct-esdk-devtool-v1": {
+        "recipe": "qemu-edu-sdk-sample",
+        "source_dir": "learner-source/qemu-edu-sdk-sample",
+        "ide": "none",
+        "guest_binary": "/usr/bin/qemu-edu-sdk-sample",
+        "evidence_filename": "qemu-edu-sdk-evidence-v1.json",
         "evidence_schema_version": 1,
     },
 }
@@ -140,6 +162,21 @@ def relative_path(value: Any, where: str, *, under: str | None = None) -> str:
         raise LabError(f"{where} contains unsupported path characters")
     if under is not None and (not path.parts or path.parts[0] != under):
         raise LabError(f"{where} must be under {under}/")
+    return text
+
+
+def guest_binary_path(value: Any, where: str) -> str:
+    text = string_value(value, where)
+    if "\\" in text or any(character.isspace() for character in text):
+        raise LabError(f"{where} must be a normalized absolute path without whitespace")
+    path = PurePosixPath(text)
+    if (
+        not path.is_absolute()
+        or text != path.as_posix()
+        or path.parent != PurePosixPath("/usr/bin")
+        or not TOKEN.fullmatch(path.name)
+    ):
+        raise LabError(f"{where} must name one binary directly under /usr/bin")
     return text
 
 
@@ -373,6 +410,80 @@ def validate_manifest(data: dict[str, Any], expected_id: str) -> None:
             f"{', '.join(overlap)}"
         )
 
+    development = object_value(
+        data["development"], f"lab {expected_id}.development"
+    )
+    exact_keys(development, DEVELOPMENT_KEYS, f"lab {expected_id}.development")
+    development_profile = string_value(
+        development["profile"], f"lab {expected_id}.development.profile"
+    )
+    development_rule = DEVELOPMENT_PROFILE_RULES.get(development_profile)
+    if development_rule is None:
+        raise LabError(
+            f"lab {expected_id} uses unknown development profile "
+            f"{development_profile!r}"
+        )
+    development_build_dir = relative_path(
+        development["build_dir"], f"lab {expected_id}.development.build_dir"
+    )
+    if (
+        development_build_dir != f"build-sdk-{expected_id}"
+        or not DEVELOPMENT_BUILD_DIRECTORY.fullmatch(development_build_dir)
+    ):
+        raise LabError(
+            f"lab {expected_id}.development.build_dir must be "
+            f"build-sdk-{expected_id}"
+        )
+    development_actual = {
+        "recipe": string_value(
+            development["recipe"], f"lab {expected_id}.development.recipe"
+        ),
+        "source_dir": relative_path(
+            development["source_dir"],
+            f"lab {expected_id}.development.source_dir",
+            under="learner-source",
+        ),
+        "ide": string_value(
+            development["ide"], f"lab {expected_id}.development.ide"
+        ),
+        "guest_binary": guest_binary_path(
+            development["guest_binary"],
+            f"lab {expected_id}.development.guest_binary",
+        ),
+        "evidence_filename": relative_path(
+            development["evidence_filename"],
+            f"lab {expected_id}.development.evidence_filename",
+        ),
+        "evidence_schema_version": integer_value(
+            development["evidence_schema_version"],
+            f"lab {expected_id}.development.evidence_schema_version",
+        ),
+    }
+    if not TOKEN.fullmatch(development_actual["recipe"]):
+        raise LabError(
+            f"lab {expected_id}.development.recipe contains unsupported characters"
+        )
+    if PurePosixPath(development_actual["evidence_filename"]).parent != PurePosixPath("."):
+        raise LabError(
+            f"lab {expected_id}.development.evidence_filename must be a basename"
+        )
+    if not development_actual["evidence_filename"].endswith(".json"):
+        raise LabError(
+            f"lab {expected_id}.development.evidence_filename must end in .json"
+        )
+    for field, expected in development_rule.items():
+        if development_actual[field] != expected:
+            raise LabError(
+                f"lab {expected_id} development {field} is "
+                f"{development_actual[field]!r}, expected {expected!r} for "
+                f"{development_profile}"
+            )
+    if development_actual["recipe"] not in forbidden:
+        raise LabError(
+            f"lab {expected_id}.supply_chain.forbidden_packages must include "
+            f"{development_actual['recipe']}"
+        )
+
 
 def default_build_parity_data(
     source_data: dict[str, Any], default_manifest: dict[str, Any]
@@ -454,12 +565,18 @@ def _catalog_from_index(
             )
         validate_manifest(manifest, lab_id)
         build_dir = manifest["build"]["build_dir"]
+        development_build_dir = manifest["development"]["build_dir"]
         machine = manifest["build"]["machine"]
         if build_dir in build_dirs:
             raise LabError(f"duplicate lab build directory: {build_dir}")
+        if development_build_dir in build_dirs or development_build_dir == build_dir:
+            raise LabError(
+                f"duplicate lab build directory: {development_build_dir}"
+            )
         if machine in machines:
             raise LabError(f"duplicate lab machine: {machine}")
         build_dirs.add(build_dir)
+        build_dirs.add(development_build_dir)
         machines.add(machine)
         manifests[lab_id] = manifest
         digests[lab_id] = actual_digest
@@ -512,9 +629,16 @@ def select_lab(
     root: Path, lab_id: str | None, index_relative: str = DEFAULT_INDEX
 ) -> tuple[str, dict[str, Any], str, str]:
     index, index_digest, manifests, digests = read_catalog(root, index_relative)
+    if lab_id is not None and (
+        not isinstance(lab_id, str)
+        or not lab_id
+        or len(lab_id) > MAX_STRING_LENGTH
+        or not LAB_ID.fullmatch(lab_id)
+    ):
+        raise LabError("unknown lab")
     selected = index["default_lab"] if lab_id is None else lab_id
     if selected not in manifests:
-        raise LabError(f"unknown lab: {selected}")
+        raise LabError("unknown lab")
     return selected, manifests[selected], index_digest, digests[selected]
 
 

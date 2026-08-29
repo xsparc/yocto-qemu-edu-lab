@@ -1,5 +1,5 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "id": "pci-x86-64",
   "description": "QEMU EDU PCI lab on the x86-64 classic PC machine",
   "build": {
@@ -47,7 +47,18 @@
     "forbidden_packages": [
       "kernel-module-qemu-edu-platform-6.18.24-yocto-standard",
       "qemu-edu-platform-driver",
-      "qemu-edu-platform-tools"
+      "qemu-edu-platform-tools",
+      "qemu-edu-sdk-sample"
     ]
+  },
+  "development": {
+    "profile": "direct-esdk-devtool-v1",
+    "build_dir": "build-sdk-pci-x86-64",
+    "recipe": "qemu-edu-sdk-sample",
+    "source_dir": "learner-source/qemu-edu-sdk-sample",
+    "ide": "none",
+    "guest_binary": "/usr/bin/qemu-edu-sdk-sample",
+    "evidence_filename": "qemu-edu-sdk-evidence-v1.json",
+    "evidence_schema_version": 1
   }
 }
