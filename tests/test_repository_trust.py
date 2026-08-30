@@ -7,7 +7,10 @@ import copy
 import importlib.util
 import json
 import os
+import shutil
 import stat
+import subprocess
+import sys
 import tempfile
 import tomllib
 import unittest
@@ -113,6 +116,53 @@ class RepositoryTrustTests(unittest.TestCase):
         evidence, exit_code = MODULE.evaluate_repository(root)
         self.assertEqual(0, exit_code)
         self.assertEqual("pass", evidence["result"])
+
+    def test_cli_exit_contract_is_observable_end_to_end(self) -> None:
+        _, root = self.temporary_root()
+        script = root / "scripts/repository_trust.py"
+        script.parent.mkdir()
+        shutil.copyfile(ROOT / "scripts/repository_trust.py", script)
+
+        def invoke(command: str) -> subprocess.CompletedProcess[bytes]:
+            return subprocess.run(
+                [sys.executable, "-B", str(script), command],
+                cwd=root,
+                capture_output=True,
+                check=False,
+            )
+
+        completed = invoke("validate")
+        self.assertEqual(0, completed.returncode)
+        self.assertEqual(["repository-trust: PASS"], completed.stdout.decode().splitlines())
+
+        completed = invoke("evaluate")
+        self.assertEqual(3, completed.returncode)
+        self.assertEqual("unavailable", json.loads(completed.stdout)["result"])
+
+        observation_path = root / MODULE.OBSERVATION_PATH
+        observation_path.parent.mkdir(parents=True)
+        observation = sample_observation()
+        observation_path.write_text(json.dumps(observation), encoding="utf-8")
+        completed = invoke("evaluate")
+        self.assertEqual(0, completed.returncode)
+        self.assertEqual("pass", json.loads(completed.stdout)["result"])
+
+        observation["actions"]["default_workflow_permissions"] = "write"
+        observation_path.write_text(json.dumps(observation), encoding="utf-8")
+        completed = invoke("evaluate")
+        self.assertEqual(1, completed.returncode)
+        self.assertEqual("fail", json.loads(completed.stdout)["result"])
+
+        observation["future"] = True
+        observation_path.write_text(json.dumps(observation), encoding="utf-8")
+        completed = invoke("evaluate")
+        self.assertEqual(2, completed.returncode)
+        self.assertEqual(b"", completed.stdout)
+        self.assertIn(b"repository-trust: INVALID:", completed.stderr)
+
+        completed = invoke("unknown")
+        self.assertEqual(2, completed.returncode)
+        self.assertEqual(b"", completed.stdout)
 
     def test_partial_observation_is_unavailable_not_a_false_pass(self) -> None:
         observation = {
