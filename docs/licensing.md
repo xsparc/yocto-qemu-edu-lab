@@ -22,6 +22,7 @@ having the right to submit their work.
 | Generated SPDX image evidence | Generated local build output; not redistributed by this repository | The raw SBOM retains upstream/package data and licenses; the MIT project projection records only selected package/license facts and artifact hashes |
 | Direct-eSDK sample and projected iteration evidence | MIT project source and generated local evidence | The sample is project-local and libc-only; upstream devtool remains external GPL-2.0-only build-time tooling |
 | Native OpenSSH `ssh` and `scp` | SSH-OpenSSH | External A009 host prerequisites used only for bounded loopback transport; no OpenSSH source or binary is redistributed here |
+| Repository-trust policy, evaluator, schema, tests, and documentation | MIT | Project-local source; standard-library runtime with the existing exact test-only schema oracle reused unchanged |
 
 The top-level `LICENSE` summarizes the mixed-license repository and `LICENSES/`
 contains the corresponding SPDX-named license texts.
@@ -98,6 +99,12 @@ boundaries change.
   `typing-extensions` under PSF-2.0. The lock records wheel and embedded-license
   hashes; the job uses no package index or dependency resolver and retains no
   wheel or environment artifact.
+- The repository-trust evaluator is MIT and standard-library-only. Its
+  independent schema check reuses those same six exact test-only wheels without
+  changing their versions, URLs, hashes, license records, installation scope,
+  or runtime status. GitHub and OpenSSF documentation is cited as factual
+  rationale; no expressive text, schema, API response, binary, or service code
+  is copied or redistributed.
 - Yocto-generated SPDX SBOMs describe image contents; they complement rather
   than replace repository file licensing. M7 parses them with the MIT-licensed
   model already present in the exact locked OE-Core checkout; it vendors no

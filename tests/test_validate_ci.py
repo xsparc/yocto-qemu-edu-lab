@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -47,8 +48,40 @@ class CiValidationTests(unittest.TestCase):
 
     def test_canonical_make_check_includes_ci_policy(self) -> None:
         text = (ROOT / "Makefile").read_text(encoding="utf-8")
-        self.assertIn("check: check-source-lock check-labs check-workflow check-ci", text)
+        self.assertIn("check: check-source-lock check-labs check-workflow check-ci check-repository-trust", text)
         self.assertIn("check-ci:\n\tpython3 scripts/validate_ci.py", text)
+        self.assertIn(
+            "check-repository-trust:\n\tpython3 scripts/repository_trust.py validate",
+            text,
+        )
+
+    def test_fast_jobs_and_trust_policy_are_bound_exactly(self) -> None:
+        text = (ROOT / ".github/workflows/fast-checks.yml").read_text(
+            encoding="utf-8"
+        )
+        self.assertEqual([], MODULE.validate_trust_policy_binding(ROOT, text))
+        changed = text.replace(
+            "  licensing:\n",
+            "  extra:\n    timeout-minutes: 5\n    runs-on: ubuntu-24.04\n  licensing:\n",
+            1,
+        )
+        self.assertTrue(
+            any(
+                "job IDs must be exactly" in error
+                for error in MODULE.validate_trust_policy_binding(ROOT, changed)
+            )
+        )
+
+    def test_path_scoped_metadata_is_not_a_required_fast_context(self) -> None:
+        policy = json.loads(
+            (ROOT / MODULE.TRUST_POLICY).read_text(encoding="utf-8")
+        )
+        contexts = {
+            item["context"]
+            for item in policy["ruleset"]["required_status_checks"]["checks"]
+        }
+        self.assertEqual(MODULE.FAST_JOB_IDS, contexts)
+        self.assertNotIn("yocto-metadata", contexts)
 
     def test_metadata_inputs_must_trigger_both_hosted_runs(self) -> None:
         text = (ROOT / ".github/workflows/yocto-metadata.yml").read_text(
@@ -103,6 +136,11 @@ class CiValidationTests(unittest.TestCase):
         ))
         errors = MODULE.validate_workflow(path)
         self.assertTrue(any("full commit SHA" in error for error in errors))
+
+    def test_non_github_action_owner_is_rejected_even_when_pinned(self) -> None:
+        path = self.workflow(SAFE.replace("actions/checkout@", "third-party/checkout@"))
+        errors = MODULE.validate_workflow(path)
+        self.assertTrue(any("not GitHub-owned" in error for error in errors))
 
     def test_checkout_credentials_must_not_persist(self) -> None:
         path = self.workflow(SAFE.replace("persist-credentials: false", "persist-credentials: true"))

@@ -1,0 +1,273 @@
+# SPDX-FileCopyrightText: 2026 Yocto QEMU EDU learning project contributors
+# SPDX-License-Identifier: MIT
+
+from __future__ import annotations
+
+import copy
+import importlib.util
+import json
+import os
+import tempfile
+import tomllib
+import unittest
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[1]
+SPEC = importlib.util.spec_from_file_location(
+    "repository_trust", ROOT / "scripts/repository_trust.py"
+)
+assert SPEC and SPEC.loader
+MODULE = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(MODULE)
+
+
+def sample_observation() -> dict:
+    policy = copy.deepcopy(MODULE.APPROVED_POLICY)
+    return {
+        "schema_version": 1,
+        "observed_at": "2026-08-30T00:00:00Z",
+        "repository": policy["repository"],
+        "actions": policy["actions"],
+        "ruleset": policy["ruleset"],
+        "security": policy["security"],
+    }
+
+
+def sample_evidence() -> dict:
+    observation = MODULE.validate_observation(sample_observation())
+    return MODULE.build_evidence(
+        "a" * 64,
+        observation["observed_at"],
+        MODULE.facts_from_observation(observation),
+    )
+
+
+class RepositoryTrustTests(unittest.TestCase):
+    def temporary_root(self) -> tuple[tempfile.TemporaryDirectory, Path]:
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        root = Path(temporary.name)
+        policy = root / MODULE.POLICY_PATH
+        policy.parent.mkdir(parents=True)
+        policy.write_bytes((ROOT / MODULE.POLICY_PATH).read_bytes())
+        (root / MODULE.SECURITY_PATH).write_text(
+            "Security contact: [@xsparc](https://github.com/xsparc)\n",
+            encoding="utf-8",
+        )
+        return temporary, root
+
+    def test_repository_policy_is_the_approved_exact_contract(self) -> None:
+        policy, digest = MODULE.load_policy(ROOT)
+        self.assertEqual(MODULE.APPROVED_POLICY, policy)
+        self.assertRegex(digest, r"^[0-9a-f]{64}$")
+
+    def test_a010_authority_version_and_design_records_are_explicit(self) -> None:
+        self.assertEqual("0.9.0-dev\n", (ROOT / "VERSION").read_text(encoding="utf-8"))
+        state = tomllib.loads(
+            (ROOT / "docs/maintainers/tasks.toml").read_text(encoding="utf-8")
+        )
+        task = next(item for item in state["tasks"] if item["id"] == "A010")
+        self.assertEqual("In Progress", task["status"])
+        self.assertEqual("M9", task["milestone"])
+        self.assertIn("explicitly approved A010/M9", task["approval"])
+        decisions = (ROOT / "docs/maintainers/decisions.md").read_text(
+            encoding="utf-8"
+        )
+        self.assertRegex(decisions, r"(?m)^## D-020: Treat repository settings")
+        roadmap = (ROOT / "docs/roadmap.md").read_text(encoding="utf-8")
+        self.assertRegex(roadmap, r"(?m)^## M9 — Verifiable public-repository trust")
+
+    def test_ci_runs_local_policy_and_independent_schema_gates(self) -> None:
+        workflow = (ROOT / ".github/workflows/fast-checks.yml").read_text(
+            encoding="utf-8"
+        )
+        self.assertEqual(1, workflow.count("python3 scripts/repository_trust.py validate"))
+        self.assertEqual(1, workflow.count("tests/validate_repository_trust_schema.py"))
+
+    def test_complete_observation_passes_with_deterministic_bytes(self) -> None:
+        observation = MODULE.validate_observation(sample_observation())
+        facts = MODULE.facts_from_observation(observation)
+        first = MODULE.build_evidence("b" * 64, observation["observed_at"], facts)
+        second = MODULE.build_evidence("b" * 64, observation["observed_at"], facts)
+        self.assertEqual("pass", first["result"])
+        self.assertEqual(MODULE.CHECK_IDS, tuple(item["id"] for item in first["checks"]))
+        self.assertEqual(MODULE.json_bytes(first), MODULE.json_bytes(second))
+
+    def test_missing_observation_is_closed_unavailable_evidence(self) -> None:
+        _, root = self.temporary_root()
+        evidence, exit_code = MODULE.evaluate_repository(root)
+        self.assertEqual(3, exit_code)
+        self.assertEqual("unavailable", evidence["result"])
+        self.assertIsNone(evidence["observed_at"])
+        self.assertTrue(all(item["status"] == "unavailable" for item in evidence["checks"]))
+
+    def test_fixed_observation_path_produces_passing_evidence(self) -> None:
+        _, root = self.temporary_root()
+        observation = root / MODULE.OBSERVATION_PATH
+        observation.parent.mkdir(parents=True)
+        observation.write_text(json.dumps(sample_observation()), encoding="utf-8")
+        evidence, exit_code = MODULE.evaluate_repository(root)
+        self.assertEqual(0, exit_code)
+        self.assertEqual("pass", evidence["result"])
+
+    def test_partial_observation_is_unavailable_not_a_false_pass(self) -> None:
+        observation = {
+            "schema_version": 1,
+            "observed_at": "2026-08-30T00:00:00Z",
+            "repository": {"visibility": "public"},
+        }
+        validated = MODULE.validate_observation(observation)
+        evidence = MODULE.build_evidence(
+            "c" * 64,
+            validated["observed_at"],
+            MODULE.facts_from_observation(validated),
+        )
+        self.assertEqual("unavailable", evidence["result"])
+        statuses = {item["id"]: item["status"] for item in evidence["checks"]}
+        self.assertEqual("pass", statuses["repository.public"])
+        self.assertEqual("unavailable", statuses["repository.default_branch"])
+
+    def test_policy_drift_cases_fail_without_hiding_unavailable_facts(self) -> None:
+        mutations = []
+
+        observation = sample_observation()
+        observation["ruleset"]["required_status_checks"]["checks"].pop()
+        mutations.append((observation, "ruleset.exact_checks"))
+
+        observation = sample_observation()
+        observation["ruleset"]["required_status_checks"]["checks"].append(
+            {"context": "third-party", "source": "external-app"}
+        )
+        mutations.append((observation, "ruleset.check_source"))
+
+        observation = sample_observation()
+        observation["ruleset"]["bypass_actor_count"] = 1
+        mutations.append((observation, "ruleset.no_bypass"))
+
+        observation = sample_observation()
+        observation["actions"]["default_workflow_permissions"] = "write"
+        mutations.append((observation, "actions.default_permissions"))
+
+        observation = sample_observation()
+        observation["actions"]["sha_pinning_required"] = False
+        mutations.append((observation, "actions.sha_pinning"))
+
+        observation = sample_observation()
+        observation["actions"]["selected_actions"]["patterns_allowed"] = ["owner/action@*"]
+        mutations.append((observation, "actions.github_owned_only"))
+
+        observation = sample_observation()
+        observation["security"]["dependabot_alerts"] = False
+        mutations.append((observation, "security.dependabot_alerts"))
+
+        observation = sample_observation()
+        observation["ruleset"]["required_status_checks"]["checks"].append(
+            {"context": "yocto-metadata", "source": "github-actions"}
+        )
+        mutations.append((observation, "ruleset.metadata_advisory"))
+
+        for observation, failed_id in mutations:
+            with self.subTest(failed_id=failed_id):
+                validated = MODULE.validate_observation(observation)
+                evidence = MODULE.build_evidence(
+                    "d" * 64,
+                    validated["observed_at"],
+                    MODULE.facts_from_observation(validated),
+                )
+                self.assertEqual("fail", evidence["result"])
+                statuses = {item["id"]: item["status"] for item in evidence["checks"]}
+                self.assertEqual("fail", statuses[failed_id])
+
+    def test_duplicate_unknown_malformed_and_unsafe_input_are_rejected(self) -> None:
+        with self.assertRaisesRegex(MODULE.RepositoryTrustError, "duplicate JSON key"):
+            MODULE.parse_json(
+                b'{"schema_version":1,"schema_version":1}', "observation"
+            )
+
+        observation = sample_observation()
+        observation["future"] = True
+        with self.assertRaisesRegex(MODULE.RepositoryTrustError, "unknown fields"):
+            MODULE.validate_observation(observation)
+
+        observation = sample_observation()
+        observation["schema_version"] = True
+        with self.assertRaisesRegex(MODULE.RepositoryTrustError, "integer 1"):
+            MODULE.validate_observation(observation)
+
+        with self.assertRaisesRegex(MODULE.RepositoryTrustError, "unsafe character"):
+            MODULE.parse_json(b'{"value":"line\\nfeed"}', "observation")
+
+        with self.assertRaisesRegex(MODULE.RepositoryTrustError, "floating-point"):
+            MODULE.parse_json(b'{"value":1.5}', "observation")
+
+    def test_reader_rejects_oversize_and_symbolic_link_input(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            oversized = root / "oversized.json"
+            oversized.write_bytes(b"x" * 17)
+            with self.assertRaisesRegex(MODULE.RepositoryTrustError, "exceeds 16 bytes"):
+                MODULE.read_regular(oversized, 16, "fixture")
+
+            target = root / "target.json"
+            target.write_text("{}", encoding="utf-8")
+            link = root / "link.json"
+            try:
+                os.symlink(target, link)
+            except (OSError, NotImplementedError):
+                self.skipTest("symbolic links are unavailable to this test account")
+            with self.assertRaisesRegex(MODULE.RepositoryTrustError, "direct regular file"):
+                MODULE.read_regular(link, 16, "fixture")
+
+    def test_semantic_evidence_rejects_tampering(self) -> None:
+        evidence = sample_evidence()
+        evidence["result"] = "fail"
+        with self.assertRaisesRegex(MODULE.RepositoryTrustError, "differ from their facts"):
+            MODULE.validate_evidence(evidence)
+
+        evidence = sample_evidence()
+        evidence["checks"][0], evidence["checks"][1] = evidence["checks"][1], evidence["checks"][0]
+        with self.assertRaisesRegex(MODULE.RepositoryTrustError, "check repository.public"):
+            MODULE.validate_evidence(evidence)
+
+        evidence = sample_evidence()
+        evidence["facts"]["future"] = True
+        with self.assertRaisesRegex(MODULE.RepositoryTrustError, "unknown fields"):
+            MODULE.validate_evidence(evidence)
+
+        evidence = sample_evidence()
+        evidence["facts"]["ruleset"]["required_status_checks"].reverse()
+        with self.assertRaisesRegex(MODULE.RepositoryTrustError, "must be sorted"):
+            MODULE.validate_evidence(evidence)
+
+        evidence = sample_evidence()
+        evidence["facts"]["ruleset"]["name"] = "unsafe\nname"
+        with self.assertRaisesRegex(MODULE.RepositoryTrustError, "unsafe character"):
+            MODULE.validate_evidence(evidence)
+
+    def test_policy_and_security_contact_drift_fail_closed(self) -> None:
+        _, root = self.temporary_root()
+        policy = json.loads((root / MODULE.POLICY_PATH).read_text(encoding="utf-8"))
+        policy["actions"]["allowed_actions"] = "all"
+        (root / MODULE.POLICY_PATH).write_text(json.dumps(policy), encoding="utf-8")
+        with self.assertRaisesRegex(MODULE.RepositoryTrustError, "approved exact contract"):
+            MODULE.load_policy(root)
+
+        (root / MODULE.POLICY_PATH).write_bytes((ROOT / MODULE.POLICY_PATH).read_bytes())
+        (root / MODULE.SECURITY_PATH).write_text("No named contact\n", encoding="utf-8")
+        policy, _ = MODULE.load_policy(root)
+        with self.assertRaisesRegex(MODULE.RepositoryTrustError, "name the approved contact"):
+            MODULE.validate_local_contract(root, policy)
+
+    def test_runtime_has_no_network_subprocess_or_credential_adapter(self) -> None:
+        source = (ROOT / "scripts/repository_trust.py").read_text(encoding="utf-8")
+        for forbidden in ("import subprocess", "import socket", "import urllib", "import requests", "GITHUB_TOKEN", "Authorization:"):
+            with self.subTest(forbidden=forbidden):
+                self.assertNotIn(forbidden, source)
+        self.assertIn('OBSERVATION_PATH = Path("build/repository-trust/observation-v1.json")', source)
+        self.assertNotIn("--repo", source)
+        self.assertNotIn("--observation", source)
+
+
+if __name__ == "__main__":
+    unittest.main()

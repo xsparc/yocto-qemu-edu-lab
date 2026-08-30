@@ -6,7 +6,7 @@ SPDX-License-Identifier: MIT
 # Versioning and compatibility
 
 The project follows Semantic Versioning 2.0.0 for tagged releases. `VERSION`
-currently contains `0.8.0-dev`, a development identity rather than a published
+currently contains `0.9.0-dev`, a development identity rather than a published
 release. Creating a tag, release, or artifact remains a separate maintainer
 decision.
 
@@ -47,6 +47,7 @@ automatically public APIs.
 | `0.6.0-dev` | 6.0.2 | `wrynose` | Clean implementation revision `25109d4` passed 203 Windows tests with 16 expected native-Linux skips, all 203 tests in isolated read-only Linux, the exact six-wheel Draft 2020-12 oracle, and REUSE 108/108. All seven required reviews approved with no remaining P0-P2 finding. Final head `900c82f` passed Fast checks run `32212167852` and Yocto metadata run `32212167855`; pull request #11 squash-merged as `b569199`. No tag or release was published. |
 | `0.7.0-dev` | 6.0.2 | `wrynose` | Clean revision `8588e29` passed 228 Linux tests, exact schema/licensing gates, normal dual-lab image/SPDX rebuilds from `cleansstate`, closed project package/license and image-hash evidence, and the complete 21/21 PCI plus 11/11 ARM64 software-QEMU suites. Post-qualification hardening through `b092b48` passed all 234 isolated Linux tests and preserved both qualified graph results. All seven required review roles approved exact review head `31142b6` with no remaining P0-P2 finding. Published head `82d9970` passed Fast checks run `32231165395` and Yocto metadata run `32231165336`; pull request #12 squash-merged as `00ad952`. No tag or release was published. |
 | `0.8.0-dev` | 6.0.2 | `wrynose` | Qualified implementation `03840b93` passed all 320 isolated-Linux tests, exact schema/static/licensing gates, both metadata profiles, both direct-eSDK build/deploy/execute/reset loops, both image/SPDX runs, and the complete 21/21 PCI plus 11/11 ARM64 software-QEMU suites. Publication implementation `86daf481` re-anchors its identical tree onto squash-merged A008 closeout `8f498899`; deterministic local gates and REUSE 130/130 pass on the resulting closeout tree without relabeling revision-bound evidence. All seven delegated reviews completed. Final head `5ca21b1` passed Fast checks run `33247507794` and Yocto metadata run `33247507795`; pull request #14 squash-merged as `4dd8c792`, whose post-merge Fast and metadata runs `33253594345` and `33253594300` passed. A009 is Done. No tag or release was published. |
+| `0.9.0-dev` | 6.0.2 | `wrynose` | A010/M9 is in progress. The approved local boundary adds an exact desired-state repository policy, fixed-path sanitized observation, deterministic closed evidence schema 1, exact Fast job/action ownership binding, and named security contact. Live settings, passing hosted evidence, reviews, publication, merge, tag, and release remain open. |
 
 Runtime documents are unsigned local reports. Their task records state whether
 a digest was independently recomputed. They are not hosted provenance
@@ -60,10 +61,12 @@ cases, and evidence schema 3. `0.5.0-dev` added a second architecture, lab
 selection, an independent guest interface, and a separate evidence schema.
 `0.6.0-dev` added a public local command and diagnostics schema while
 preserving every build and guest contract. `0.7.0-dev` changed the lab-manifest
-contract and added supply-chain evidence. `0.8.0-dev` is the current
-development line because A009 advances the manifest contract again and adds a
-state-changing but isolated direct-eSDK learning workflow. Historical runtime,
-diagnostics, and SPDX evidence schemas are unchanged.
+contract and added supply-chain evidence. `0.8.0-dev` added a state-changing
+but isolated direct-eSDK learning workflow. `0.9.0-dev` is the current
+development line because M9 adds a repository-trust policy and evidence
+contract without changing either lab's build, guest, runtime, SPDX, or SDK
+behavior. Historical runtime, diagnostics, and SPDX evidence schemas are
+unchanged.
 No identity implies a tag or release.
 
 Compatibility is declared only after evidence. A newer Wrynose point release
@@ -92,3 +95,11 @@ records only the closed M8 sample transition. It does not translate historical
 runtime or SPDX records, describe a standalone SDK, or authorize arbitrary
 target mutation. Older project revisions can ignore the schema-3 development
 profile and return to their matching manifest digests.
+
+Repository-trust evidence schema 1 is independent of project SemVer and binds
+one sanitized observation to the exact desired-policy bytes. Older project
+revisions have no equivalent live-settings claim and may ignore this evidence.
+A change to observed fields, check order, aggregate semantics, or evidence
+shape requires a new schema version; a policy value change alone retains schema
+1 only when existing readers can represent it safely and both policy and
+semantic tests are updated together.

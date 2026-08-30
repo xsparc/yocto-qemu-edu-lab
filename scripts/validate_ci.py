@@ -6,15 +6,21 @@
 from __future__ import annotations
 
 import argparse
+import json
 import re
 import sys
 from pathlib import Path
+from typing import Any
 
 
 ACTION = re.compile(r"\buses:\s*([^\s#]+)")
 PINNED_ACTION = re.compile(r"(?:[^/@\s]+/[^/@\s]+)@[0-9a-f]{40}\Z")
 JOB = re.compile(r"^  ([A-Za-z][A-Za-z0-9_-]*):\s*$")
 WRITE_PERMISSION = re.compile(r"(?m)^\s+[A-Za-z_-]+:\s*write\s*$", re.IGNORECASE)
+GITHUB_OWNED_ACTION_OWNERS = {"actions", "github"}
+FAST_JOB_IDS = {"repository", "static", "diagnostics-schema", "licensing"}
+TRUST_POLICY = "config/repository-trust-policy.json"
+MAX_TRUST_POLICY_BYTES = 32 * 1024
 BANNED = {
     "pull_request_target:": "pull_request_target can expose privileged context to fork code",
     "workflow_run:": "workflow_run can cross an untrusted-to-privileged boundary",
@@ -147,6 +153,10 @@ def validate_workflow(path: Path) -> list[str]:
             continue
         if not PINNED_ACTION.fullmatch(action):
             errors.append(f"external action is not pinned to a full commit SHA: {action}")
+            continue
+        owner = action.split("/", 1)[0].lower()
+        if owner not in GITHUB_OWNED_ACTION_OWNERS:
+            errors.append(f"external action owner is not GitHub-owned: {owner}")
 
     lines = text.splitlines()
     for index, line in enumerate(lines):
@@ -174,6 +184,75 @@ def validate_workflow(path: Path) -> list[str]:
     return errors
 
 
+def reject_duplicate_pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    value: dict[str, Any] = {}
+    for key, item in pairs:
+        if key in value:
+            raise ValueError(f"duplicate key: {key}")
+        value[key] = item
+    return value
+
+
+def validate_trust_policy_binding(root: Path, fast_text: str) -> list[str]:
+    errors: list[str] = []
+    policy_path = root / TRUST_POLICY
+    try:
+        raw = policy_path.read_bytes()
+        if len(raw) > MAX_TRUST_POLICY_BYTES:
+            raise ValueError("policy exceeds its byte limit")
+        policy = json.loads(raw.decode("utf-8"), object_pairs_hook=reject_duplicate_pairs)
+        actions = policy["actions"]
+        selected = actions["selected_actions"]
+        required = policy["ruleset"]["required_status_checks"]
+        checks = required["checks"]
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError, AttributeError, KeyError, TypeError, ValueError) as exc:
+        return [f"{TRUST_POLICY}: cannot bind CI policy: {exc}"]
+
+    fast_jobs = [name for name, _ in job_blocks(fast_text)]
+    if len(fast_jobs) != len(FAST_JOB_IDS) or set(fast_jobs) != FAST_JOB_IDS:
+        errors.append(
+            ".github/workflows/fast-checks.yml: job IDs must be exactly "
+            + ", ".join(sorted(FAST_JOB_IDS))
+        )
+
+    if not isinstance(checks, list):
+        errors.append(f"{TRUST_POLICY}: required checks must be an array")
+    else:
+        contexts: list[str] = []
+        sources: list[str] = []
+        for item in checks:
+            if not isinstance(item, dict) or set(item) != {"context", "source"}:
+                errors.append(f"{TRUST_POLICY}: required check fields differ")
+                continue
+            contexts.append(item["context"])
+            sources.append(item["source"])
+        if len(contexts) != len(FAST_JOB_IDS) or set(contexts) != FAST_JOB_IDS:
+            errors.append(f"{TRUST_POLICY}: required contexts must match the exact Fast job IDs")
+        if any(source != "github-actions" for source in sources):
+            errors.append(f"{TRUST_POLICY}: every required context must bind to github-actions")
+        if "yocto-metadata" in contexts:
+            errors.append(f"{TRUST_POLICY}: path-scoped metadata must remain advisory")
+
+    expected_actions = {
+        "enabled": True,
+        "allowed_actions": "selected",
+        "sha_pinning_required": True,
+        "default_workflow_permissions": "read",
+        "can_approve_pull_request_reviews": False,
+    }
+    if any(actions.get(name) != value for name, value in expected_actions.items()):
+        errors.append(f"{TRUST_POLICY}: Actions policy differs from the local CI boundary")
+    if selected != {
+        "github_owned_allowed": True,
+        "verified_allowed": False,
+        "patterns_allowed": [],
+    }:
+        errors.append(f"{TRUST_POLICY}: selected actions must remain GitHub-owned only")
+    if required.get("strict_required_status_checks_policy") is not True:
+        errors.append(f"{TRUST_POLICY}: required status checks must remain strict")
+    return errors
+
+
 def validate(root: Path) -> list[str]:
     workflow_dir = root / ".github/workflows"
     workflows = sorted(workflow_dir.glob("*.yml")) + sorted(workflow_dir.glob("*.yaml"))
@@ -183,6 +262,15 @@ def validate(root: Path) -> list[str]:
     for workflow in workflows:
         for error in validate_workflow(workflow):
             errors.append(f"{workflow.relative_to(root).as_posix()}: {error}")
+    fast_workflow = workflow_dir / "fast-checks.yml"
+    if not fast_workflow.is_file():
+        errors.append(".github/workflows/fast-checks.yml: required workflow is missing")
+    else:
+        errors.extend(
+            validate_trust_policy_binding(
+                root, fast_workflow.read_text(encoding="utf-8")
+            )
+        )
     metadata_workflow = workflow_dir / "yocto-metadata.yml"
     if not metadata_workflow.is_file():
         errors.append(".github/workflows/yocto-metadata.yml: required workflow is missing")

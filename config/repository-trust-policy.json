@@ -1,0 +1,70 @@
+{
+  "actions": {
+    "allowed_actions": "selected",
+    "can_approve_pull_request_reviews": false,
+    "default_workflow_permissions": "read",
+    "enabled": true,
+    "selected_actions": {
+      "github_owned_allowed": true,
+      "patterns_allowed": [],
+      "verified_allowed": false
+    },
+    "sha_pinning_required": true
+  },
+  "project": "yocto-qemu-edu-lab",
+  "repository": {
+    "default_branch": "main",
+    "delete_branch_on_merge": true,
+    "merge_methods": [
+      "squash"
+    ],
+    "visibility": "public"
+  },
+  "ruleset": {
+    "bypass_actor_count": 0,
+    "deletion": true,
+    "do_not_enforce_on_create": false,
+    "enforcement": "active",
+    "linear_history": true,
+    "name": "Protect main",
+    "non_fast_forward": true,
+    "pull_request": {
+      "allowed_merge_methods": [
+        "squash"
+      ],
+      "required": true,
+      "required_approving_review_count": 0
+    },
+    "required_status_checks": {
+      "checks": [
+        {
+          "context": "diagnostics-schema",
+          "source": "github-actions"
+        },
+        {
+          "context": "licensing",
+          "source": "github-actions"
+        },
+        {
+          "context": "repository",
+          "source": "github-actions"
+        },
+        {
+          "context": "static",
+          "source": "github-actions"
+        }
+      ],
+      "strict_required_status_checks_policy": true
+    },
+    "target": "default_branch"
+  },
+  "schema_version": 1,
+  "security": {
+    "contact": "@xsparc",
+    "dependabot_alerts": true,
+    "dependabot_security_updates": true,
+    "private_vulnerability_reporting": true,
+    "secret_scanning": true,
+    "secret_scanning_push_protection": true
+  }
+}

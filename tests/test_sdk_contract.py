@@ -85,8 +85,7 @@ class SdkFoundationContractTests(unittest.TestCase):
                     manifest["supply_chain"]["forbidden_packages"],
                 )
 
-    def test_a009_authority_and_version_are_explicit(self) -> None:
-        self.assertEqual("0.8.0-dev\n", (ROOT / "VERSION").read_text(encoding="utf-8"))
+    def test_a009_authority_is_explicit(self) -> None:
         state = tomllib.loads(
             (ROOT / "docs/maintainers/tasks.toml").read_text(encoding="utf-8")
         )

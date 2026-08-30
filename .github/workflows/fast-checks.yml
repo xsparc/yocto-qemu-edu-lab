@@ -34,6 +34,7 @@ jobs:
           python3 scripts/lab_config.py validate
           python3 scripts/validate_workflow.py
           python3 scripts/validate_ci.py
+          python3 scripts/repository_trust.py validate
           python3 scripts/verify_qemu_security.py static
           python3 scripts/verify_diagnostics_schema_lock.py
           python3 -m unittest discover -s tests -p 'test_*.py' -v
@@ -142,6 +143,7 @@ jobs:
           "$environment_root/bin/python" -B tests/validate_diagnostics_schema.py
           "$environment_root/bin/python" -B tests/validate_sbom_schema.py
           "$environment_root/bin/python" -B tests/validate_sdk_schema.py
+          "$environment_root/bin/python" -B tests/validate_repository_trust_schema.py
 
   licensing:
     timeout-minutes: 10

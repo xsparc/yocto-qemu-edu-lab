@@ -5,9 +5,16 @@ SPDX-License-Identifier: MIT
 
 # Project context
 
-- Active task: none. A009/M8 completed the isolated direct-eSDK and devtool
-  application-iteration boundary. Later horizon work remains proposed until
-  separately approved.
+- Active task: A010/M9, the approved verifiable repository-trust boundary.
+  Local policy, evaluator, schema, tests, CI-contract, security-contact, and
+  documentation work is authorized. Live GitHub settings, push, pull-request
+  creation, merge, tag, release, and publication remain separate approvals.
+- A010 starts from public baseline
+  `f76402409e2d9706ead07f71282876a27fe91cc0`. Its fixed observation input is
+  ignored build output, not an API client or raw-response archive. Evidence is
+  a bounded, sanitized point-in-time projection and cannot attest the observer,
+  time source, repository identity beyond its allowlisted facts, or continuing
+  compliance after collection.
 - Current public baseline: A009 pull request #14 squash-merged as
   `4dd8c7927146ebb37a75ba36106c8a029cb6d549`. Historical dual-lab runtime
   qualification remains bound to clean A005 revision

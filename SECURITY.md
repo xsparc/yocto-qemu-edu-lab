@@ -5,6 +5,8 @@ SPDX-License-Identifier: MIT
 
 # Security policy
 
+Security contact: [@xsparc](https://github.com/xsparc)
+
 ## Supported code
 
 Security fixes target the default branch and the currently documented Yocto

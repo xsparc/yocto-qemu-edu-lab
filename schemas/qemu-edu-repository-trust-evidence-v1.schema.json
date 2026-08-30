@@ -1,0 +1,372 @@
+{
+  "$id": "https://xsparc.github.io/yocto-qemu-edu-lab/schemas/qemu-edu-repository-trust-evidence-v1.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Yocto QEMU EDU repository trust evidence version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "kind",
+    "schema_version",
+    "project",
+    "policy_sha256",
+    "observed_at",
+    "result",
+    "facts",
+    "checks"
+  ],
+  "properties": {
+    "kind": {
+      "const": "qemu-edu-repository-trust-evidence"
+    },
+    "schema_version": {
+      "type": "integer",
+      "const": 1
+    },
+    "project": {
+      "const": "yocto-qemu-edu-lab"
+    },
+    "policy_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "observed_at": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$",
+          "maxLength": 20
+        }
+      ]
+    },
+    "result": {
+      "enum": [
+        "pass",
+        "fail",
+        "unavailable"
+      ]
+    },
+    "facts": {
+      "$ref": "#/$defs/facts"
+    },
+    "checks": {
+      "type": "array",
+      "minItems": 30,
+      "maxItems": 30,
+      "prefixItems": [
+        {"$ref": "#/$defs/check", "properties": {"id": {"const": "repository.public"}}},
+        {"$ref": "#/$defs/check", "properties": {"id": {"const": "repository.default_branch"}}},
+        {"$ref": "#/$defs/check", "properties": {"id": {"const": "repository.squash_only"}}},
+        {"$ref": "#/$defs/check", "properties": {"id": {"const": "repository.delete_branch"}}},
+        {"$ref": "#/$defs/check", "properties": {"id": {"const": "actions.enabled"}}},
+        {"$ref": "#/$defs/check", "properties": {"id": {"const": "actions.selected"}}},
+        {"$ref": "#/$defs/check", "properties": {"id": {"const": "actions.sha_pinning"}}},
+        {"$ref": "#/$defs/check", "properties": {"id": {"const": "actions.default_permissions"}}},
+        {"$ref": "#/$defs/check", "properties": {"id": {"const": "actions.pr_approval_permission"}}},
+        {"$ref": "#/$defs/check", "properties": {"id": {"const": "actions.github_owned_only"}}},
+        {"$ref": "#/$defs/check", "properties": {"id": {"const": "ruleset.active"}}},
+        {"$ref": "#/$defs/check", "properties": {"id": {"const": "ruleset.name"}}},
+        {"$ref": "#/$defs/check", "properties": {"id": {"const": "ruleset.default_branch"}}},
+        {"$ref": "#/$defs/check", "properties": {"id": {"const": "ruleset.no_bypass"}}},
+        {"$ref": "#/$defs/check", "properties": {"id": {"const": "ruleset.deletion"}}},
+        {"$ref": "#/$defs/check", "properties": {"id": {"const": "ruleset.non_fast_forward"}}},
+        {"$ref": "#/$defs/check", "properties": {"id": {"const": "ruleset.linear_history"}}},
+        {"$ref": "#/$defs/check", "properties": {"id": {"const": "ruleset.enforce_on_create"}}},
+        {"$ref": "#/$defs/check", "properties": {"id": {"const": "ruleset.pull_request"}}},
+        {"$ref": "#/$defs/check", "properties": {"id": {"const": "ruleset.squash_only"}}},
+        {"$ref": "#/$defs/check", "properties": {"id": {"const": "ruleset.strict_checks"}}},
+        {"$ref": "#/$defs/check", "properties": {"id": {"const": "ruleset.exact_checks"}}},
+        {"$ref": "#/$defs/check", "properties": {"id": {"const": "ruleset.check_source"}}},
+        {"$ref": "#/$defs/check", "properties": {"id": {"const": "ruleset.metadata_advisory"}}},
+        {"$ref": "#/$defs/check", "properties": {"id": {"const": "security.dependabot_alerts"}}},
+        {"$ref": "#/$defs/check", "properties": {"id": {"const": "security.dependabot_updates"}}},
+        {"$ref": "#/$defs/check", "properties": {"id": {"const": "security.secret_scanning"}}},
+        {"$ref": "#/$defs/check", "properties": {"id": {"const": "security.push_protection"}}},
+        {"$ref": "#/$defs/check", "properties": {"id": {"const": "security.private_reporting"}}},
+        {"$ref": "#/$defs/check", "properties": {"id": {"const": "security.contact"}}}
+      ],
+      "items": false
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "maxLength": 64
+    },
+    "nullable_boolean": {
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "nullable_integer": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1024
+        }
+      ]
+    },
+    "nullable_token": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$",
+          "maxLength": 64
+        }
+      ]
+    },
+    "nullable_merge_methods": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "array",
+          "maxItems": 3,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "merge",
+              "rebase",
+              "squash"
+            ]
+          }
+        }
+      ]
+    },
+    "nullable_patterns": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "array",
+          "maxItems": 16,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[!-~]{1,128}$",
+            "maxLength": 128
+          }
+        }
+      ]
+    },
+    "status_check": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "context",
+        "source"
+      ],
+      "properties": {
+        "context": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$",
+          "maxLength": 64
+        },
+        "source": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$",
+          "maxLength": 64
+        }
+      }
+    },
+    "nullable_status_checks": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "array",
+          "maxItems": 16,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/status_check"
+          }
+        }
+      ]
+    },
+    "check": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "status"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "pass",
+            "fail",
+            "unavailable"
+          ]
+        }
+      }
+    },
+    "facts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "repository",
+        "actions",
+        "ruleset",
+        "security"
+      ],
+      "properties": {
+        "repository": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "visibility",
+            "default_branch",
+            "merge_methods",
+            "delete_branch_on_merge"
+          ],
+          "properties": {
+            "visibility": {
+              "oneOf": [
+                {"type": "null"},
+                {"enum": ["public", "private", "internal"]}
+              ]
+            },
+            "default_branch": {
+              "$ref": "#/$defs/nullable_token"
+            },
+            "merge_methods": {
+              "$ref": "#/$defs/nullable_merge_methods"
+            },
+            "delete_branch_on_merge": {
+              "$ref": "#/$defs/nullable_boolean"
+            }
+          }
+        },
+        "actions": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "enabled",
+            "allowed_actions",
+            "sha_pinning_required",
+            "default_workflow_permissions",
+            "can_approve_pull_request_reviews",
+            "github_owned_allowed",
+            "verified_allowed",
+            "patterns_allowed"
+          ],
+          "properties": {
+            "enabled": {"$ref": "#/$defs/nullable_boolean"},
+            "allowed_actions": {
+              "oneOf": [
+                {"type": "null"},
+                {"enum": ["all", "local_only", "selected"]}
+              ]
+            },
+            "sha_pinning_required": {"$ref": "#/$defs/nullable_boolean"},
+            "default_workflow_permissions": {
+              "oneOf": [
+                {"type": "null"},
+                {"enum": ["read", "write"]}
+              ]
+            },
+            "can_approve_pull_request_reviews": {"$ref": "#/$defs/nullable_boolean"},
+            "github_owned_allowed": {"$ref": "#/$defs/nullable_boolean"},
+            "verified_allowed": {"$ref": "#/$defs/nullable_boolean"},
+            "patterns_allowed": {"$ref": "#/$defs/nullable_patterns"}
+          }
+        },
+        "ruleset": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "name",
+            "enforcement",
+            "target",
+            "bypass_actor_count",
+            "deletion",
+            "non_fast_forward",
+            "linear_history",
+            "do_not_enforce_on_create",
+            "pull_request_required",
+            "required_approving_review_count",
+            "allowed_merge_methods",
+            "strict_required_status_checks_policy",
+            "required_status_checks"
+          ],
+          "properties": {
+            "name": {
+              "oneOf": [
+                {"type": "null"},
+                {"type": "string", "minLength": 1, "maxLength": 128}
+              ]
+            },
+            "enforcement": {
+              "oneOf": [
+                {"type": "null"},
+                {"enum": ["active", "disabled", "evaluate"]}
+              ]
+            },
+            "target": {
+              "oneOf": [
+                {"type": "null"},
+                {"enum": ["default_branch", "other"]}
+              ]
+            },
+            "bypass_actor_count": {"$ref": "#/$defs/nullable_integer"},
+            "deletion": {"$ref": "#/$defs/nullable_boolean"},
+            "non_fast_forward": {"$ref": "#/$defs/nullable_boolean"},
+            "linear_history": {"$ref": "#/$defs/nullable_boolean"},
+            "do_not_enforce_on_create": {"$ref": "#/$defs/nullable_boolean"},
+            "pull_request_required": {"$ref": "#/$defs/nullable_boolean"},
+            "required_approving_review_count": {
+              "oneOf": [
+                {"type": "null"},
+                {"type": "integer", "minimum": 0, "maximum": 10}
+              ]
+            },
+            "allowed_merge_methods": {"$ref": "#/$defs/nullable_merge_methods"},
+            "strict_required_status_checks_policy": {"$ref": "#/$defs/nullable_boolean"},
+            "required_status_checks": {"$ref": "#/$defs/nullable_status_checks"}
+          }
+        },
+        "security": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "dependabot_alerts",
+            "dependabot_security_updates",
+            "secret_scanning",
+            "secret_scanning_push_protection",
+            "private_vulnerability_reporting",
+            "contact"
+          ],
+          "properties": {
+            "dependabot_alerts": {"$ref": "#/$defs/nullable_boolean"},
+            "dependabot_security_updates": {"$ref": "#/$defs/nullable_boolean"},
+            "secret_scanning": {"$ref": "#/$defs/nullable_boolean"},
+            "secret_scanning_push_protection": {"$ref": "#/$defs/nullable_boolean"},
+            "private_vulnerability_reporting": {"$ref": "#/$defs/nullable_boolean"},
+            "contact": {
+              "oneOf": [
+                {"type": "null"},
+                {"type": "string", "pattern": "^@[A-Za-z0-9][A-Za-z0-9-]{0,38}$", "maxLength": 40}
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}
