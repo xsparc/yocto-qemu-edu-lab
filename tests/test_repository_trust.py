@@ -7,10 +7,13 @@ import copy
 import importlib.util
 import json
 import os
+import stat
 import tempfile
 import tomllib
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
+from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -157,9 +160,17 @@ class RepositoryTrustTests(unittest.TestCase):
         observation["actions"]["selected_actions"]["patterns_allowed"] = ["owner/action@*"]
         mutations.append((observation, "actions.github_owned_only"))
 
-        observation = sample_observation()
-        observation["security"]["dependabot_alerts"] = False
-        mutations.append((observation, "security.dependabot_alerts"))
+        security_checks = {
+            "dependabot_alerts": "security.dependabot_alerts",
+            "dependabot_security_updates": "security.dependabot_updates",
+            "secret_scanning": "security.secret_scanning",
+            "secret_scanning_push_protection": "security.push_protection",
+            "private_vulnerability_reporting": "security.private_reporting",
+        }
+        for field, check_id in security_checks.items():
+            observation = sample_observation()
+            observation["security"][field] = False
+            mutations.append((observation, check_id))
 
         observation = sample_observation()
         observation["ruleset"]["required_status_checks"]["checks"].append(
@@ -198,6 +209,12 @@ class RepositoryTrustTests(unittest.TestCase):
         with self.assertRaisesRegex(MODULE.RepositoryTrustError, "unsafe character"):
             MODULE.parse_json(b'{"value":"line\\nfeed"}', "observation")
 
+        with self.assertRaisesRegex(MODULE.RepositoryTrustError, "unsafe character"):
+            MODULE.parse_json(b'{"value":"\\u202e"}', "observation")
+
+        with self.assertRaisesRegex(MODULE.RepositoryTrustError, "keys must be strings"):
+            MODULE.validate_observation({1: "not-json"})
+
         with self.assertRaisesRegex(MODULE.RepositoryTrustError, "floating-point"):
             MODULE.parse_json(b'{"value":1.5}', "observation")
 
@@ -218,6 +235,56 @@ class RepositoryTrustTests(unittest.TestCase):
                 self.skipTest("symbolic links are unavailable to this test account")
             with self.assertRaisesRegex(MODULE.RepositoryTrustError, "direct regular file"):
                 MODULE.read_regular(link, 16, "fixture")
+
+            redirected = root / "redirected"
+            try:
+                os.symlink(root, redirected, target_is_directory=True)
+            except (OSError, NotImplementedError):
+                self.skipTest("directory symbolic links are unavailable to this test account")
+            with self.assertRaisesRegex(MODULE.RepositoryTrustError, "direct directories"):
+                MODULE.read_regular(
+                    redirected / "target.json",
+                    16,
+                    "fixture",
+                    root=root,
+                )
+
+            observation_parent = root / "build" / "repository-trust"
+            observation_parent.parent.mkdir()
+            os.symlink(
+                root,
+                observation_parent,
+                target_is_directory=True,
+            )
+            policy = root / MODULE.POLICY_PATH
+            policy.parent.mkdir(exist_ok=True)
+            policy.write_bytes((ROOT / MODULE.POLICY_PATH).read_bytes())
+            (root / MODULE.SECURITY_PATH).write_text(
+                "Security contact: [@xsparc](https://github.com/xsparc)\n",
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(MODULE.RepositoryTrustError, "direct directories"):
+                MODULE.evaluate_repository(root)
+
+    def test_parent_redirects_are_rejected_without_host_symlink_privilege(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            candidate = root / "redirected" / "observation.json"
+            symlink_info = os.stat_result((stat.S_IFLNK, 0, 0, 0, 0, 0, 0, 0, 0, 0))
+            with mock.patch.object(Path, "lstat", return_value=symlink_info):
+                with self.assertRaisesRegex(
+                    MODULE.RepositoryTrustError,
+                    "direct directories",
+                ):
+                    MODULE.direct_path(candidate, root, "fixture")
+
+        reparse_point = getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0)
+        if reparse_point:
+            info = SimpleNamespace(
+                st_mode=stat.S_IFDIR,
+                st_file_attributes=reparse_point,
+            )
+            self.assertTrue(MODULE.is_redirect(info))
 
     def test_semantic_evidence_rejects_tampering(self) -> None:
         evidence = sample_evidence()

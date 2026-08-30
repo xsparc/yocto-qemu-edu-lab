@@ -344,9 +344,10 @@ tracked policy + local workflow/security contract
 
 The standard-library evaluator performs no network, credential, subprocess, or
 mutation operation and accepts no arbitrary path. It rejects symbolic links,
-oversize input, duplicate or unknown keys, unsafe strings, and open arrays. The
-projection binds exact policy bytes but omits raw API responses, numeric IDs,
-actors, URLs, tokens, and local paths. A missing observation or fact is
+junctions and other reparse points anywhere in the input path, oversize input,
+duplicate or unknown keys, non-printable or non-ASCII strings, and open arrays.
+The projection binds exact policy bytes but omits raw API responses, numeric
+IDs, actors, URLs, tokens, and local paths. A missing observation or fact is
 `unavailable`; an observed conflict is `fail`. The fixed Fast job IDs and
 GitHub-owned action namespace are also enforced locally so the desired status
 checks cannot drift independently from the workflow files.

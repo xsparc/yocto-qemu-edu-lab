@@ -51,12 +51,15 @@ The observation path is fixed:
 build/repository-trust/observation-v1.json
 ```
 
-`build/` is ignored. The file must be a direct regular UTF-8 file no larger
-than 64 KiB. JSON objects reject duplicate and unknown keys; strings, integer
-width, nesting, total values, arrays, and enums are bounded. A present field
-with the wrong shape is invalid input. An unavailable setting is represented by
-omitting that field, which makes the corresponding evidence check
-`unavailable`.
+`build/` is ignored. Every path component must be a direct directory rather
+than a symbolic link, junction, or other reparse point, and the file must be a
+direct regular UTF-8 file no larger than 64 KiB. JSON objects reject duplicate,
+non-string, and unknown keys; strings are restricted to printable ASCII so
+direction-changing and other hidden Unicode controls cannot enter evidence.
+Integer width, nesting, total values, arrays, and enums are bounded. A present
+field with the wrong shape is invalid input. An unavailable setting is
+represented by omitting that field, which makes the corresponding evidence
+check `unavailable`.
 
 A complete normalized observation has this shape:
 

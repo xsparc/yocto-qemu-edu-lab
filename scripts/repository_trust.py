@@ -157,12 +157,57 @@ def parse_integer(value: str) -> int:
     return int(value)
 
 
-def read_regular(path: Path, maximum: int, label: str) -> bytes:
+def is_redirect(info: os.stat_result) -> bool:
+    reparse_point = getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0)
+    file_attributes = getattr(info, "st_file_attributes", 0)
+    return stat.S_ISLNK(info.st_mode) or bool(file_attributes & reparse_point)
+
+
+def direct_path(
+    path: Path,
+    root: Path,
+    label: str,
+    *,
+    allow_missing: bool = False,
+) -> Path:
+    absolute_root = Path(os.path.abspath(root))
+    absolute_path = Path(os.path.abspath(path))
+    try:
+        relative = absolute_path.relative_to(absolute_root)
+    except ValueError as exc:
+        raise RepositoryTrustError(f"{label} must stay inside the repository root") from exc
+    if not relative.parts:
+        raise RepositoryTrustError(f"{label} must name a file below the repository root")
+    current = absolute_root
+    for component in relative.parts[:-1]:
+        current /= component
+        try:
+            info = current.lstat()
+        except FileNotFoundError:
+            if allow_missing:
+                return absolute_path
+            raise RepositoryTrustError(f"cannot inspect {label} path: a component is missing")
+        except OSError as exc:
+            raise RepositoryTrustError(f"cannot inspect {label} path: {exc}") from exc
+        if is_redirect(info) or not stat.S_ISDIR(info.st_mode):
+            raise RepositoryTrustError(f"{label} path must use direct directories")
+    return absolute_path
+
+
+def read_regular(
+    path: Path,
+    maximum: int,
+    label: str,
+    *,
+    root: Path | None = None,
+) -> bytes:
+    if root is not None:
+        path = direct_path(path, root, label)
     try:
         before = path.lstat()
     except OSError as exc:
         raise RepositoryTrustError(f"cannot inspect {label}: {exc}") from exc
-    if stat.S_ISLNK(before.st_mode) or not stat.S_ISREG(before.st_mode):
+    if is_redirect(before) or not stat.S_ISREG(before.st_mode):
         raise RepositoryTrustError(f"{label} must be a direct regular file")
     if before.st_size > maximum:
         raise RepositoryTrustError(f"{label} exceeds {maximum} bytes")
@@ -208,9 +253,11 @@ def validate_json_shape(value: Any) -> None:
         if isinstance(item, str):
             if len(item) > MAX_STRING_LENGTH:
                 raise RepositoryTrustError("JSON string exceeds the character bound")
-            if any(ord(character) < 0x20 or 0xD800 <= ord(character) <= 0xDFFF for character in item):
+            if any(not 0x20 <= ord(character) <= 0x7E for character in item):
                 raise RepositoryTrustError("JSON string contains an unsafe character")
         elif isinstance(item, dict):
+            if any(not isinstance(key, str) for key in item):
+                raise RepositoryTrustError("JSON object keys must be strings")
             stack.extend((key, depth + 1) for key in item)
             stack.extend((child, depth + 1) for child in item.values())
         elif isinstance(item, list):
@@ -368,7 +415,12 @@ def validate_policy(value: Any) -> dict[str, Any]:
 
 
 def load_policy(root: Path = ROOT) -> tuple[dict[str, Any], str]:
-    raw = read_regular(root / POLICY_PATH, MAX_POLICY_BYTES, "repository trust policy")
+    raw = read_regular(
+        root / POLICY_PATH,
+        MAX_POLICY_BYTES,
+        "repository trust policy",
+        root=root,
+    )
     value = validate_policy(parse_json(raw, "repository trust policy"))
     return value, hashlib.sha256(raw).hexdigest()
 
@@ -740,7 +792,12 @@ def json_bytes(document: dict[str, Any]) -> bytes:
 
 
 def validate_local_contract(root: Path, policy: dict[str, Any]) -> None:
-    raw = read_regular(root / SECURITY_PATH, MAX_SECURITY_BYTES, "security policy")
+    raw = read_regular(
+        root / SECURITY_PATH,
+        MAX_SECURITY_BYTES,
+        "security policy",
+        root=root,
+    )
     try:
         text = raw.decode("utf-8")
     except UnicodeDecodeError as exc:
@@ -754,7 +811,12 @@ def validate_local_contract(root: Path, policy: dict[str, Any]) -> None:
 def evaluate_repository(root: Path = ROOT) -> tuple[dict[str, Any], int]:
     policy, policy_digest = load_policy(root)
     validate_local_contract(root, policy)
-    observation_path = root / OBSERVATION_PATH
+    observation_path = direct_path(
+        root / OBSERVATION_PATH,
+        root,
+        "repository trust observation",
+        allow_missing=True,
+    )
     try:
         observation_path.lstat()
     except FileNotFoundError:
@@ -762,7 +824,12 @@ def evaluate_repository(root: Path = ROOT) -> tuple[dict[str, Any], int]:
         return evidence, 3
     except OSError as exc:
         raise RepositoryTrustError(f"cannot inspect repository trust observation: {exc}") from exc
-    raw = read_regular(observation_path, MAX_OBSERVATION_BYTES, "repository trust observation")
+    raw = read_regular(
+        observation_path,
+        MAX_OBSERVATION_BYTES,
+        "repository trust observation",
+        root=root,
+    )
     observation = validate_observation(parse_json(raw, "repository trust observation"))
     facts = facts_from_observation(observation)
     evidence = build_evidence(policy_digest, observation["observed_at"], facts)

@@ -69,6 +69,12 @@ def main() -> int:
     document = sample_evidence()
     document["checks"][0]["status"] = "passed"
     negatives.append(document)
+    document = sample_evidence()
+    document["facts"]["ruleset"]["name"] = "unsafe\u202ename"
+    negatives.append(document)
+    document = sample_evidence()
+    document["facts"]["ruleset"]["name"] = "unsafe\nname"
+    negatives.append(document)
 
     for index, document in enumerate(negatives):
         if not list(validator.iter_errors(document)):
