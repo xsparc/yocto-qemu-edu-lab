@@ -192,7 +192,9 @@ Live mutation is not implied by local implementation or pull-request approval.
 After a draft pull request has passed the four Fast jobs, a maintainer may
 separately authorize this bounded sequence:
 
-1. Preflight administrative permission, public-repository feature eligibility
+1. Verify that visibility is public and the default branch is `main`; treat both
+   as non-mutating preconditions and abort before any change if either differs.
+   Preflight administrative permission, public-repository feature eligibility
    and cost, and the identity and ownership of the intended `Protect main`
    ruleset. Inventory every applicable repository, organization, enterprise,
    and legacy branch-protection source.
@@ -201,9 +203,12 @@ separately authorize this bounded sequence:
    untracked local recovery file.
 3. Verify all four current check runs came from the GitHub Actions app.
 4. Set squash-only merging and automatic branch deletion, then re-read both.
-5. Set Actions to `selected` with full-SHA enforcement, then allow GitHub-owned
-   actions only and re-read the complete Actions state. Restore changes in this
-   stage immediately if its second operation fails.
+5. Ensure Actions is enabled and re-read it. Set default workflow permissions
+   to read-only and prevent workflows from approving pull requests, then
+   re-read both. Set Actions to `selected` with full-SHA enforcement, allow
+   GitHub-owned actions only, and re-read the complete Actions state. If any
+   operation in this stage fails, restore its changed Actions sub-settings in
+   reverse order before continuing.
 6. Enable Dependabot alerts and re-read, then enable Dependabot security
    updates and re-read.
 7. Enable secret scanning and re-read it before enabling and re-reading push
@@ -220,9 +225,11 @@ separately authorize this bounded sequence:
 Treat an already-correct value as a verified no-op. On any error, stop and
 restore only changed settings in this exact reverse order: selected ruleset,
 private vulnerability reporting, push protection, secret scanning, Dependabot
-security updates, Dependabot alerts, Actions, then merge settings. Re-read each
-restoration and retain protection throughout. Rehearse at least one harmless
-no-op or partial-failure rollback before claiming the live boundary complete.
+security updates, Dependabot alerts, Actions selection and pinning, workflow
+pull-request approval permission, default workflow permission, Actions enabled,
+then merge settings. Re-read each restoration and retain protection throughout.
+Rehearse at least one harmless no-op or partial-failure rollback before claiming
+the live boundary complete.
 Never disable active default-branch protection to bypass a merge problem. Raw
 recovery data stays local and untracked. Publishing a sanitized evidence
 document also needs an explicit scope decision; the fixed build output is not
