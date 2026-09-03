@@ -363,6 +363,30 @@ class CiValidationTests(unittest.TestCase):
                     any(reason in error for error in MODULE.validate_workflow(path))
                 )
 
+    def test_quoted_or_escaped_flow_triggers_are_rejected(self) -> None:
+        for declaration in (
+            'on: ["pull_request"]',
+            r'on: ["pull_request\u005ftarget"]',
+            r'on: ["workflow\x5frun"]',
+        ):
+            with self.subTest(declaration=declaration):
+                path = self.workflow(
+                    SAFE.replace("on: [pull_request]", declaration, 1)
+                )
+                self.assertTrue(
+                    any(
+                        "unquoted ASCII event names" in error
+                        for error in MODULE.validate_workflow(path)
+                    )
+                )
+
+    def test_trigger_words_in_comments_do_not_change_event_validation(self) -> None:
+        path = self.workflow(
+            SAFE + "# pull_request_target and workflow_run are not configured\n"
+        )
+        errors = MODULE.validate_workflow(path)
+        self.assertFalse(any("privileged" in error for error in errors), errors)
+
     def test_bracket_form_secret_is_rejected(self) -> None:
         path = self.workflow(SAFE + "# ${{ secrets['TOKEN'] }}\n")
         self.assertTrue(

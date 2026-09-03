@@ -60,6 +60,15 @@ WORKFLOW_TOP_LEVEL_KEYS = {
     "defaults",
     "jobs",
 }
+ALLOWED_TRIGGER_EVENTS = {"pull_request", "push", "workflow_dispatch"}
+FLOW_TRIGGER_EVENTS = re.compile(
+    r"^\[(?P<events>[A-Za-z_][A-Za-z0-9_-]*"
+    r"(?:,\s*[A-Za-z_][A-Za-z0-9_-]*)*)\]\s*(?:#.*)?$"
+)
+DISALLOWED_TRIGGER_MESSAGES = {
+    "pull_request_target": "pull_request_target can expose privileged context to fork code",
+    "workflow_run": "workflow_run can cross an untrusted-to-privileged boundary",
+}
 # This binds the trigger and execution envelope outside the job blocks too.
 FAST_WORKFLOW_SHA256 = "cbc9a8ea4d5d7113575c7d2081c96e79c399bccc52d84cd9b9eaed0b6a4d0b29"
 # Review-maintained fingerprints of the exact required job blocks.
@@ -72,8 +81,6 @@ FAST_JOB_SHA256 = {
 TRUST_POLICY = "config/repository-trust-policy.json"
 MAX_TRUST_POLICY_BYTES = 32 * 1024
 BANNED = {
-    "pull_request_target": "pull_request_target can expose privileged context to fork code",
-    "workflow_run": "workflow_run can cross an untrusted-to-privileged boundary",
     "self-hosted": "persistent self-hosted runners are outside the public PR trust boundary",
     "actions/cache": "M1 CI does not persist untrusted caches",
     "actions/upload-artifact": "M1 CI does not publish artifacts",
@@ -236,6 +243,60 @@ def top_level_block(text: str, key: str) -> tuple[str, ...]:
     return tuple(block)
 
 
+def validate_trigger_events(text: str) -> list[str]:
+    """Allow only explicit, unquoted event names in the closed CI subset."""
+    structural = structural_lines(text)
+    declarations: list[tuple[int, re.Match[str]]] = []
+    for index, (_, line) in enumerate(structural):
+        match = MAPPING_ENTRY.fullmatch(line)
+        if (
+            match is not None
+            and not match.group("indent")
+            and match.group("sequence") is None
+            and match.group("key") == "on"
+        ):
+            declarations.append((index, match))
+    if len(declarations) != 1:
+        return ["workflow must declare exactly one canonical trigger mapping"]
+
+    start, declaration = declarations[0]
+    value = declaration.group("rest").strip()
+    events: list[str] = []
+    if value and not value.startswith("#"):
+        flow = FLOW_TRIGGER_EVENTS.fullmatch(value)
+        if flow is None:
+            return [
+                "workflow flow triggers must use unquoted ASCII event names"
+            ]
+        events = [item.strip() for item in flow.group("events").split(",")]
+    else:
+        for _, line in structural[start + 1 :]:
+            match = MAPPING_ENTRY.fullmatch(line)
+            if match is None:
+                continue
+            indent = len(match.group("indent"))
+            if indent == 0:
+                break
+            if indent == 2 and match.group("sequence") is None:
+                events.append(match.group("key"))
+
+    errors: list[str] = []
+    if not events:
+        errors.append("workflow must declare at least one trigger event")
+    if len(events) != len(set(events)):
+        errors.append("workflow trigger events must not repeat")
+    for event in events:
+        if event in ALLOWED_TRIGGER_EVENTS:
+            continue
+        errors.append(
+            DISALLOWED_TRIGGER_MESSAGES.get(
+                event,
+                f"workflow trigger event is not allowed: {event}",
+            )
+        )
+    return errors
+
+
 def validate_github_context(text: str) -> list[str]:
     """Permit only the non-credential GitHub context roots used by this project."""
     for expression in re.findall(r"\$\{\{(.*?)\}\}", text, flags=re.DOTALL):
@@ -336,6 +397,7 @@ def validate_workflow(path: Path) -> list[str]:
 
     errors.extend(validate_canonical_yaml(text))
     errors.extend(validate_duplicate_mappings(text))
+    errors.extend(validate_trigger_events(text))
     if set(top_level_keys(text)) != WORKFLOW_TOP_LEVEL_KEYS:
         errors.append("workflow top-level keys differ from the closed CI envelope")
     if top_level_block(text, "defaults") != DEFAULTS_BLOCK:
