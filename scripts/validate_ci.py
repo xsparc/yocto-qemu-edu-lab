@@ -16,7 +16,11 @@ from typing import Any
 
 ACTION = re.compile(r"(?m)^\s+(?:-\s+)?uses:\s*([^\s#]+)")
 PINNED_ACTION = re.compile(r"(?:[^/@\s]+/[^/@\s]+)@[0-9a-f]{40}\Z")
-JOB = re.compile(r"^  ([A-Za-z][A-Za-z0-9_-]*):\s*$")
+JOB = re.compile(r"^  ([A-Za-z_][A-Za-z0-9_-]*):\s*$")
+MAPPING_ENTRY = re.compile(
+    r"^(?P<indent> *)(?P<sequence>-\s+)?"
+    r"(?P<key>[A-Za-z_][A-Za-z0-9_-]*):(?P<rest>.*)$"
+)
 WRITE_PERMISSION = re.compile(
     r"(?m)^\s+[A-Za-z_-]+:\s*['\"]?write['\"]?\s*(?:#.*)?$",
     re.IGNORECASE,
@@ -42,6 +46,21 @@ FAST_TRIGGER_BLOCK = (
     "    branches: [main]",
     "  workflow_dispatch:",
 )
+DEFAULTS_BLOCK = (
+    "defaults:",
+    "  run:",
+    "    shell: bash",
+)
+WORKFLOW_TOP_LEVEL_KEYS = {
+    "name",
+    "on",
+    "permissions",
+    "concurrency",
+    "defaults",
+    "jobs",
+}
+# This binds the trigger and execution envelope outside the job blocks too.
+FAST_WORKFLOW_SHA256 = "cbc9a8ea4d5d7113575c7d2081c96e79c399bccc52d84cd9b9eaed0b6a4d0b29"
 # Review-maintained fingerprints of the exact required job blocks.
 FAST_JOB_SHA256 = {
     "repository": "0f9fbf8d7350f7d3361aa4af8d5b61db7d738e09c0059a684b0a9a8acf72fb63",
@@ -140,12 +159,69 @@ def validate_canonical_yaml(text: str) -> list[str]:
     return errors
 
 
+def validate_duplicate_mappings(text: str) -> list[str]:
+    """Reject duplicate keys within each canonical mapping scope."""
+    errors: list[str] = []
+    stack: list[tuple[int, tuple[str, str]]] = []
+    sequence_counts: dict[tuple[tuple[tuple[str, str], ...], int], int] = {}
+    seen: set[tuple[tuple[tuple[str, str], ...], str]] = set()
+    for number, line in structural_lines(text):
+        match = MAPPING_ENTRY.fullmatch(line)
+        if match is None:
+            continue
+        base_indent = len(match.group("indent"))
+        if match.group("sequence"):
+            while stack and stack[-1][0] >= base_indent:
+                stack.pop()
+            sequence_key = (tuple(item[1] for item in stack), base_indent)
+            sequence_counts[sequence_key] = sequence_counts.get(sequence_key, 0) + 1
+            stack.append(
+                (
+                    base_indent,
+                    ("item", f"{base_indent}:{sequence_counts[sequence_key]}"),
+                )
+            )
+            effective_indent = base_indent + 2
+        else:
+            effective_indent = base_indent
+            while stack and stack[-1][0] >= effective_indent:
+                stack.pop()
+
+        scope = tuple(item[1] for item in stack)
+        key = match.group("key")
+        identity = (scope, key)
+        if identity in seen:
+            errors.append(
+                f"line {number} repeats mapping key {key!r} in the same scope"
+            )
+        else:
+            seen.add(identity)
+
+        value = match.group("rest").strip()
+        if not value or value.startswith("#"):
+            stack.append((effective_indent, ("mapping", key)))
+    return errors
+
+
+def top_level_keys(text: str) -> list[str]:
+    keys: list[str] = []
+    for _, line in structural_lines(text):
+        match = MAPPING_ENTRY.fullmatch(line)
+        if (
+            match is not None
+            and not match.group("indent")
+            and match.group("sequence") is None
+        ):
+            keys.append(match.group("key"))
+    return keys
+
+
 def top_level_block(text: str, key: str) -> tuple[str, ...]:
     lines = text.splitlines()
-    try:
-        start = lines.index(f"{key}:")
-    except ValueError:
+    indexes = [index for index, line in enumerate(lines) if line == f"{key}:"]
+    if len(indexes) != 1:
         return ()
+    start = indexes[0]
     end = len(lines)
     for index in range(start + 1, len(lines)):
         if lines[index] and not lines[index].startswith(" "):
@@ -155,6 +231,23 @@ def top_level_block(text: str, key: str) -> tuple[str, ...]:
     while block and not block[-1].strip():
         block.pop()
     return tuple(block)
+
+
+def validate_github_context(text: str) -> list[str]:
+    """Permit only the non-credential GitHub context roots used by this project."""
+    for expression in re.findall(r"\$\{\{(.*?)\}\}", text, flags=re.DOTALL):
+        for reference in re.finditer(r"\bgithub\b", expression, flags=re.IGNORECASE):
+            suffix = expression[reference.end() :]
+            if re.match(
+                r"\s*\.\s*(?:event|ref|workflow)\b",
+                suffix,
+                flags=re.IGNORECASE,
+            ) is None:
+                return [
+                    "GitHub expressions may use only github.event, github.ref, "
+                    "or github.workflow"
+                ]
+    return []
 
 
 def has_exact_top_level_permissions(text: str) -> bool:
@@ -239,14 +332,18 @@ def validate_workflow(path: Path) -> list[str]:
     lowered = text.lower()
 
     errors.extend(validate_canonical_yaml(text))
+    errors.extend(validate_duplicate_mappings(text))
+    if set(top_level_keys(text)) != WORKFLOW_TOP_LEVEL_KEYS:
+        errors.append("workflow top-level keys differ from the closed CI envelope")
+    if top_level_block(text, "defaults") != DEFAULTS_BLOCK:
+        errors.append("workflow defaults must contain only 'run.shell: bash'")
     if not has_exact_top_level_permissions(text):
         errors.append("top-level permissions must contain only 'contents: read'")
     if WRITE_PERMISSION.search(text) or "write-all" in lowered:
         errors.append("write permissions are prohibited")
     if re.search(r"\bsecrets\b", lowered):
         errors.append("these workflows must not consume repository secrets")
-    if re.search(r"\bgithub\s*\.\s*token\b", lowered):
-        errors.append("these workflows must not consume the GitHub token")
+    errors.extend(validate_github_context(text))
     for token, reason in BANNED.items():
         if token in lowered:
             errors.append(reason)
@@ -276,9 +373,13 @@ def validate_workflow(path: Path) -> list[str]:
     if not jobs:
         errors.append("workflow has no statically identifiable jobs")
     for name, block in jobs:
-        if not re.search(r"(?m)^    timeout-minutes:\s*[1-9][0-9]*\s*$", block):
+        if len(re.findall(r"(?m)^    timeout-minutes:", block)) != 1 or not re.search(
+            r"(?m)^    timeout-minutes:\s*[1-9][0-9]*\s*$", block
+        ):
             errors.append(f"job {name} has no positive timeout-minutes")
-        if len(re.findall(r"(?m)^    runs-on:\s*ubuntu-24\.04\s*$", block)) != 1:
+        if len(re.findall(r"(?m)^    runs-on:", block)) != 1 or len(
+            re.findall(r"(?m)^    runs-on:\s*ubuntu-24\.04\s*$", block)
+        ) != 1:
             errors.append(f"job {name} must use exactly one ubuntu-24.04 hosted runner")
         if re.search(r"(?m)^    permissions\s*:", block):
             errors.append(f"job {name} must not override permissions")
@@ -311,6 +412,11 @@ def validate_trust_policy_binding(root: Path, fast_text: str) -> list[str]:
         selected = actions["selected_actions"]
         required = policy["ruleset"]["required_status_checks"]
         checks = required["checks"]
+        if not all(
+            isinstance(item, dict)
+            for item in (policy, actions, selected, required)
+        ):
+            raise TypeError("policy sections must be objects")
     except (OSError, UnicodeDecodeError, json.JSONDecodeError, AttributeError, KeyError, TypeError, ValueError) as exc:
         return [f"{TRUST_POLICY}: cannot bind CI policy: {exc}"]
 
@@ -318,6 +424,11 @@ def validate_trust_policy_binding(root: Path, fast_text: str) -> list[str]:
         errors.append(
             ".github/workflows/fast-checks.yml: triggers must be exactly "
             "unfiltered pull_request, main push, and workflow_dispatch"
+        )
+    if hashlib.sha256(fast_text.encode("utf-8")).hexdigest() != FAST_WORKFLOW_SHA256:
+        errors.append(
+            ".github/workflows/fast-checks.yml: complete workflow differs from "
+            "its reviewed execution surface"
         )
 
     parsed_jobs = job_blocks(fast_text)
@@ -351,6 +462,11 @@ def validate_trust_policy_binding(root: Path, fast_text: str) -> list[str]:
         for item in checks:
             if not isinstance(item, dict) or set(item) != {"context", "source"}:
                 errors.append(f"{TRUST_POLICY}: required check fields differ")
+                continue
+            if not isinstance(item["context"], str) or not isinstance(
+                item["source"], str
+            ):
+                errors.append(f"{TRUST_POLICY}: required check values must be strings")
                 continue
             contexts.append(item["context"])
             sources.append(item["source"])

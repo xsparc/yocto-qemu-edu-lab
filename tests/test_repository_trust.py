@@ -487,15 +487,16 @@ class RepositoryTrustTests(unittest.TestCase):
     def test_security_contact_must_be_visible(self) -> None:
         _, root = self.temporary_root()
         policy, _ = MODULE.load_policy(root)
-        (root / MODULE.SECURITY_PATH).write_text(
-            "<!-- Security contact: [@xsparc](https://github.com/xsparc) -->\n",
-            encoding="utf-8",
-        )
-        with self.assertRaisesRegex(
-            MODULE.RepositoryTrustError,
-            "visible standalone line",
-        ):
-            MODULE.validate_local_contract(root, policy)
+        cases = {
+            "closed": "<!--\nSecurity contact: [@xsparc](https://github.com/xsparc)\n-->\n",
+            "unclosed": "<!--\nSecurity contact: [@xsparc](https://github.com/xsparc)\n",
+            "stray-close": "-->\nSecurity contact: [@xsparc](https://github.com/xsparc)\n",
+        }
+        for name, text in cases.items():
+            with self.subTest(case=name):
+                (root / MODULE.SECURITY_PATH).write_text(text, encoding="utf-8")
+                with self.assertRaises(MODULE.RepositoryTrustError):
+                    MODULE.validate_local_contract(root, policy)
 
     def test_runtime_has_no_network_subprocess_or_credential_adapter(self) -> None:
         source = (ROOT / "scripts/repository_trust.py").read_text(encoding="utf-8")

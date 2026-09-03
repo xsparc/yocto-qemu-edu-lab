@@ -896,6 +896,46 @@ def json_bytes(document: dict[str, Any]) -> bytes:
     ).encode("utf-8")
 
 
+def visible_markdown_lines(text: str) -> list[str]:
+    """Remove balanced HTML comments and reject ambiguous comment state."""
+    visible_lines: list[str] = []
+    in_comment = False
+    for line in text.splitlines():
+        cursor = 0
+        visible = ""
+        while cursor < len(line):
+            opening = line.find("<!--", cursor)
+            closing = line.find("-->", cursor)
+            if in_comment:
+                if opening != -1 and (closing == -1 or opening < closing):
+                    raise RepositoryTrustError(
+                        "security policy contains nested HTML comments"
+                    )
+                if closing == -1:
+                    cursor = len(line)
+                else:
+                    in_comment = False
+                    cursor = closing + 3
+            else:
+                if closing != -1 and (opening == -1 or closing < opening):
+                    raise RepositoryTrustError(
+                        "security policy contains an unmatched HTML comment close"
+                    )
+                if opening == -1:
+                    visible += line[cursor:]
+                    cursor = len(line)
+                else:
+                    visible += line[cursor:opening]
+                    in_comment = True
+                    cursor = opening + 4
+        visible_lines.append(visible)
+    if in_comment:
+        raise RepositoryTrustError(
+            "security policy contains an unclosed HTML comment"
+        )
+    return visible_lines
+
+
 def validate_local_contract(root: Path, policy: dict[str, Any]) -> None:
     raw = read_regular(
         root / SECURITY_PATH,
@@ -909,8 +949,7 @@ def validate_local_contract(root: Path, policy: dict[str, Any]) -> None:
         raise RepositoryTrustError("security policy is not UTF-8") from exc
     contact = policy["security"]["contact"]
     expected = f"Security contact: [{contact}](https://github.com/{contact.removeprefix('@')})"
-    visible_text = re.sub(r"<!--.*?-->", "", text, flags=re.DOTALL)
-    if visible_text.splitlines().count(expected) != 1:
+    if visible_markdown_lines(text).count(expected) != 1:
         raise RepositoryTrustError(
             "security policy must name the approved contact on one visible standalone line"
         )

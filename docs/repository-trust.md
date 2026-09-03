@@ -38,18 +38,20 @@ The exact policy requires:
 - Dependabot alerts and security updates, secret scanning and push protection,
   private vulnerability reporting, and the named contact `@xsparc`.
 
-`scripts/validate_ci.py` binds the four policy contexts to the exact job IDs,
-unchanged job-name semantics, reviewed command-surface fingerprints, and exact
-unfiltered pull-request/main-push/manual triggers in
+`scripts/validate_ci.py` binds the complete Fast workflow plus the four policy
+contexts to review-maintained fingerprints, exact job IDs, unchanged job-name
+semantics, and exact unfiltered pull-request/main-push/manual triggers in
 `.github/workflows/fast-checks.yml`. Required jobs cannot use job-level names,
 conditions, dependencies, or strategies. Every job uses the approved GitHub-
-hosted runner. The validator accepts a closed canonical YAML form and rejects
-quoted or otherwise ambiguous mapping keys, mapping merges, aliases, tags, and
-flow mappings before checking action ownership and pins, permissions, secrets,
-tokens, privileged triggers, and prohibited workflow features. The digest-
-pinned REUSE container is an external command executed by the workflow, not a
-reusable GitHub Action. A deliberate workflow change must update its reviewed
-fingerprint in the same inspectable change.
+hosted runner, and the workflow-level shell is fixed without environment or
+working-directory overrides. The validator accepts a closed canonical YAML
+form and rejects duplicate, quoted, or otherwise ambiguous mapping keys,
+mapping merges, aliases, tags, flow mappings, and unexpected top-level fields
+before checking action ownership and pins, permissions, secrets, GitHub
+context references, privileged triggers, and prohibited workflow features.
+The digest-pinned REUSE container is an external command executed by the
+workflow, not a reusable GitHub Action. A deliberate workflow change must
+update its reviewed fingerprints in the same inspectable change.
 
 ## Observation contract
 

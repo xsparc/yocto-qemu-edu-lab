@@ -150,6 +150,58 @@ class CiValidationTests(unittest.TestCase):
                     any("reviewed command surface" in error for error in errors)
                 )
 
+    def test_complete_fast_execution_envelope_is_bound(self) -> None:
+        text = (ROOT / ".github/workflows/fast-checks.yml").read_text(
+            encoding="utf-8"
+        )
+        mutations = {
+            "bash-env": text.replace(
+                "jobs:\n",
+                "env:\n  BASH_ENV: ./ci-bootstrap.sh\njobs:\n",
+                1,
+            ),
+            "python-path": text.replace(
+                "jobs:\n",
+                "env:\n  PYTHONPATH: ./shadow-modules\njobs:\n",
+                1,
+            ),
+            "working-directory": text.replace(
+                "    shell: bash\n",
+                "    shell: bash\n    working-directory: ./alternate\n",
+                1,
+            ),
+            "alternate-shell": text.replace("    shell: bash\n", "    shell: pwsh\n", 1),
+        }
+        for name, changed in mutations.items():
+            with self.subTest(mutation=name):
+                errors = MODULE.validate_workflow(self.workflow(changed))
+                errors.extend(MODULE.validate_trust_policy_binding(ROOT, changed))
+                self.assertTrue(
+                    any("execution surface" in error for error in errors),
+                    errors,
+                )
+
+    def test_underscore_job_ids_cannot_escape_runner_enforcement(self) -> None:
+        text = (ROOT / ".github/workflows/fast-checks.yml").read_text(
+            encoding="utf-8"
+        )
+        changed = text.replace(
+            "jobs:\n",
+            "jobs:\n"
+            "  _escape:\n"
+            "    timeout-minutes: 5\n"
+            "    runs-on:\n"
+            "      group: persistent-runners\n"
+            "      labels: linux\n"
+            "    steps:\n"
+            "      - run: echo persistent\n",
+            1,
+        )
+        errors = MODULE.validate_workflow(self.workflow(changed))
+        errors.extend(MODULE.validate_trust_policy_binding(ROOT, changed))
+        self.assertTrue(any("_escape" in error for error in errors), errors)
+        self.assertTrue(any("hosted runner" in error for error in errors), errors)
+
     def test_path_scoped_metadata_is_not_a_required_fast_context(self) -> None:
         policy = json.loads(
             (ROOT / MODULE.TRUST_POLICY).read_text(encoding="utf-8")
@@ -244,7 +296,7 @@ class CiValidationTests(unittest.TestCase):
     def test_bare_secrets_and_github_token_are_rejected(self) -> None:
         for expression, expected in (
             ("${{ toJSON(secrets) }}", "repository secrets"),
-            ("${{ github.token }}", "GitHub token"),
+            ("${{ github.token }}", "GitHub expressions"),
         ):
             with self.subTest(expression=expression):
                 path = self.workflow(
@@ -256,6 +308,55 @@ class CiValidationTests(unittest.TestCase):
                 )
                 self.assertTrue(
                     any(expected in error for error in MODULE.validate_workflow(path))
+                )
+
+    def test_whole_or_dynamic_github_context_is_rejected(self) -> None:
+        for expression in (
+            "${{ toJSON(github) }}",
+            "${{ github['token'] }}",
+            '${{ GITHUB [ "token" ] }}',
+            "${{ github.*.token }}",
+        ):
+            with self.subTest(expression=expression):
+                path = self.workflow(
+                    SAFE.replace(
+                        "    steps:\n",
+                        f"    env:\n      PROBE: {expression}\n    steps:\n",
+                        1,
+                    )
+                )
+                self.assertTrue(
+                    any(
+                        "GitHub expressions" in error
+                        for error in MODULE.validate_workflow(path)
+                    )
+                )
+
+    def test_duplicate_mapping_keys_are_rejected_in_their_scope(self) -> None:
+        cases = {
+            "trigger": SAFE.replace(
+                "permissions:\n",
+                "on: [workflow_dispatch]\npermissions:\n",
+                1,
+            ),
+            "runner": SAFE.replace(
+                "    runs-on: ubuntu-24.04\n",
+                "    runs-on: ubuntu-24.04\n    runs-on: persistent-runner\n",
+                1,
+            ),
+            "checkout": SAFE.replace(
+                "          persist-credentials: false\n",
+                "          persist-credentials: false\n"
+                "          persist-credentials: true\n",
+                1,
+            ),
+        }
+        for name, text in cases.items():
+            with self.subTest(case=name):
+                errors = MODULE.validate_workflow(self.workflow(text))
+                self.assertTrue(
+                    any("repeats mapping key" in error for error in errors),
+                    errors,
                 )
 
     def test_noncanonical_yaml_cannot_hide_security_mappings(self) -> None:
@@ -353,6 +454,26 @@ class CiValidationTests(unittest.TestCase):
     def test_every_job_requires_timeout(self) -> None:
         path = self.workflow(SAFE.replace("    timeout-minutes: 5\n", ""))
         self.assertIn("job test has no positive timeout-minutes", MODULE.validate_workflow(path))
+
+    def test_malformed_policy_values_return_bounded_errors(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            policy_path = root / MODULE.TRUST_POLICY
+            policy_path.parent.mkdir(parents=True)
+            policy = json.loads(
+                (ROOT / MODULE.TRUST_POLICY).read_text(encoding="utf-8")
+            )
+            policy["ruleset"]["required_status_checks"]["checks"][0][
+                "context"
+            ] = ["repository"]
+            policy_path.write_text(json.dumps(policy), encoding="utf-8")
+            text = (ROOT / ".github/workflows/fast-checks.yml").read_text(
+                encoding="utf-8"
+            )
+            errors = MODULE.validate_trust_policy_binding(root, text)
+            self.assertTrue(
+                any("required check values must be strings" in error for error in errors)
+            )
 
 
 if __name__ == "__main__":
