@@ -609,7 +609,7 @@ scope = [
   "Add one closed machine-readable desired-state policy covering repository visibility and merge behavior, GitHub Actions permissions and action selection, the default-branch ruleset, exact required Fast check contexts, and repository security features.",
   "Add a standard-library-only read-only evaluator for one fixed ignored sanitized observation path, with bounded regular-file input, strict JSON parsing, deterministic output, and explicit pass, fail, or unavailable evidence.",
   "Add immutable qemu-edu-repository-trust-evidence-v1 JSON Schema and semantic validation, reusing the existing exact hash-locked test-only Draft 2020-12 validator environment.",
-  "Bind the local workflow validator to the policy's exact stable Fast job IDs and GitHub-owned action namespace without making the path-scoped metadata job universally required.",
+  "Bind the local workflow validator to canonical YAML, exact Fast triggers, stable context names, reviewed non-skippable job command surfaces, hosted runners, and the GitHub-owned action namespace without making the path-scoped metadata job universally required.",
   "Document observation minimization, security contact, evidence limits, staged live-settings rollout, rollback, licensing, and later provider-neutral adapter use.",
 ]
 non_scope = [
@@ -620,10 +620,10 @@ non_scope = [
 ]
 acceptance_criteria = [
   "The desired-state policy is closed, versioned, semantically validated, and binds only the approved public-repository controls.",
-  "The evaluator reads only the fixed ignored observation file, rejects symlinks, oversize input, duplicate or unknown keys, unsafe strings and malformed values, and performs no network, credential, subprocess, or mutation operation.",
+  "The evaluator reads only the fixed ignored observation file, binds opening against parent-directory replacement, rejects redirects, oversize input, duplicate or unknown keys, unsafe strings and malformed values, and performs no network, credential, subprocess, or mutation operation.",
   "Deterministic schema-1 evidence contains only the policy digest, observation time, allowlisted repository facts, ordered checks, and an aggregate pass, fail, or unavailable result; raw identifiers, actors, paths, API URLs, responses, and secrets are excluded.",
-  "Local CI validation requires the exact repository, static, diagnostics-schema, and licensing job IDs, accepts only GitHub-owned external actions at full commit SHAs, and keeps Yocto metadata path-scoped and advisory.",
-  "Adversarial unit and independent Draft 2020-12 schema tests cover missing and extra checks, bypass actors, write permissions, unpinned or excess actions, disabled security features, accidental universal metadata, malformed and duplicate input, symlinks, size limits, and deterministic bytes.",
+  "Local CI validation requires exact unfiltered Fast triggers, the repository, static, diagnostics-schema, and licensing contexts with reviewed non-skippable command surfaces on approved hosted runners, accepts only GitHub-owned external actions at full commit SHAs, and keeps Yocto metadata path-scoped and advisory.",
+  "Adversarial unit and independent Draft 2020-12 schema tests cover missing and extra checks, partial conflicts, bypass actors, write permissions, noncanonical YAML, unpinned or excess actions, runner groups, context drift, skipped jobs, disabled security features, accidental universal metadata, malformed and duplicate input, redirect replacement, size limits, visible contact, and deterministic bytes.",
   "After separate authorization, the live public repository matches the desired state, a sanitized point-in-time observation produces passing evidence, and the same four hosted Fast checks remain green under the strengthened ruleset.",
   "Repository, workflow, schema, checksum, licensing, documentation, architecture, security, DevOps, quality, and independent-diff gates pass without overstating certification or publication.",
 ]
@@ -633,7 +633,7 @@ validation = [
   "project fast-check and licensing suite",
   "closed policy, observation, semantic evidence, deterministic CLI, fixed-path, and adversarial input tests",
   "exact six-wheel offline Draft 2020-12 evidence-schema oracle",
-  "local workflow job, action ownership, permissions, metadata-scope, and policy-binding checks",
+  "local canonical-workflow, trigger, job-context, command-surface, hosted-runner, action-ownership, permissions, metadata-scope, and policy-binding checks",
   "separately authorized live settings re-read, passing sanitized evidence, rollback rehearsal, and hosted Fast checks",
   "architecture, quality, DevOps, security, licensing, documentation, and independent-diff reviews",
 ]

@@ -19,4 +19,4 @@ SPDX-License-Identifier: MIT
 | A006 | M6 | Done | Provider-neutral lab diagnostics | A005 | Squash-merged through pull request #11 as `b569199` |
 | A008 | M7 | Done | SPDX 3 image-composition evidence | A006 | Squash-merged through pull request #12 as `00ad952` |
 | A009 | M8 | Done | Isolated direct-eSDK application iteration | A008 | Squash-merged through pull request #14 as `4dd8c79` |
-| A010 | M9 | In Progress | Verifiable public-repository trust boundary | A009 | Implement and validate the approved local policy/evidence slice; live settings and publication remain separate approvals |
+| A010 | M9 | In Progress | Verifiable public-repository trust boundary | A009 | Correct review findings, validate the exact head, and complete re-review; live settings and publication remain separate approvals |

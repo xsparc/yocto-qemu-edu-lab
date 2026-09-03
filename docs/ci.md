@@ -10,7 +10,7 @@ resource-constrained, or metadata-only checks into build or runtime claims.
 
 | Tier | Trigger and environment | Evidence | Not proved |
 |---|---|---|---|
-| Fast checks | Every PR, main push, or manual run on `ubuntu-24.04` | Source-lock, lab-manifest, workflow, CI, repository-trust policy, diagnostics, SPDX image-evidence, direct-eSDK evidence, and QEMU security contracts; unit tests; independent Draft 2020-12 validation of all four current project schemas; checksums; changed-line whitespace; ShellCheck; actionlint; REUSE | Live repository settings, upstream availability, BitBake parse, image build, guest runtime, generated SBOM content, direct-eSDK execution |
+| Fast checks | Every PR, main push, or manual run on `ubuntu-24.04` | Source-lock, lab-manifest, workflow, CI, repository-trust policy, diagnostics, SPDX image-evidence, direct-eSDK evidence, and QEMU security contracts; unit tests; independent Draft 2020-12 validation of the diagnostics, SPDX, SDK, and repository-trust schemas in the external oracle lane; checksums; changed-line whitespace; ShellCheck; actionlint; REUSE | Live repository settings, upstream availability, BitBake parse, image build, guest runtime, generated SBOM content, direct-eSDK execution |
 | Yocto metadata | Relevant PR/main changes or manual run on `ubuntu-24.04` | Exact source resolution, cached offline recheck, both manifest compositions, locked SDK executable/plugin authority, exact sample PN/PV/license/machine metadata, `bitbake -p`, expanded image metadata, exact SPDX generator settings, per-machine QEMU append/recipe/dependency isolation, both machine checks through `yocto-check-layer` | Patched source, compiled sample/image/emulator, generated SDK or SPDX graph, QEMU boot, guest behavior, offline recipe fetches, bit-for-bit output |
 | Full build/runtime | Local/manual on an adequately sized Linux host; no hosted runner currently configured | A completed lab-specific `runtime-test.sh` run builds, boots, executes its required OEQA cases, and emits PCI version-3 or platform version-1 evidence | Nothing until the command actually completes; one lab's result does not qualify the other and metadata CI is not runtime proof |
 | SPDX image evidence | Local/manual on the same adequately sized Linux boundary | `sbom-evidence.sh` completes the selected image's SPDX task and emits schema-1 package/license and artifact-hash evidence | Nothing until the command completes for that lab; it is not runtime, signing, attestation, vulnerability-freshness, reproducibility, release, or physical-hardware proof |
@@ -48,8 +48,11 @@ The metadata verifier requires both inputs exactly once for either profile.
   a read-only filesystem, and a read-only repository mount.
 - Workflows do not use `pull_request_target`, privileged follow-up events,
   caches, artifact uploads, or persistent self-hosted runners.
-- `scripts/validate_ci.py` enforces these local invariants and fails closed on
-  unpinned actions, write permissions, secrets, or jobs without timeouts.
+- `scripts/validate_ci.py` first restricts workflow structure to a canonical
+  YAML subset, then fails closed on unpinned actions, write permissions,
+  secrets or tokens, non-hosted runners, or jobs without timeouts. It also
+  binds exact Fast triggers and reviewed non-skippable job command surfaces to
+  the four required contexts.
 - `scripts/repository_trust.py validate` enforces the exact desired-state
   policy and named security contact. It does not claim live settings were read.
   The evaluator consumes only the fixed ignored sanitized observation and

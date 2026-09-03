@@ -181,6 +181,50 @@ class RepositoryTrustTests(unittest.TestCase):
         self.assertEqual("pass", statuses["repository.public"])
         self.assertEqual("unavailable", statuses["repository.default_branch"])
 
+    def test_partial_composite_conflicts_fail_before_unavailable(self) -> None:
+        actions_conflict = sample_observation()
+        actions_conflict["actions"]["selected_actions"] = {
+            "github_owned_allowed": False
+        }
+        pull_request_conflict = sample_observation()
+        pull_request_conflict["ruleset"]["pull_request"] = {"required": False}
+        controls = []
+        actions_incomplete = sample_observation()
+        actions_incomplete["actions"]["selected_actions"] = {
+            "github_owned_allowed": True
+        }
+        controls.append((actions_incomplete, "actions.github_owned_only"))
+        pull_request_incomplete = sample_observation()
+        pull_request_incomplete["ruleset"]["pull_request"] = {"required": True}
+        controls.append((pull_request_incomplete, "ruleset.pull_request"))
+
+        for observation, check_id in (
+            (actions_conflict, "actions.github_owned_only"),
+            (pull_request_conflict, "ruleset.pull_request"),
+        ):
+            with self.subTest(check=check_id, state="conflict"):
+                validated = MODULE.validate_observation(observation)
+                evidence = MODULE.build_evidence(
+                    "c" * 64,
+                    validated["observed_at"],
+                    MODULE.facts_from_observation(validated),
+                )
+                statuses = {item["id"]: item["status"] for item in evidence["checks"]}
+                self.assertEqual("fail", statuses[check_id])
+                self.assertEqual("fail", evidence["result"])
+
+        for observation, check_id in controls:
+            with self.subTest(check=check_id, state="incomplete"):
+                validated = MODULE.validate_observation(observation)
+                evidence = MODULE.build_evidence(
+                    "c" * 64,
+                    validated["observed_at"],
+                    MODULE.facts_from_observation(validated),
+                )
+                statuses = {item["id"]: item["status"] for item in evidence["checks"]}
+                self.assertEqual("unavailable", statuses[check_id])
+                self.assertEqual("unavailable", evidence["result"])
+
     def test_policy_drift_cases_fail_without_hiding_unavailable_facts(self) -> None:
         mutations = []
 
@@ -324,7 +368,7 @@ class RepositoryTrustTests(unittest.TestCase):
             with mock.patch.object(Path, "lstat", return_value=symlink_info):
                 with self.assertRaisesRegex(
                     MODULE.RepositoryTrustError,
-                    "direct directories",
+                    "direct director",
                 ):
                     MODULE.direct_path(candidate, root, "fixture")
 
@@ -335,6 +379,70 @@ class RepositoryTrustTests(unittest.TestCase):
                 st_file_attributes=reparse_point,
             )
             self.assertTrue(MODULE.is_redirect(info))
+
+    def test_parent_replacement_cannot_redirect_an_open(self) -> None:
+        with (
+            tempfile.TemporaryDirectory() as trusted_temporary,
+            tempfile.TemporaryDirectory() as outside_temporary,
+        ):
+            root = Path(trusted_temporary)
+            parent = root / "input"
+            parent.mkdir()
+            candidate = parent / "observation.json"
+            candidate.write_text("inside", encoding="utf-8")
+            outside = Path(outside_temporary)
+            (outside / candidate.name).write_text("outside", encoding="utf-8")
+            original_direct_path = MODULE.direct_path
+            redirect_created = False
+
+            def replace_after_validation(*args, **kwargs):
+                nonlocal redirect_created
+                result = original_direct_path(*args, **kwargs)
+                shutil.rmtree(parent)
+                if os.name == "nt":
+                    completed = subprocess.run(
+                        [
+                            "cmd.exe",
+                            "/d",
+                            "/c",
+                            "mklink",
+                            "/J",
+                            str(parent),
+                            str(outside),
+                        ],
+                        capture_output=True,
+                        check=False,
+                        text=True,
+                    )
+                    if completed.returncode != 0:
+                        self.skipTest("directory junctions are unavailable to this test account")
+                else:
+                    os.symlink(outside, parent, target_is_directory=True)
+                redirect_created = True
+                return result
+
+            try:
+                with mock.patch.object(
+                    MODULE,
+                    "direct_path",
+                    side_effect=replace_after_validation,
+                ):
+                    with self.assertRaisesRegex(
+                        MODULE.RepositoryTrustError,
+                        "resolved outside|cannot read fixture",
+                    ):
+                        MODULE.read_regular(
+                            candidate,
+                            16,
+                            "fixture",
+                            root=root,
+                        )
+            finally:
+                if redirect_created and os.path.lexists(parent):
+                    if os.name == "nt":
+                        os.rmdir(parent)
+                    else:
+                        parent.unlink()
 
     def test_semantic_evidence_rejects_tampering(self) -> None:
         evidence = sample_evidence()
@@ -373,7 +481,20 @@ class RepositoryTrustTests(unittest.TestCase):
         (root / MODULE.POLICY_PATH).write_bytes((ROOT / MODULE.POLICY_PATH).read_bytes())
         (root / MODULE.SECURITY_PATH).write_text("No named contact\n", encoding="utf-8")
         policy, _ = MODULE.load_policy(root)
-        with self.assertRaisesRegex(MODULE.RepositoryTrustError, "name the approved contact"):
+        with self.assertRaisesRegex(MODULE.RepositoryTrustError, "approved contact"):
+            MODULE.validate_local_contract(root, policy)
+
+    def test_security_contact_must_be_visible(self) -> None:
+        _, root = self.temporary_root()
+        policy, _ = MODULE.load_policy(root)
+        (root / MODULE.SECURITY_PATH).write_text(
+            "<!-- Security contact: [@xsparc](https://github.com/xsparc) -->\n",
+            encoding="utf-8",
+        )
+        with self.assertRaisesRegex(
+            MODULE.RepositoryTrustError,
+            "visible standalone line",
+        ):
             MODULE.validate_local_contract(root, policy)
 
     def test_runtime_has_no_network_subprocess_or_credential_adapter(self) -> None:

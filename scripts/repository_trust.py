@@ -15,7 +15,7 @@ import stat
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -178,6 +178,12 @@ def direct_path(
         raise RepositoryTrustError(f"{label} must stay inside the repository root") from exc
     if not relative.parts:
         raise RepositoryTrustError(f"{label} must name a file below the repository root")
+    try:
+        root_info = absolute_root.lstat()
+    except OSError as exc:
+        raise RepositoryTrustError(f"cannot inspect {label} root: {exc}") from exc
+    if is_redirect(root_info) or not stat.S_ISDIR(root_info.st_mode):
+        raise RepositoryTrustError(f"{label} root must be a direct directory")
     current = absolute_root
     for component in relative.parts[:-1]:
         current /= component
@@ -192,6 +198,91 @@ def direct_path(
         if is_redirect(info) or not stat.S_ISDIR(info.st_mode):
             raise RepositoryTrustError(f"{label} path must use direct directories")
     return absolute_path
+
+
+def normalized_path_text(path: Path) -> str:
+    return os.path.normcase(os.path.normpath(os.path.abspath(path)))
+
+
+def windows_final_path(descriptor: int) -> Path:
+    """Return the junction-resolved DOS path for an open Windows handle."""
+    import ctypes
+    import msvcrt
+    from ctypes import wintypes
+
+    get_final_path = ctypes.WinDLL(
+        "kernel32", use_last_error=True
+    ).GetFinalPathNameByHandleW
+    get_final_path.argtypes = (
+        wintypes.HANDLE,
+        wintypes.LPWSTR,
+        wintypes.DWORD,
+        wintypes.DWORD,
+    )
+    get_final_path.restype = wintypes.DWORD
+    handle = msvcrt.get_osfhandle(descriptor)
+    size = 32768
+    while True:
+        buffer = ctypes.create_unicode_buffer(size)
+        length = get_final_path(handle, buffer, size, 0)
+        if length == 0:
+            raise ctypes.WinError(ctypes.get_last_error())
+        if length < size:
+            value = buffer.value
+            break
+        size = length + 1
+    if value.startswith("\\\\?\\UNC\\"):
+        value = "\\\\" + value[8:]
+    elif value.startswith("\\\\?\\"):
+        value = value[4:]
+    return Path(value)
+
+
+def open_beneath(path: Path, root: Path, label: str) -> int:
+    """Open a leaf without allowing a parent redirect to escape root."""
+    absolute_root = Path(os.path.abspath(root))
+    absolute_path = Path(os.path.abspath(path))
+    try:
+        relative = absolute_path.relative_to(absolute_root)
+    except ValueError as exc:
+        raise RepositoryTrustError(f"{label} must stay inside the repository root") from exc
+    flags = os.O_RDONLY | getattr(os, "O_BINARY", 0)
+    if os.name == "nt":
+        descriptor = os.open(absolute_path, flags)
+        try:
+            if normalized_path_text(windows_final_path(descriptor)) != normalized_path_text(
+                absolute_path
+            ):
+                raise RepositoryTrustError(
+                    f"{label} resolved outside its direct repository path"
+                )
+        except BaseException:
+            os.close(descriptor)
+            raise
+        return descriptor
+
+    if os.open not in os.supports_dir_fd or not hasattr(os, "O_NOFOLLOW"):
+        raise RepositoryTrustError(
+            f"{label} cannot be opened safely on this platform"
+        )
+    directory_flags = (
+        os.O_RDONLY
+        | getattr(os, "O_DIRECTORY", 0)
+        | getattr(os, "O_NOFOLLOW", 0)
+        | getattr(os, "O_CLOEXEC", 0)
+    )
+    leaf_flags = flags | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_CLOEXEC", 0)
+    directories: list[int] = []
+    try:
+        parent = os.open(absolute_root, directory_flags)
+        directories.append(parent)
+        for component in relative.parts[:-1]:
+            parent = os.open(component, directory_flags, dir_fd=parent)
+            directories.append(parent)
+        return os.open(relative.parts[-1], leaf_flags, dir_fd=parent)
+    finally:
+        for descriptor in reversed(directories):
+            os.close(descriptor)
 
 
 def read_regular(
@@ -215,7 +306,11 @@ def read_regular(
     try:
         flags = os.O_RDONLY | getattr(os, "O_BINARY", 0)
         flags |= getattr(os, "O_NOFOLLOW", 0)
-        descriptor = os.open(path, flags)
+        descriptor = (
+            open_beneath(path, root, label)
+            if root is not None
+            else os.open(path, flags)
+        )
         opened = os.fstat(descriptor)
         if not stat.S_ISREG(opened.st_mode) or (
             before.st_dev,
@@ -623,10 +718,15 @@ def scalar_status(value: Any, expected: Any) -> str:
     return "pass" if value == expected else "fail"
 
 
-def combined_status(values: tuple[Any, ...], predicate: Callable[[], bool]) -> str:
-    if any(value is None for value in values):
+def combined_status(expectations: tuple[tuple[Any, Any], ...]) -> str:
+    if any(
+        value is not None and value != expected
+        for value, expected in expectations
+    ):
+        return "fail"
+    if any(value is None for value, _ in expectations):
         return "unavailable"
-    return "pass" if predicate() else "fail"
+    return "pass"
 
 
 def check_statuses(facts: dict[str, Any]) -> list[dict[str, str]]:
@@ -646,8 +746,11 @@ def check_statuses(facts: dict[str, Any]) -> list[dict[str, str]]:
         "actions.default_permissions": scalar_status(actions["default_workflow_permissions"], "read"),
         "actions.pr_approval_permission": scalar_status(actions["can_approve_pull_request_reviews"], False),
         "actions.github_owned_only": combined_status(
-            (actions["github_owned_allowed"], actions["verified_allowed"], actions["patterns_allowed"]),
-            lambda: actions["github_owned_allowed"] is True and actions["verified_allowed"] is False and actions["patterns_allowed"] == [],
+            (
+                (actions["github_owned_allowed"], True),
+                (actions["verified_allowed"], False),
+                (actions["patterns_allowed"], []),
+            )
         ),
         "ruleset.active": scalar_status(ruleset["enforcement"], "active"),
         "ruleset.name": scalar_status(ruleset["name"], "Protect main"),
@@ -658,8 +761,10 @@ def check_statuses(facts: dict[str, Any]) -> list[dict[str, str]]:
         "ruleset.linear_history": scalar_status(ruleset["linear_history"], True),
         "ruleset.enforce_on_create": scalar_status(ruleset["do_not_enforce_on_create"], False),
         "ruleset.pull_request": combined_status(
-            (ruleset["pull_request_required"], ruleset["required_approving_review_count"]),
-            lambda: ruleset["pull_request_required"] is True and ruleset["required_approving_review_count"] == 0,
+            (
+                (ruleset["pull_request_required"], True),
+                (ruleset["required_approving_review_count"], 0),
+            )
         ),
         "ruleset.squash_only": scalar_status(ruleset["allowed_merge_methods"], ["squash"]),
         "ruleset.strict_checks": scalar_status(ruleset["strict_required_status_checks_policy"], True),
@@ -804,8 +909,11 @@ def validate_local_contract(root: Path, policy: dict[str, Any]) -> None:
         raise RepositoryTrustError("security policy is not UTF-8") from exc
     contact = policy["security"]["contact"]
     expected = f"Security contact: [{contact}](https://github.com/{contact.removeprefix('@')})"
-    if text.count(expected) != 1:
-        raise RepositoryTrustError("security policy must name the approved contact exactly once")
+    visible_text = re.sub(r"<!--.*?-->", "", text, flags=re.DOTALL)
+    if visible_text.splitlines().count(expected) != 1:
+        raise RepositoryTrustError(
+            "security policy must name the approved contact on one visible standalone line"
+        )
 
 
 def evaluate_repository(root: Path = ROOT) -> tuple[dict[str, Any], int]:

@@ -72,6 +72,84 @@ class CiValidationTests(unittest.TestCase):
             )
         )
 
+    def test_fast_triggers_are_exact_and_unfiltered(self) -> None:
+        text = (ROOT / ".github/workflows/fast-checks.yml").read_text(
+            encoding="utf-8"
+        )
+        for changed in (
+            text.replace("  pull_request:\n", "", 1),
+            text.replace(
+                "  pull_request:\n",
+                "  pull_request:\n    paths: [scripts/**]\n",
+                1,
+            ),
+            text.replace("    branches: [main]\n", "    branches: [topic]\n", 1),
+            text.replace("  workflow_dispatch:\n", "", 1),
+        ):
+            with self.subTest():
+                errors = MODULE.validate_trust_policy_binding(ROOT, changed)
+                self.assertTrue(
+                    any("triggers must be exactly" in error for error in errors)
+                )
+
+    def test_required_fast_jobs_cannot_change_context_or_execution(self) -> None:
+        text = (ROOT / ".github/workflows/fast-checks.yml").read_text(
+            encoding="utf-8"
+        )
+        for name, block in MODULE.job_blocks(text):
+            with self.subTest(job=name, mutation="display-name"):
+                changed = text.replace(
+                    block,
+                    block.replace(
+                        f"  {name}:\n",
+                        f"  {name}:\n    name: renamed-context\n",
+                        1,
+                    ),
+                    1,
+                )
+                errors = MODULE.validate_trust_policy_binding(ROOT, changed)
+                self.assertTrue(any("job-level name" in error for error in errors))
+            with self.subTest(job=name, mutation="condition"):
+                changed = text.replace(
+                    block,
+                    block.replace(
+                        f"  {name}:\n",
+                        f"  {name}:\n    if: false\n",
+                        1,
+                    ),
+                    1,
+                )
+                errors = MODULE.validate_trust_policy_binding(ROOT, changed)
+                self.assertTrue(any("job-level if" in error for error in errors))
+            for key, value in (
+                ("needs", "repository"),
+                ("strategy", "{matrix: {python: [3.12]}}"),
+            ):
+                with self.subTest(job=name, mutation=key):
+                    changed = text.replace(
+                        block,
+                        block.replace(
+                            f"  {name}:\n",
+                            f"  {name}:\n    {key}: {value}\n",
+                            1,
+                        ),
+                        1,
+                    )
+                    errors = MODULE.validate_trust_policy_binding(ROOT, changed)
+                    self.assertTrue(
+                        any(f"job-level {key}" in error for error in errors)
+                    )
+            with self.subTest(job=name, mutation="commands"):
+                changed = text.replace(
+                    block,
+                    block.replace("steps:", "steps: []", 1),
+                    1,
+                )
+                errors = MODULE.validate_trust_policy_binding(ROOT, changed)
+                self.assertTrue(
+                    any("reviewed command surface" in error for error in errors)
+                )
+
     def test_path_scoped_metadata_is_not_a_required_fast_context(self) -> None:
         policy = json.loads(
             (ROOT / MODULE.TRUST_POLICY).read_text(encoding="utf-8")
@@ -162,6 +240,99 @@ class CiValidationTests(unittest.TestCase):
         self.assertTrue(
             any("repository secrets" in error for error in MODULE.validate_workflow(path))
         )
+
+    def test_bare_secrets_and_github_token_are_rejected(self) -> None:
+        for expression, expected in (
+            ("${{ toJSON(secrets) }}", "repository secrets"),
+            ("${{ github.token }}", "GitHub token"),
+        ):
+            with self.subTest(expression=expression):
+                path = self.workflow(
+                    SAFE.replace(
+                        "    steps:\n",
+                        f"    env:\n      UNTRUSTED: {expression}\n    steps:\n",
+                        1,
+                    )
+                )
+                self.assertTrue(
+                    any(expected in error for error in MODULE.validate_workflow(path))
+                )
+
+    def test_noncanonical_yaml_cannot_hide_security_mappings(self) -> None:
+        cases = {
+            "spaced uses": SAFE.replace("uses:", "uses :", 1),
+            "quoted uses": SAFE.replace("uses:", '"uses":', 1),
+            "spaced trigger": SAFE.replace(
+                "on: [pull_request]", "on:\n  pull_request_target :"
+            ),
+            "quoted trigger": SAFE.replace(
+                "on: [pull_request]", 'on:\n  "pull_request_target":'
+            ),
+            "quoted permissions": SAFE.replace(
+                "    steps:\n",
+                '    "permissions":\n      contents: "write"\n    steps:\n',
+                1,
+            ),
+            "anchor": SAFE.replace("  test:\n", "  test: &shared\n", 1),
+            "alias": SAFE.replace("    steps:\n", "    steps: *shared\n", 1),
+            "mapping merge": SAFE.replace(
+                "    steps:\n", "    <<: *shared\n    steps:\n", 1
+            ),
+            "tag": SAFE.replace(
+                "runs-on: ubuntu-24.04", "runs-on: !!str ubuntu-24.04", 1
+            ),
+            "flow mapping": SAFE.replace(
+                "runs-on: ubuntu-24.04",
+                "runs-on: {group: persistent-runners, labels: linux}",
+                1,
+            ),
+            "explicit key": SAFE.replace(
+                "      - uses:", "      - ? uses\n        :", 1
+            ),
+            "multiline key": SAFE.replace(
+                "      - uses:", "      - uses\n        :", 1
+            ),
+        }
+        for name, text in cases.items():
+            with self.subTest(case=name):
+                errors = MODULE.validate_workflow(self.workflow(text))
+                self.assertTrue(
+                    any("unsupported noncanonical YAML" in error for error in errors),
+                    errors,
+                )
+
+    def test_persistent_runner_groups_are_rejected(self) -> None:
+        path = self.workflow(
+            SAFE.replace(
+                "    runs-on: ubuntu-24.04\n",
+                "    runs-on:\n      group: persistent-runners\n      labels: linux\n",
+                1,
+            )
+        )
+        self.assertTrue(
+            any(
+                "ubuntu-24.04 hosted runner" in error
+                for error in MODULE.validate_workflow(path)
+            )
+        )
+
+    def test_banned_features_remain_rejected_with_alternate_key_spelling(self) -> None:
+        cases = (
+            SAFE.replace("uses:", '"uses":', 1).replace(
+                "actions/checkout@", "actions/cache@", 1
+            ),
+            SAFE.replace("uses:", "uses :", 1).replace(
+                "actions/checkout@", "actions/upload-artifact@", 1
+            ),
+            SAFE.replace(
+                "    steps:\n",
+                "    continue-on-error : true\n    steps:\n",
+                1,
+            ),
+        )
+        for text in cases:
+            with self.subTest():
+                self.assertNotEqual([], MODULE.validate_workflow(self.workflow(text)))
 
     def test_extra_top_level_read_permission_is_rejected(self) -> None:
         path = self.workflow(SAFE.replace(

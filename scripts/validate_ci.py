@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 import sys
@@ -13,12 +14,41 @@ from pathlib import Path
 from typing import Any
 
 
-ACTION = re.compile(r"\buses:\s*([^\s#]+)")
+ACTION = re.compile(r"(?m)^\s+(?:-\s+)?uses:\s*([^\s#]+)")
 PINNED_ACTION = re.compile(r"(?:[^/@\s]+/[^/@\s]+)@[0-9a-f]{40}\Z")
 JOB = re.compile(r"^  ([A-Za-z][A-Za-z0-9_-]*):\s*$")
-WRITE_PERMISSION = re.compile(r"(?m)^\s+[A-Za-z_-]+:\s*write\s*$", re.IGNORECASE)
+WRITE_PERMISSION = re.compile(
+    r"(?m)^\s+[A-Za-z_-]+:\s*['\"]?write['\"]?\s*(?:#.*)?$",
+    re.IGNORECASE,
+)
+BLOCK_SCALAR = re.compile(
+    r"^(?P<indent> *)(?:-\s+)?[A-Za-z_][A-Za-z0-9_-]*:\s*[|>][+-]?\s*(?:#.*)?$"
+)
+QUOTED_KEY = re.compile(r"^\s*(?:-\s+)?(?:'[^']*'|\"[^\"]*\")\s*:")
+SPACED_KEY = re.compile(
+    r"^\s*(?:-\s+)?[A-Za-z_][A-Za-z0-9_-]*[ \t]+:"
+)
+CANONICAL_MAPPING = re.compile(
+    r"^\s*(?:-\s+)?[A-Za-z_][A-Za-z0-9_-]*:"
+)
+YAML_REFERENCE = re.compile(r"(?:^|[\s:\-\[,])(?:&|\*)[A-Za-z_][A-Za-z0-9_-]*")
+YAML_TAG = re.compile(r"(?:^|[\s:\-\[,])![^\s=]")
 GITHUB_OWNED_ACTION_OWNERS = {"actions", "github"}
 FAST_JOB_IDS = {"repository", "static", "diagnostics-schema", "licensing"}
+FAST_TRIGGER_BLOCK = (
+    "on:",
+    "  pull_request:",
+    "  push:",
+    "    branches: [main]",
+    "  workflow_dispatch:",
+)
+# Review-maintained fingerprints of the exact required job blocks.
+FAST_JOB_SHA256 = {
+    "repository": "0f9fbf8d7350f7d3361aa4af8d5b61db7d738e09c0059a684b0a9a8acf72fb63",
+    "static": "f786d0044245e4bec20e0075534980c26f5965148ec2049cd855877944bfca58",
+    "diagnostics-schema": "5dfb80baf0660693d14f9436ceb13d2b5d729ac86bd446c04e8182cd353c5c33",
+    "licensing": "90f639835253b88f06380049148504d98af725dbedcac53a0f9f6ae6bb107b5f",
+}
 TRUST_POLICY = "config/repository-trust-policy.json"
 MAX_TRUST_POLICY_BYTES = 32 * 1024
 BANNED = {
@@ -54,6 +84,77 @@ METADATA_REQUIRED_PATHS = {
     "Makefile",
     "meta-qemu-edu/**",
 }
+
+
+def structural_lines(text: str) -> list[tuple[int, str]]:
+    """Return YAML structure while excluding block-scalar payloads."""
+    result: list[tuple[int, str]] = []
+    block_indent: int | None = None
+    for number, line in enumerate(text.splitlines(), start=1):
+        indent = len(line) - len(line.lstrip(" "))
+        if block_indent is not None:
+            if not line.strip() or indent > block_indent:
+                continue
+            block_indent = None
+        result.append((number, line))
+        match = BLOCK_SCALAR.fullmatch(line)
+        if match:
+            block_indent = len(match.group("indent"))
+    return result
+
+
+def validate_canonical_yaml(text: str) -> list[str]:
+    """Reject YAML forms that could obscure security-relevant mappings."""
+    errors: list[str] = []
+    for number, line in structural_lines(text):
+        stripped = line.lstrip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        reason: str | None = None
+        if "\t" in line:
+            reason = "tabs"
+        elif QUOTED_KEY.match(line):
+            reason = "quoted mapping keys"
+        elif SPACED_KEY.match(line):
+            reason = "whitespace before mapping colons"
+        elif re.match(r"^\s*(?:-\s+)?\?(?:\s|$)", line):
+            reason = "explicit mapping keys"
+        elif re.match(r"^\s*(?:-\s+)?<<:", line):
+            reason = "mapping merges"
+        elif YAML_REFERENCE.search(line):
+            reason = "anchors or aliases"
+        elif YAML_TAG.search(line):
+            reason = "explicit YAML tags"
+        else:
+            without_expressions = re.sub(r"\$\{\{.*?\}\}", "", line)
+            if "{" in without_expressions or "}" in without_expressions:
+                reason = "flow mappings"
+            elif not CANONICAL_MAPPING.match(line) and not re.match(
+                r"^\s*-\s+\S", line
+            ):
+                reason = "unsupported structural form"
+        if reason is not None:
+            errors.append(
+                f"line {number} uses unsupported noncanonical YAML: {reason}"
+            )
+    return errors
+
+
+def top_level_block(text: str, key: str) -> tuple[str, ...]:
+    lines = text.splitlines()
+    try:
+        start = lines.index(f"{key}:")
+    except ValueError:
+        return ()
+    end = len(lines)
+    for index in range(start + 1, len(lines)):
+        if lines[index] and not lines[index].startswith(" "):
+            end = index
+            break
+    block = lines[start:end]
+    while block and not block[-1].strip():
+        block.pop()
+    return tuple(block)
 
 
 def has_exact_top_level_permissions(text: str) -> bool:
@@ -137,12 +238,15 @@ def validate_workflow(path: Path) -> list[str]:
     text = path.read_text(encoding="utf-8")
     lowered = text.lower()
 
+    errors.extend(validate_canonical_yaml(text))
     if not has_exact_top_level_permissions(text):
         errors.append("top-level permissions must contain only 'contents: read'")
     if WRITE_PERMISSION.search(text) or "write-all" in lowered:
         errors.append("write permissions are prohibited")
-    if re.search(r"\bsecrets\s*(?:\.|\[)", lowered):
+    if re.search(r"\bsecrets\b", lowered):
         errors.append("these workflows must not consume repository secrets")
+    if re.search(r"\bgithub\s*\.\s*token\b", lowered):
+        errors.append("these workflows must not consume the GitHub token")
     for token, reason in BANNED.items():
         if token in lowered:
             errors.append(reason)
@@ -174,6 +278,8 @@ def validate_workflow(path: Path) -> list[str]:
     for name, block in jobs:
         if not re.search(r"(?m)^    timeout-minutes:\s*[1-9][0-9]*\s*$", block):
             errors.append(f"job {name} has no positive timeout-minutes")
+        if len(re.findall(r"(?m)^    runs-on:\s*ubuntu-24\.04\s*$", block)) != 1:
+            errors.append(f"job {name} must use exactly one ubuntu-24.04 hosted runner")
         if re.search(r"(?m)^    permissions\s*:", block):
             errors.append(f"job {name} must not override permissions")
 
@@ -208,12 +314,34 @@ def validate_trust_policy_binding(root: Path, fast_text: str) -> list[str]:
     except (OSError, UnicodeDecodeError, json.JSONDecodeError, AttributeError, KeyError, TypeError, ValueError) as exc:
         return [f"{TRUST_POLICY}: cannot bind CI policy: {exc}"]
 
-    fast_jobs = [name for name, _ in job_blocks(fast_text)]
+    if top_level_block(fast_text, "on") != FAST_TRIGGER_BLOCK:
+        errors.append(
+            ".github/workflows/fast-checks.yml: triggers must be exactly "
+            "unfiltered pull_request, main push, and workflow_dispatch"
+        )
+
+    parsed_jobs = job_blocks(fast_text)
+    fast_jobs = [name for name, _ in parsed_jobs]
     if len(fast_jobs) != len(FAST_JOB_IDS) or set(fast_jobs) != FAST_JOB_IDS:
         errors.append(
             ".github/workflows/fast-checks.yml: job IDs must be exactly "
             + ", ".join(sorted(FAST_JOB_IDS))
         )
+    for name, block in parsed_jobs:
+        if name not in FAST_JOB_IDS:
+            continue
+        for key in ("name", "if", "needs", "strategy"):
+            if re.search(rf"(?m)^    {key}:\s*", block):
+                errors.append(
+                    f".github/workflows/fast-checks.yml: required job {name} "
+                    f"must not set job-level {key}"
+                )
+        digest = hashlib.sha256(block.encode("utf-8")).hexdigest()
+        if digest != FAST_JOB_SHA256[name]:
+            errors.append(
+                f".github/workflows/fast-checks.yml: required job {name} "
+                "differs from its reviewed command surface"
+            )
 
     if not isinstance(checks, list):
         errors.append(f"{TRUST_POLICY}: required checks must be an array")

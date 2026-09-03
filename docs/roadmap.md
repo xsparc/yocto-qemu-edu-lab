@@ -508,7 +508,7 @@ merely to make a pull request mergeable.
 
 ## Horizon — Physical target bridge and course ecosystem
 
-Potential work after evidence from M0–M7:
+Potential work after evidence from M0–M9:
 
 - FPGA or supported development-board mapping with explicit QEMU/physical
   evidence separation;

@@ -27,21 +27,29 @@ The exact policy requires:
 - a public repository with `main` as default, squash-only merge, and automatic
   topic-branch deletion;
 - Actions enabled with read-only default workflow permission, no pull-request
-  approval permission, full-SHA enforcement, and only GitHub-owned actions;
-- one active `Protect main` default-branch ruleset with no bypass actors,
-  deletion and force-push protection, linear history, pull requests, and
-  enforcement on branch creation;
+  approval permission, full-SHA enforcement, and only GitHub-owned external
+  actions;
+- the selected active `Protect main` default-branch ruleset with no bypass
+  actors, deletion and force-push protection, linear history, pull requests,
+  and enforcement on branch creation;
 - strict source-bound required contexts `diagnostics-schema`, `licensing`,
   `repository`, and `static`, all produced by the GitHub Actions app;
 - no universal requirement for the path-scoped Yocto metadata job;
 - Dependabot alerts and security updates, secret scanning and push protection,
   private vulnerability reporting, and the named contact `@xsparc`.
 
-`scripts/validate_ci.py` binds the four policy contexts to the exact job IDs in
-`.github/workflows/fast-checks.yml`. It also rejects non-GitHub action owners,
-mutable action references, write permissions, secrets, privileged triggers,
-and persistent runners. The digest-pinned REUSE container is an external
-command executed by the workflow, not a reusable GitHub Action.
+`scripts/validate_ci.py` binds the four policy contexts to the exact job IDs,
+unchanged job-name semantics, reviewed command-surface fingerprints, and exact
+unfiltered pull-request/main-push/manual triggers in
+`.github/workflows/fast-checks.yml`. Required jobs cannot use job-level names,
+conditions, dependencies, or strategies. Every job uses the approved GitHub-
+hosted runner. The validator accepts a closed canonical YAML form and rejects
+quoted or otherwise ambiguous mapping keys, mapping merges, aliases, tags, and
+flow mappings before checking action ownership and pins, permissions, secrets,
+tokens, privileged triggers, and prohibited workflow features. The digest-
+pinned REUSE container is an external command executed by the workflow, not a
+reusable GitHub Action. A deliberate workflow change must update its reviewed
+fingerprint in the same inspectable change.
 
 ## Observation contract
 
@@ -53,13 +61,16 @@ build/repository-trust/observation-v1.json
 
 `build/` is ignored. Every path component must be a direct directory rather
 than a symbolic link, junction, or other reparse point, and the file must be a
-direct regular UTF-8 file no larger than 64 KiB. JSON objects reject duplicate,
-non-string, and unknown keys; strings are restricted to printable ASCII so
-direction-changing and other hidden Unicode controls cannot enter evidence.
-Integer width, nesting, total values, arrays, and enums are bounded. A present
-field with the wrong shape is invalid input. An unavailable setting is
-represented by omitting that field, which makes the corresponding evidence
-check `unavailable`.
+direct regular UTF-8 file no larger than 64 KiB. The read stays bound to that
+path during opening: POSIX hosts traverse no-follow directory descriptors,
+while Windows verifies the junction-resolved path of the opened file handle.
+JSON objects reject duplicate, non-string, and unknown keys; strings are
+restricted to printable ASCII so direction-changing and other hidden Unicode
+controls cannot enter evidence. Integer width, nesting, total values, arrays,
+and enums are bounded. A present field with the wrong shape is invalid input.
+An unavailable setting is represented by omitting that field, which makes the
+corresponding evidence check `unavailable` unless another known component of
+the same check already conflicts with policy.
 
 A complete normalized observation has this shape:
 
@@ -123,7 +134,8 @@ A complete normalized observation has this shape:
 Before writing this file, normalize hosting-service responses outside the
 repository command:
 
-- reduce a matching ruleset's target to `default_branch` or `other`;
+- select the intended repository-owned `Protect main` ruleset by its private
+  identifier, then reduce its target to `default_branch` or `other`;
 - replace the bypass-actor array with its count and discard actor identities;
 - replace required-check application IDs and URLs with the reviewed source
   slug `github-actions`, after verifying the app that produced each current
@@ -176,26 +188,41 @@ Live mutation is not implied by local implementation or pull-request approval.
 After a draft pull request has passed the four Fast jobs, a maintainer may
 separately authorize this bounded sequence:
 
-1. Read and retain the exact pre-change repository, Actions, workflow,
-   security, and ruleset state in an untracked local recovery file.
-2. Verify all four current check runs came from the GitHub Actions app.
-3. Set squash-only merging and automatic branch deletion.
-4. Set Actions to `selected` with full-SHA enforcement, then allow GitHub-owned
-   actions only; restore the first setting immediately if the second fails.
-5. Enable Dependabot alerts, then Dependabot security updates.
-6. Enable private vulnerability reporting.
-7. Update the existing ruleset last, preserving its identity, no-bypass policy,
-   branch target, deletion, non-fast-forward, linear-history, and pull-request
-   rules while adding strict source-bound checks and squash-only merge.
-8. Re-read every setting, create only the sanitized observation, evaluate it,
-   and run the hosted Fast checks under the new rules.
+1. Preflight administrative permission, public-repository feature eligibility
+   and cost, and the identity and ownership of the intended `Protect main`
+   ruleset. Inventory every applicable repository, organization, enterprise,
+   and legacy branch-protection source.
+2. Read and retain the exact pre-change repository, Actions, workflow,
+   security, and protection state, including private identifiers, in an
+   untracked local recovery file.
+3. Verify all four current check runs came from the GitHub Actions app.
+4. Set squash-only merging and automatic branch deletion, then re-read both.
+5. Set Actions to `selected` with full-SHA enforcement, then allow GitHub-owned
+   actions only and re-read the complete Actions state. Restore changes in this
+   stage immediately if its second operation fails.
+6. Enable Dependabot alerts and re-read, then enable Dependabot security
+   updates and re-read.
+7. Enable secret scanning and re-read it before enabling and re-reading push
+   protection.
+8. Enable private vulnerability reporting and re-read it.
+9. Update the selected ruleset last, preserving its private identity,
+   no-bypass policy, branch target, deletion, non-fast-forward, linear-history,
+   and pull-request rules while adding strict source-bound checks and
+   squash-only merge; re-read the complete ruleset.
+10. Create only the sanitized observation, evaluate it, and run a fresh commit
+    through the hosted Fast checks. Confirm exact context names, GitHub Actions
+    source, non-skipped execution, and strict up-to-date behavior.
 
-On any error, stop and restore changed settings in reverse order from the
-retained pre-change record, then re-read the restored state. Never disable the
-active default-branch protection to bypass a merge problem. Raw recovery data
-stays local and untracked. Publishing a sanitized evidence document also needs
-an explicit scope decision; the fixed build output is not automatically a
-public attestation.
+Treat an already-correct value as a verified no-op. On any error, stop and
+restore only changed settings in this exact reverse order: selected ruleset,
+private vulnerability reporting, push protection, secret scanning, Dependabot
+security updates, Dependabot alerts, Actions, then merge settings. Re-read each
+restoration and retain protection throughout. Rehearse at least one harmless
+no-op or partial-failure rollback before claiming the live boundary complete.
+Never disable active default-branch protection to bypass a merge problem. Raw
+recovery data stays local and untracked. Publishing a sanitized evidence
+document also needs an explicit scope decision; the fixed build output is not
+automatically a public attestation.
 
 ## Evidence limits
 
@@ -207,6 +234,9 @@ observation matched the exact policy bytes. It does not prove:
   project assertion;
 - account security, MFA, collaborator permissions, check implementation
   correctness, or absence of hosting-service compromise;
+- uniqueness or complete effect of protection: schema 1 observes only the
+  selected ruleset, not additional applicable repository, organization, or
+  enterprise rulesets or legacy branch protection;
 - review independence, human authorship, continuous compliance, a release,
   provenance, signature, attestation, or OpenSSF/SLSA certification.
 

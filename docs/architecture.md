@@ -343,14 +343,17 @@ tracked policy + local workflow/security contract
 ```
 
 The standard-library evaluator performs no network, credential, subprocess, or
-mutation operation and accepts no arbitrary path. It rejects symbolic links,
-junctions and other reparse points anywhere in the input path, oversize input,
-duplicate or unknown keys, non-printable or non-ASCII strings, and open arrays.
+mutation operation and accepts no arbitrary path. Descriptor-relative
+no-follow traversal on POSIX and opened-handle final-path verification on
+Windows keep the read bound against parent replacement; static symbolic links,
+junctions, other reparse points, oversize input, duplicate or unknown keys,
+non-printable or non-ASCII strings, and open arrays are rejected.
 The projection binds exact policy bytes but omits raw API responses, numeric
 IDs, actors, URLs, tokens, and local paths. A missing observation or fact is
-`unavailable`; an observed conflict is `fail`. The fixed Fast job IDs and
-GitHub-owned action namespace are also enforced locally so the desired status
-checks cannot drift independently from the workflow files.
+`unavailable`; a known conflict is `fail` even if a related fact is missing.
+The exact Fast triggers, fixed job IDs, unchanged context names, reviewed
+command surfaces, hosted runners, and GitHub-owned action namespace are
+enforced locally so required checks cannot silently drift or skip.
 
 Live setting changes remain a separate administrative transaction with a
 pre-change recovery record, re-read after each stage, reverse-order rollback,
