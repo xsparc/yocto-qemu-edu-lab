@@ -681,6 +681,25 @@ class CiValidationTests(unittest.TestCase):
                 any("required check values must be strings" in error for error in errors)
             )
 
+    def test_policy_binding_rejects_boolean_integer_substitution(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            policy_path = root / MODULE.TRUST_POLICY
+            policy_path.parent.mkdir(parents=True)
+            policy = json.loads(
+                (ROOT / MODULE.TRUST_POLICY).read_text(encoding="utf-8")
+            )
+            policy["actions"]["enabled"] = 1
+            policy_path.write_text(json.dumps(policy), encoding="utf-8")
+            text = (ROOT / ".github/workflows/fast-checks.yml").read_text(
+                encoding="utf-8"
+            )
+            errors = MODULE.validate_trust_policy_binding(root, text)
+            self.assertTrue(
+                any("Actions policy differs" in error for error in errors),
+                errors,
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

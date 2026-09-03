@@ -475,6 +475,22 @@ def reject_duplicate_pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     return value
 
 
+def strict_json_equal(actual: Any, expected: Any) -> bool:
+    """Compare JSON-shaped values without Python's bool/integer coercion."""
+    if type(actual) is not type(expected):
+        return False
+    if isinstance(expected, dict):
+        return actual.keys() == expected.keys() and all(
+            strict_json_equal(actual[key], item) for key, item in expected.items()
+        )
+    if isinstance(expected, list):
+        return len(actual) == len(expected) and all(
+            strict_json_equal(left, right)
+            for left, right in zip(actual, expected, strict=True)
+        )
+    return actual == expected
+
+
 def validate_trust_policy_binding(root: Path, fast_text: str) -> list[str]:
     errors: list[str] = []
     policy_path = root / TRUST_POLICY
@@ -559,15 +575,23 @@ def validate_trust_policy_binding(root: Path, fast_text: str) -> list[str]:
         "default_workflow_permissions": "read",
         "can_approve_pull_request_reviews": False,
     }
-    if any(actions.get(name) != value for name, value in expected_actions.items()):
+    if not all(
+        name in actions and strict_json_equal(actions[name], value)
+        for name, value in expected_actions.items()
+    ):
         errors.append(f"{TRUST_POLICY}: Actions policy differs from the local CI boundary")
-    if selected != {
-        "github_owned_allowed": True,
-        "verified_allowed": False,
-        "patterns_allowed": [],
-    }:
+    if not strict_json_equal(
+        selected,
+        {
+            "github_owned_allowed": True,
+            "verified_allowed": False,
+            "patterns_allowed": [],
+        },
+    ):
         errors.append(f"{TRUST_POLICY}: selected actions must remain GitHub-owned only")
-    if required.get("strict_required_status_checks_policy") is not True:
+    if not strict_json_equal(
+        required.get("strict_required_status_checks_policy"), True
+    ):
         errors.append(f"{TRUST_POLICY}: required status checks must remain strict")
     return errors
 

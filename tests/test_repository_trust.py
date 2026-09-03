@@ -68,6 +68,29 @@ class RepositoryTrustTests(unittest.TestCase):
         self.assertEqual(MODULE.APPROVED_POLICY, policy)
         self.assertRegex(digest, r"^[0-9a-f]{64}$")
 
+    def test_repository_policy_requires_exact_json_types(self) -> None:
+        cases = (
+            (("schema_version",), True),
+            (("actions", "enabled"), 1),
+            (("ruleset", "bypass_actor_count"), False),
+            (
+                ("ruleset", "pull_request", "required_approving_review_count"),
+                False,
+            ),
+        )
+        for path, replacement in cases:
+            with self.subTest(path=path, replacement=replacement):
+                policy = copy.deepcopy(MODULE.APPROVED_POLICY)
+                parent = policy
+                for key in path[:-1]:
+                    parent = parent[key]
+                parent[path[-1]] = replacement
+                with self.assertRaisesRegex(
+                    MODULE.RepositoryTrustError,
+                    "approved exact contract",
+                ):
+                    MODULE.validate_policy(policy)
+
     def test_a010_authority_version_and_design_records_are_explicit(self) -> None:
         self.assertEqual("0.9.0-dev\n", (ROOT / "VERSION").read_text(encoding="utf-8"))
         state = tomllib.loads(

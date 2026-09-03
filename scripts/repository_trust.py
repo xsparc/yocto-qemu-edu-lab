@@ -503,8 +503,24 @@ def status_checks(value: Any, label: str, *, optional: bool = False) -> list[dic
     return sorted(checked, key=lambda item: item["context"])
 
 
+def strict_json_equal(actual: Any, expected: Any) -> bool:
+    """Compare JSON-shaped values without Python's bool/integer coercion."""
+    if type(actual) is not type(expected):
+        return False
+    if isinstance(expected, dict):
+        return actual.keys() == expected.keys() and all(
+            strict_json_equal(actual[key], item) for key, item in expected.items()
+        )
+    if isinstance(expected, list):
+        return len(actual) == len(expected) and all(
+            strict_json_equal(left, right)
+            for left, right in zip(actual, expected, strict=True)
+        )
+    return actual == expected
+
+
 def validate_policy(value: Any) -> dict[str, Any]:
-    if value != APPROVED_POLICY:
+    if not strict_json_equal(value, APPROVED_POLICY):
         raise RepositoryTrustError("repository trust policy differs from the approved exact contract")
     return value
 
