@@ -485,6 +485,13 @@ class CiValidationTests(unittest.TestCase):
                 '        "uses": attacker/example@v1\n',
                 1,
             ),
+            "multi-space-quoted-action-key": SAFE.replace(
+                checkout,
+                "      -   name: |\n"
+                "            Display text\n"
+                '          "uses": attacker/example@v1\n',
+                1,
+            ),
             "tagged-action-value": SAFE.replace(
                 checkout,
                 "      - name: |\n"
@@ -507,6 +514,14 @@ class CiValidationTests(unittest.TestCase):
                 + checkout.replace("      - ", "        ", 1),
                 1,
             ),
+            "multi-space-duplicate-step-key": SAFE.replace(
+                checkout,
+                "      -   name: |\n"
+                "            Display text\n"
+                "          name: Hidden duplicate\n"
+                + checkout.replace("      - ", "          ", 1),
+                1,
+            ),
         }
         for name, text in cases.items():
             with self.subTest(case=name):
@@ -519,7 +534,10 @@ class CiValidationTests(unittest.TestCase):
                         ),
                         errors,
                     )
-                elif name == "duplicate-step-key":
+                elif name in {
+                    "duplicate-step-key",
+                    "multi-space-duplicate-step-key",
+                }:
                     self.assertTrue(
                         any("repeats mapping key" in error for error in errors),
                         errors,
@@ -531,9 +549,22 @@ class CiValidationTests(unittest.TestCase):
                     )
 
     def test_sequence_block_scalar_exposes_allowed_sibling_keys(self) -> None:
-        prefix = "      - run: |\n          printf '%s\\n' safe\n"
-        for sibling in ("        env:", "        shell: bash", "        if: true"):
-            with self.subTest(sibling=sibling):
+        cases = {
+            "ordinary": (
+                "      - run: |\n          printf '%s\\n' safe\n",
+                "        env:",
+            ),
+            "wide-sequence": (
+                "      -   run: >\n            printf '%s\\n' safe\n",
+                "          shell: bash",
+            ),
+            "conditional": (
+                "      - run: |\n          printf '%s\\n' safe\n",
+                "        if: true",
+            ),
+        }
+        for name, (prefix, sibling) in cases.items():
+            with self.subTest(case=name):
                 lines = [
                     line
                     for _, line in MODULE.structural_lines(prefix + sibling + "\n")

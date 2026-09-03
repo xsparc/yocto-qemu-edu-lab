@@ -119,9 +119,8 @@ def structural_lines(text: str) -> list[tuple[int, str]]:
         result.append((number, line))
         match = BLOCK_SCALAR.fullmatch(line)
         if match:
-            block_indent = len(match.group("indent")) + (
-                2 if match.group("sequence") else 0
-            )
+            sequence = match.group("sequence") or ""
+            block_indent = len(match.group("indent")) + len(sequence)
     return result
 
 
@@ -174,6 +173,7 @@ def validate_duplicate_mappings(text: str) -> list[str]:
             continue
         base_indent = len(match.group("indent"))
         if match.group("sequence"):
+            sequence = match.group("sequence")
             while stack and stack[-1][0] >= base_indent:
                 stack.pop()
             sequence_key = (tuple(item[1] for item in stack), base_indent)
@@ -184,7 +184,7 @@ def validate_duplicate_mappings(text: str) -> list[str]:
                     ("item", f"{base_indent}:{sequence_counts[sequence_key]}"),
                 )
             )
-            effective_indent = base_indent + 2
+            effective_indent = base_indent + len(sequence)
         else:
             effective_indent = base_indent
             while stack and stack[-1][0] >= effective_indent:
