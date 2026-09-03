@@ -53,7 +53,9 @@ The metadata verifier requires both inputs exactly once for either profile.
   unpinned actions, write permissions, secrets or credential-bearing GitHub
   context access, non-hosted runners, or jobs without timeouts. It binds the
   complete Fast execution envelope, exact triggers, and reviewed non-skippable
-  job command surfaces to the four required contexts.
+  job command surfaces to the four required contexts. Those context names are
+  reserved to the Fast workflow; other workflows cannot reuse their job IDs or
+  override job display names.
 - `scripts/repository_trust.py validate` enforces the exact desired-state
   policy and named security contact. It does not claim live settings were read.
   The evaluator consumes only the fixed ignored sanitized observation and

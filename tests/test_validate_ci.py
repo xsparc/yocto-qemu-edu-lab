@@ -213,6 +213,69 @@ class CiValidationTests(unittest.TestCase):
         self.assertEqual(MODULE.FAST_JOB_IDS, contexts)
         self.assertNotIn("yocto-metadata", contexts)
 
+    def test_required_contexts_are_reserved_to_the_fast_workflow(self) -> None:
+        cases = {
+            "reserved-job-id": SAFE.replace(
+                "  test:\n",
+                "  repository:\n    if: false\n",
+                1,
+            ),
+            "static-display-name": SAFE.replace(
+                "  test:\n",
+                "  test:\n    name: repository\n",
+                1,
+            ),
+            "dynamic-display-name": SAFE.replace(
+                "  test:\n",
+                "  test:\n    name: ${{ github.event.action }}\n",
+                1,
+            ),
+        }
+        for name, text in cases.items():
+            with self.subTest(case=name):
+                path = self.workflow(text)
+                additional = path.with_name("additional.yml")
+                path.rename(additional)
+                errors = MODULE.validate_workflow(additional)
+                self.assertTrue(
+                    any(
+                        "context" in error and "fast-checks.yml" in error
+                        for error in errors
+                    ),
+                    errors,
+                )
+
+    def test_repository_inventory_rejects_a_shadow_required_context(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            for relative in (
+                ".github/workflows/fast-checks.yml",
+                ".github/workflows/yocto-metadata.yml",
+                MODULE.TRUST_POLICY,
+            ):
+                source = ROOT / relative
+                destination = root / relative
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                destination.write_bytes(source.read_bytes())
+            shadow = SAFE.replace(
+                "  test:\n",
+                "  licensing:\n    if: false\n",
+                1,
+            )
+            (root / ".github/workflows/shadow.yml").write_text(
+                shadow,
+                encoding="utf-8",
+            )
+            errors = MODULE.validate(root)
+            self.assertTrue(
+                any(
+                    error.startswith(".github/workflows/shadow.yml:")
+                    and "reserved for fast-checks.yml" in error
+                    for error in errors
+                ),
+                errors,
+            )
+
     def test_metadata_inputs_must_trigger_both_hosted_runs(self) -> None:
         text = (ROOT / ".github/workflows/yocto-metadata.yml").read_text(
             encoding="utf-8"
@@ -401,6 +464,81 @@ class CiValidationTests(unittest.TestCase):
                     any("unsupported noncanonical YAML" in error for error in errors),
                     errors,
                 )
+
+    def test_sequence_block_scalar_does_not_hide_sibling_mappings(self) -> None:
+        checkout = (
+            "      - uses: "
+            "actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd\n"
+        )
+        cases = {
+            "spaced-action-key": SAFE.replace(
+                checkout,
+                "      - name: |\n"
+                "          Display text\n"
+                "        uses : attacker/example@v1\n",
+                1,
+            ),
+            "quoted-action-key": SAFE.replace(
+                checkout,
+                "      - name: >\n"
+                "          Display text\n"
+                '        "uses": attacker/example@v1\n',
+                1,
+            ),
+            "tagged-action-value": SAFE.replace(
+                checkout,
+                "      - name: |\n"
+                "          Display text\n"
+                "        uses: !external attacker/example@v1\n",
+                1,
+            ),
+            "anchored-action-value": SAFE.replace(
+                checkout,
+                "      - name: |\n"
+                "          Display text\n"
+                "        uses: &external attacker/example@v1\n",
+                1,
+            ),
+            "duplicate-step-key": SAFE.replace(
+                checkout,
+                "      - name: |\n"
+                "          Display text\n"
+                "        name: Hidden duplicate\n"
+                + checkout.replace("      - ", "        ", 1),
+                1,
+            ),
+        }
+        for name, text in cases.items():
+            with self.subTest(case=name):
+                errors = MODULE.validate_workflow(self.workflow(text))
+                if name == "spaced-action-key":
+                    self.assertTrue(
+                        any(
+                            "whitespace before mapping colons" in error
+                            for error in errors
+                        ),
+                        errors,
+                    )
+                elif name == "duplicate-step-key":
+                    self.assertTrue(
+                        any("repeats mapping key" in error for error in errors),
+                        errors,
+                    )
+                else:
+                    self.assertTrue(
+                        any("unsupported noncanonical YAML" in error for error in errors),
+                        errors,
+                    )
+
+    def test_sequence_block_scalar_exposes_allowed_sibling_keys(self) -> None:
+        prefix = "      - run: |\n          printf '%s\\n' safe\n"
+        for sibling in ("        env:", "        shell: bash", "        if: true"):
+            with self.subTest(sibling=sibling):
+                lines = [
+                    line
+                    for _, line in MODULE.structural_lines(prefix + sibling + "\n")
+                ]
+                self.assertIn(sibling, lines)
 
     def test_persistent_runner_groups_are_rejected(self) -> None:
         path = self.workflow(

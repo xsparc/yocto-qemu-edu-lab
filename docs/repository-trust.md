@@ -44,7 +44,9 @@ semantics, and exact unfiltered pull-request/main-push/manual triggers in
 `.github/workflows/fast-checks.yml`. Required jobs cannot use job-level names,
 conditions, dependencies, or strategies. Every job uses the approved GitHub-
 hosted runner, and the workflow-level shell is fixed without environment or
-working-directory overrides. The validator accepts a closed canonical YAML
+working-directory overrides. Required context names are reserved to this
+workflow; other workflows cannot reuse their job IDs or set job-level display
+names that could collide. The validator accepts a closed canonical YAML
 form and rejects duplicate, quoted, or otherwise ambiguous mapping keys,
 mapping merges, aliases, tags, flow mappings, and unexpected top-level fields
 before checking action ownership and pins, permissions, secrets, GitHub

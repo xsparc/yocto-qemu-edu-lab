@@ -26,7 +26,8 @@ WRITE_PERMISSION = re.compile(
     re.IGNORECASE,
 )
 BLOCK_SCALAR = re.compile(
-    r"^(?P<indent> *)(?:-\s+)?[A-Za-z_][A-Za-z0-9_-]*:\s*[|>][+-]?\s*(?:#.*)?$"
+    r"^(?P<indent> *)(?P<sequence>-\s+)?"
+    r"[A-Za-z_][A-Za-z0-9_-]*:\s*[|>][+-]?\s*(?:#.*)?$"
 )
 QUOTED_KEY = re.compile(r"^\s*(?:-\s+)?(?:'[^']*'|\"[^\"]*\")\s*:")
 SPACED_KEY = re.compile(
@@ -118,7 +119,9 @@ def structural_lines(text: str) -> list[tuple[int, str]]:
         result.append((number, line))
         match = BLOCK_SCALAR.fullmatch(line)
         if match:
-            block_indent = len(match.group("indent"))
+            block_indent = len(match.group("indent")) + (
+                2 if match.group("sequence") else 0
+            )
     return result
 
 
@@ -373,6 +376,16 @@ def validate_workflow(path: Path) -> list[str]:
     if not jobs:
         errors.append("workflow has no statically identifiable jobs")
     for name, block in jobs:
+        if path.name != "fast-checks.yml":
+            if name in FAST_JOB_IDS:
+                errors.append(
+                    f"job {name} uses a context reserved for fast-checks.yml"
+                )
+            if re.search(r"(?m)^    name:\s*", block):
+                errors.append(
+                    f"job {name} must not override its context name outside "
+                    "fast-checks.yml"
+                )
         if len(re.findall(r"(?m)^    timeout-minutes:", block)) != 1 or not re.search(
             r"(?m)^    timeout-minutes:\s*[1-9][0-9]*\s*$", block
         ):

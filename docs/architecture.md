@@ -354,7 +354,8 @@ IDs, actors, URLs, tokens, and local paths. A missing observation or fact is
 The complete Fast workflow, exact triggers, fixed job IDs, unchanged context
 names, reviewed command surfaces, shell/defaults, hosted runners, and GitHub-
 owned action namespace are enforced locally so required checks cannot silently
-drift, redirect, or skip.
+drift, redirect, or skip. Required context names are reserved from every other
+workflow so a separate or skipped job cannot satisfy the same repository rule.
 
 Live setting changes remain a separate administrative transaction with a
 pre-change recovery record, re-read after each stage, reverse-order rollback,
