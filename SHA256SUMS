@@ -38,7 +38,7 @@ ab2b39f1c33f28678dae37ce8176126366f27913538ede29e64b88db6ad6c5d5  ./docs/maintai
 5d24452027b02daf3beda432bc0c18761c565820cc2429263ab08dc886052def  ./docs/maintainers/tasks.toml
 c86beaf2d7e50e25cf122c898a5d1ef2d481d816a996e8706a6bbe0b4a99707b  ./docs/maintenance-workflow.md
 d87cc671bee02f9c36e284c119d691564021068961de46b5cbfa71a5d6bf20f5  ./docs/mapping-to-real-hardware.md
-58c68473dc81e30983f844635e541ca4226f537ff296e7b638720c1db0396837  ./docs/repository-trust.md
+d517e2286f57883d6330a69d0d132d75488c48d7f419af067125c8f06dd80604  ./docs/repository-trust.md
 c8f0440c7c8df8f6cae97f670575e073f90fe2672de99908606e45683722cffd  ./docs/research/2026-08-07-m1-reproducibility.md
 e74353e0045211709c74b606084e68a681fbd7af0d56d959f202703011b5dfef  ./docs/research/2026-08-07-project-direction.md
 6ff042f84d470993074db8ee4b9b848ab7a1b1287874aadaf5e070659e7126f6  ./docs/research/2026-08-08-m2-runtime-testing.md

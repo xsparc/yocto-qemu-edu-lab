@@ -214,10 +214,15 @@ separately authorize this bounded sequence:
 7. Enable secret scanning and re-read it before enabling and re-reading push
    protection.
 8. Enable private vulnerability reporting and re-read it.
-9. Update the selected ruleset last, preserving its private identity,
-   no-bypass policy, branch target, deletion, non-fast-forward, linear-history,
-   and pull-request rules while adding strict source-bound checks and
-   squash-only merge; re-read the complete ruleset.
+9. Update the selected ruleset last, preserving only its private identity. Set
+   enforcement to active, target the default branch, enforce on creation, allow
+   no bypass actors, and require deletion protection, non-fast-forward
+   protection, and linear history. Require pull requests with zero approving
+   reviews and squash as the only merge method. Replace required checks with
+   exactly `diagnostics-schema`, `licensing`, `repository`, and `static`, each
+   bound to GitHub Actions, and enable strict required-check policy so the topic
+   branch must be current with the base before merge. Re-read and compare the
+   complete ruleset to the policy.
 10. Create only the sanitized observation, evaluate it, and run a fresh commit
     through the hosted Fast checks. Confirm exact context names, GitHub Actions
     source, non-skipped execution, and strict up-to-date behavior.
