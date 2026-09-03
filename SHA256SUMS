@@ -31,11 +31,11 @@ b90a608082f65426254aff46758afc411566c834370ecd0622cba9367be38813  ./config/labs/
 8ec113f5850ffb33d8cdca161499268c0399084a73d69568efc5644cf2386851  ./docs/licensing.md
 ab3a763550768ff8de2574f4b528fdbf60ad8e8fe24245e80cf52f562c201496  ./docs/maintainers/README.md
 27fd803e63eb03efdce34e776c394f60a6ca79e8c50aaa4bf85cb67bf4bf984b  ./docs/maintainers/config.toml
-636d504cefc1517a3a37321617a05e4abc225041a261e10d444f3f9ca4cd0eb4  ./docs/maintainers/context.md
+f0eb777886ec38174071105e2f1764efba00f353057246cb8bc762bcb667e81b  ./docs/maintainers/context.md
 ab2b39f1c33f28678dae37ce8176126366f27913538ede29e64b88db6ad6c5d5  ./docs/maintainers/decisions.md
 65f879644273c7431ccb2f132ea19e67491a5a0b9b948e729b877e4692908d3b  ./docs/maintainers/intake.md
-3b323fb6c8129099c50e35a084d7f336395828da45c2099b6606f958f1e81db3  ./docs/maintainers/ledger.md
-5d24452027b02daf3beda432bc0c18761c565820cc2429263ab08dc886052def  ./docs/maintainers/tasks.toml
+85694e5e5f0b36f6bad8841f358cb9899c0cab5eff66d664dc1d08c33a554943  ./docs/maintainers/ledger.md
+a7ec1fce5594a127b16fb19985594c6d917058a86c641784a415fb0bad261597  ./docs/maintainers/tasks.toml
 c86beaf2d7e50e25cf122c898a5d1ef2d481d816a996e8706a6bbe0b4a99707b  ./docs/maintenance-workflow.md
 d87cc671bee02f9c36e284c119d691564021068961de46b5cbfa71a5d6bf20f5  ./docs/mapping-to-real-hardware.md
 d517e2286f57883d6330a69d0d132d75488c48d7f419af067125c8f06dd80604  ./docs/repository-trust.md
