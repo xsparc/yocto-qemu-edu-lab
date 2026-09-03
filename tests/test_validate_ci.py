@@ -350,6 +350,19 @@ class CiValidationTests(unittest.TestCase):
         self.assertTrue(any("privileged context" in error for error in errors))
         self.assertTrue(any("repository secrets" in error for error in errors))
 
+    def test_privileged_flow_sequence_triggers_are_rejected(self) -> None:
+        for event, reason in (
+            ("pull_request_target", "privileged context"),
+            ("workflow_run", "privileged boundary"),
+        ):
+            with self.subTest(event=event):
+                path = self.workflow(
+                    SAFE.replace("on: [pull_request]", f"on: [{event}]", 1)
+                )
+                self.assertTrue(
+                    any(reason in error for error in MODULE.validate_workflow(path))
+                )
+
     def test_bracket_form_secret_is_rejected(self) -> None:
         path = self.workflow(SAFE + "# ${{ secrets['TOKEN'] }}\n")
         self.assertTrue(

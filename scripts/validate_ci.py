@@ -72,8 +72,8 @@ FAST_JOB_SHA256 = {
 TRUST_POLICY = "config/repository-trust-policy.json"
 MAX_TRUST_POLICY_BYTES = 32 * 1024
 BANNED = {
-    "pull_request_target:": "pull_request_target can expose privileged context to fork code",
-    "workflow_run:": "workflow_run can cross an untrusted-to-privileged boundary",
+    "pull_request_target": "pull_request_target can expose privileged context to fork code",
+    "workflow_run": "workflow_run can cross an untrusted-to-privileged boundary",
     "self-hosted": "persistent self-hosted runners are outside the public PR trust boundary",
     "actions/cache": "M1 CI does not persist untrusted caches",
     "actions/upload-artifact": "M1 CI does not publish artifacts",
