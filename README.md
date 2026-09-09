@@ -472,3 +472,9 @@ make check
 Fast checks do not replace Linux source/metadata validation, a full image build,
 or QEMU runtime gates. [`docs/ci.md`](docs/ci.md) defines those evidence tiers;
 [`docs/versioning.md`](docs/versioning.md) defines SemVer and Yocto compatibility.
+
+## Project overview
+
+For a concise explanation of this project's scope and engineering boundaries,
+see the [portfolio project profile](https://louijiecompo.com/work/yocto-qemu-edu-lab/). This repository
+and its versioned documentation remain the source of truth for implementation details.
