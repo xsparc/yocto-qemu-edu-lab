@@ -9,12 +9,13 @@ The long-term direction is a progressive, evidence-driven curriculum from this
 first virtual PCI driver through automated runtime testing, MSI, DMA, a
 Device-Tree/platform-driver lab, provider-neutral diagnostics, and bounded
 SPDX image-composition evidence, then into isolated direct-eSDK application
-iteration. The core build and learning path will remain usable without an AI
+iteration and a verifiable public-repository trust boundary. The core build and
+learning path will remain usable without an AI
 service; future optional adapters must consume the same closed local contracts.
 See
 [`docs/vision.md`](docs/vision.md) and [`docs/roadmap.md`](docs/roadmap.md).
 
-The current development identity is `0.8.0-dev`; no release is implied. Yocto
+The current development identity is `0.9.0-dev`; no release is implied. Yocto
 metadata inputs are locked to the 6.0.2 Wrynose point release.
 
 Two closed lab manifests share the same locked sources and image target while
@@ -146,6 +147,17 @@ They use closed check order, deterministic JSON, and distinct pass, warning,
 fail, and unavailable results. A warning exits 0, so strict CI consumers must
 parse the JSON result, current worktree cleanliness, and current-subject fact. See
 [`docs/diagnostics.md`](docs/diagnostics.md).
+
+Validate the tracked repository-security contract locally with:
+
+```bash
+python3 scripts/repository_trust.py validate
+```
+
+The separate `evaluate` command reads only the fixed ignored sanitized
+observation and emits closed JSON evidence. If no observation exists it returns
+`unavailable`, never a pass. See
+[`docs/repository-trust.md`](docs/repository-trust.md).
 
 Look especially for:
 

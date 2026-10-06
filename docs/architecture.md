@@ -328,13 +328,48 @@ is a development-only file transfer, not a package-manager transaction or an
 image update. Standalone SDK installers, raw logs, build trees, binaries,
 images, provider adapters, and remote services stay outside the milestone.
 
+### Boundary 9: public-repository trust evidence
+
+Server-side repository settings are an external security input rather than a
+property Git history can prove. M9 keeps the desired state in one closed policy
+and evaluates one fixed ignored sanitized observation:
+
+```text
+tracked policy + local workflow/security contract
+                  -> separately authorized settings observation
+                  -> bounded normalized facts
+                  -> ordered pass/fail/unavailable checks
+                  -> closed evidence schema v1
+```
+
+The standard-library evaluator performs no network, credential, subprocess, or
+mutation operation and accepts no arbitrary path. Descriptor-relative
+no-follow traversal on POSIX and opened-handle final-path verification on
+Windows keep the read bound against parent replacement; static symbolic links,
+junctions, other reparse points, oversize input, duplicate or unknown keys,
+non-printable or non-ASCII strings, and open arrays are rejected.
+The projection binds exact policy bytes but omits raw API responses, numeric
+IDs, actors, URLs, tokens, and local paths. A missing observation or fact is
+`unavailable`; a known conflict is `fail` even if a related fact is missing.
+The complete Fast workflow, exact triggers, fixed job IDs, unchanged context
+names, reviewed command surfaces, shell/defaults, hosted runners, and GitHub-
+owned action namespace are enforced locally so required checks cannot silently
+drift, redirect, or skip. Required context names are reserved from every other
+workflow so a separate or skipped job cannot satisfy the same repository rule.
+
+Live setting changes remain a separate administrative transaction with a
+pre-change recovery record, re-read after each stage, reverse-order rollback,
+and the active default-branch ruleset updated last. The result is historical
+configuration evidence, not a trusted timestamp, attestation, continuous
+monitor, release-provenance claim, or OpenSSF certification.
+
 ## Scalability and interoperability rules
 
 - Scale through lab manifests and reusable tests, not conditional logic spread
   through shell scripts.
 - Version contracts at repository boundaries: source locks, lab definitions,
-  guest interfaces, runtime evidence, diagnostics, supply-chain evidence, and
-  development-loop evidence schemas.
+  guest interfaces, runtime evidence, diagnostics, supply-chain evidence,
+  development-loop evidence, and repository-trust policy/evidence schemas.
 - Keep machine-specific metadata in machine or BSP layers and image policy in
   image recipes.
 - Add architectures only with a documented learning objective, maintenance
@@ -368,6 +403,9 @@ images, provider adapters, and remote services stay outside the milestone.
 - Optional automation tools start read-only. Any state-changing capability must
   be separately named, approval-gated, and safe against path or argument
   injection.
+- Repository-trust evaluation consumes only the fixed ignored sanitized
+  observation. It cannot read hosting credentials or mutate settings. A later
+  transport adapter must preserve that boundary and remain optional.
 - Direct-eSDK mutation is confined to a catalog-selected disposable build root,
   closed generated workspace layer, separate retained learner source, loopback
   QEMU target, and fixed sample. Cleanup must undeploy, stop QEMU, reset and

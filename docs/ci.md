@@ -10,7 +10,7 @@ resource-constrained, or metadata-only checks into build or runtime claims.
 
 | Tier | Trigger and environment | Evidence | Not proved |
 |---|---|---|---|
-| Fast checks | Every PR, main push, or manual run on `ubuntu-24.04` | Source-lock, lab-manifest, workflow, CI, diagnostics, SPDX image-evidence, direct-eSDK evidence, and QEMU security contracts; unit tests; independent Draft 2020-12 validation of all three current project schemas; checksums; changed-line whitespace; ShellCheck; actionlint; REUSE | Upstream availability, BitBake parse, image build, guest runtime, generated SBOM content, direct-eSDK execution |
+| Fast checks | Every PR, main push, or manual run on `ubuntu-24.04` | Source-lock, lab-manifest, workflow, CI, repository-trust policy, diagnostics, SPDX image-evidence, direct-eSDK evidence, and QEMU security contracts; unit tests; independent Draft 2020-12 validation of the diagnostics, SPDX, SDK, and repository-trust schemas in the external oracle lane; checksums; changed-line whitespace; ShellCheck; actionlint; REUSE | Live repository settings, upstream availability, BitBake parse, image build, guest runtime, generated SBOM content, direct-eSDK execution |
 | Yocto metadata | Relevant PR/main changes or manual run on `ubuntu-24.04` | Exact source resolution, cached offline recheck, both manifest compositions, locked SDK executable/plugin authority, exact sample PN/PV/license/machine metadata, `bitbake -p`, expanded image metadata, exact SPDX generator settings, per-machine QEMU append/recipe/dependency isolation, both machine checks through `yocto-check-layer` | Patched source, compiled sample/image/emulator, generated SDK or SPDX graph, QEMU boot, guest behavior, offline recipe fetches, bit-for-bit output |
 | Full build/runtime | Local/manual on an adequately sized Linux host; no hosted runner currently configured | A completed lab-specific `runtime-test.sh` run builds, boots, executes its required OEQA cases, and emits PCI version-3 or platform version-1 evidence | Nothing until the command actually completes; one lab's result does not qualify the other and metadata CI is not runtime proof |
 | SPDX image evidence | Local/manual on the same adequately sized Linux boundary | `sbom-evidence.sh` completes the selected image's SPDX task and emits schema-1 package/license and artifact-hash evidence | Nothing until the command completes for that lab; it is not runtime, signing, attestation, vulnerability-freshness, reproducibility, release, or physical-hardware proof |
@@ -42,13 +42,25 @@ The metadata verifier requires both inputs exactly once for either profile.
   embedded-license, identity, and dependency metadata before installing with no
   index, resolver, source distribution, cache, or artifact publication. The
   same isolated Draft 2020-12 oracle validates the diagnostics, SPDX
-  image-evidence, and direct-eSDK evidence schemas; none gains a runtime dependency.
+  image-evidence, direct-eSDK evidence, and repository-trust evidence schemas;
+  none gains a runtime dependency.
 - REUSE runs from a digest-pinned container with no network, no capabilities,
   a read-only filesystem, and a read-only repository mount.
 - Workflows do not use `pull_request_target`, privileged follow-up events,
   caches, artifact uploads, or persistent self-hosted runners.
-- `scripts/validate_ci.py` enforces these local invariants and fails closed on
-  unpinned actions, write permissions, secrets, or jobs without timeouts.
+- `scripts/validate_ci.py` first restricts workflow structure to a canonical
+  YAML subset with scoped duplicate-key rejection, then fails closed on
+  unpinned actions, write permissions, secrets or credential-bearing GitHub
+  context access, non-hosted runners, or jobs without timeouts. Workflow events
+  use an unquoted ASCII allowlist of pull requests, pushes, and manual dispatch.
+  The validator binds the complete Fast execution envelope, exact triggers, and
+  reviewed non-skippable job command surfaces to the four required contexts.
+  Those context names are reserved to the Fast workflow; other workflows cannot
+  reuse their job IDs or override job display names.
+- `scripts/repository_trust.py validate` enforces the exact desired-state
+  policy and named security contact. It does not claim live settings were read.
+  The evaluator consumes only the fixed ignored sanitized observation and
+  returns `unavailable` when that input or a required fact is absent.
 
 Hosted runner packages and images remain mutable. Metadata results therefore
 record the GitHub runner image identity and prove compatibility with that
@@ -70,6 +82,7 @@ python3 scripts/source_lock.py validate
 python3 scripts/lab_config.py validate
 python3 scripts/validate_workflow.py
 python3 scripts/validate_ci.py
+python3 scripts/repository_trust.py validate
 python3 scripts/verify_qemu_security.py static
 python3 scripts/verify_diagnostics_schema_lock.py
 python3 -m unittest discover -s tests -p 'test_*.py' -v
@@ -146,7 +159,9 @@ result with a short immutable-artifact retention period and recorded digest;
 raw build trees, shared state, downloads, and environment dumps remain
 excluded.
 
-After the first green M1 runs, maintainers should separately consider making
-the four stable fast jobs required, enabling repository-wide action SHA
-enforcement, restricting allowed actions, and enabling Dependabot security
-updates. These are repository-setting changes, not implied by this pull request.
+M9 records the desired setting state and a staged rollback plan. The local
+source change does not alter GitHub. After a draft M9 pull request passes all
+four stable Fast jobs, a maintainer may separately authorize the bounded live
+transaction documented in `docs/repository-trust.md`. A passing normalized
+observation and new hosted run are required before the task can claim the live
+boundary; the path-scoped metadata job remains advisory.

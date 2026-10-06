@@ -467,9 +467,48 @@ both `learner-source/qemu-edu-sdk-sample` and `learner-ide-sdk` outside the
 selected development root before a later run.
 Historical runtime, diagnostics, and SPDX evidence schemas remain immutable.
 
+## M9 — Verifiable public-repository trust
+
+Outcome: maintainers can compare the public repository's server-side security
+state with a reviewed desired-state contract and produce a small deterministic
+evidence document without giving the project validator network or credential
+access.
+
+Approved on 2026-08-30: advance the development identity to `0.9.0-dev` and
+add one closed repository-trust policy. It covers public visibility,
+squash-only merging, automatic topic-branch deletion, least-privilege Actions,
+GitHub-owned immutable actions, the protected default branch, the exact four
+stable Fast job contexts, Dependabot alerts and security updates, secret
+scanning and push protection, private vulnerability reporting, and a named
+security contact. The path-scoped Yocto metadata job remains advisory.
+
+The evaluator is standard-library-only, offline, and read-only. It reads one
+fixed ignored observation path, rejects unbounded or structurally open input,
+and emits closed schema-1 evidence containing only allowlisted facts, the
+policy SHA-256, an observer-supplied timestamp, ordered check results, and an
+aggregate `pass`, `fail`, or `unavailable` result. It neither calls GitHub nor
+retains raw API responses, actor identities, numeric IDs, URLs, credentials,
+or local paths.
+
+Acceptance gate: local policy, semantic, CI, schema, licensing, checksum, and
+adversarial tests pass; all required reviews complete; then a separately
+authorized staged live-settings transaction is re-read and rolled back on any
+failure. A passing sanitized observation and the same four hosted Fast checks
+under the strengthened ruleset are required before A010 is Done. The result is
+point-in-time configuration evidence, not an attestation, certification,
+release, account-security proof, or guarantee of continuing state.
+
+The dated primary-source rationale is recorded in
+[`research/2026-08-30-m9-repository-trust.md`](research/2026-08-30-m9-repository-trust.md).
+
+Rollback: revert the focused M9 source change. Any later live setting rollback
+must restore the pre-change snapshot in reverse order while preserving the
+existing no-bypass default-branch protection. Never weaken the active ruleset
+merely to make a pull request mergeable.
+
 ## Horizon — Physical target bridge and course ecosystem
 
-Potential work after evidence from M0–M7:
+Potential work after evidence from M0–M9:
 
 - FPGA or supported development-board mapping with explicit QEMU/physical
   evidence separation;

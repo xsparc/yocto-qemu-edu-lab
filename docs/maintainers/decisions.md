@@ -319,3 +319,31 @@ SPDX-License-Identifier: MIT
   SDK, a new sample requires non-base runtime dependencies, or a read-only
   adapter needs the closed evidence. Any expansion requires a new threat,
   licensing, resource, and publication review.
+
+## D-020: Treat repository settings as a versioned trust contract
+
+- Status: Accepted on 2026-08-30 for A010; live settings mutation,
+  publication, merge, tag, and release are not authorized by this decision.
+- Decision: Advance the development identity to `0.9.0-dev`. Define the public
+  repository's intended visibility, merge policy, Actions permissions and
+  allowlist, default-branch ruleset, exact required Fast check contexts,
+  security features, and named security contact in one closed policy. Evaluate
+  only a fixed, ignored, sanitized observation with a standard-library,
+  read-only command and emit deterministic closed evidence schema 1. Keep the
+  path-scoped metadata job advisory. Apply live settings only in a later
+  separately authorized, re-readable, reverse-order rollback transaction after
+  a draft pull request has green checks.
+- Reason: Source and workflow files cannot prove the server-side controls that
+  decide who may merge, which checks count, what actions run, or whether
+  private vulnerability reporting is available. A small provider-neutral
+  evidence projection makes that drift visible without storing credentials,
+  raw GitHub responses, numeric actors, or platform-specific automation in the
+  repository.
+- Evidence boundary: a pass means every allowlisted fact in one sanitized
+  observation matches the policy. It is not an attestation, trusted timestamp,
+  OpenSSF certification, proof of account security, review authorship, release
+  provenance, or evidence that the state remained unchanged after observation.
+- Revisit when: GitHub changes the observed fields or ruleset model, a stable
+  Fast job ID changes, another forge must be supported, or a protected release
+  workflow gains its own provenance requirements. Preserve schema-1 readers or
+  version the contract explicitly.
