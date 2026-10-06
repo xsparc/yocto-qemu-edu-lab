@@ -5,6 +5,8 @@
 This is a multi-architecture example BSP project for learning how Yocto, QEMU,
 Linux hardware discovery, kernel drivers, packages, and an image fit together.
 
+[Portfolio case study: architecture, evidence and current limitations](https://louijiecompo.com/work/yocto-qemu-edu-lab/).
+
 The long-term direction is a progressive, evidence-driven curriculum from this
 first virtual PCI driver through automated runtime testing, MSI, DMA, a
 Device-Tree/platform-driver lab, provider-neutral diagnostics, and bounded
